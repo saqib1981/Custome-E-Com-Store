@@ -1,6 +1,6 @@
 'use client'
 
-import { Image, LayoutGrid, LayoutPanelTop, Megaphone, Minus } from 'lucide-react'
+import { Image, LayoutGrid, LayoutList, LayoutPanelTop, Megaphone, Minus } from 'lucide-react'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { GLOBAL_SETTINGS_ITEMS } from '@/lib/admin-global-settings'
 
@@ -63,6 +63,14 @@ export default function AdminSidebarNav() {
               >
                 <Minus className="h-4 w-4 shrink-0" aria-hidden />
                 Divider
+              </button>
+              <button
+                type="button"
+                onClick={() => openSection('collection-tabs')}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <LayoutList className="h-4 w-4 shrink-0" aria-hidden />
+                Collection tabs
               </button>
             </nav>
           </div>

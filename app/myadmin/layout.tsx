@@ -11,6 +11,7 @@ import HomeDividerSettingsPanel, {
   HomeDividerAfterCardsSettingsPanel,
 } from '@/components/admin/HomeDividerSettingsPanel'
 import CollectionCardsSettingsPanel from '@/components/admin/CollectionCardsSettingsPanel'
+import CollectionTabsSettingsPanel from '@/components/admin/CollectionTabsSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -44,6 +45,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'home-divider-after-cards') {
     return <HomeDividerAfterCardsSettingsPanel />
+  }
+
+  if (activeSection === 'collection-tabs') {
+    return <CollectionTabsSettingsPanel />
   }
 
   if (activeGlobalSetting) {

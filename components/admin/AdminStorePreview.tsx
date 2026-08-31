@@ -6,6 +6,7 @@ import AnnouncementBarView from '@/components/announcement/AnnouncementBarView'
 import HeroBannerView from '@/components/hero/HeroBannerView'
 import HomeDividerSection from '@/components/home/HomeDividerSection'
 import CollectionCards from '@/components/CollectionCards'
+import CollectionTabs from '@/components/CollectionTabs'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
 import { useAdminEditor } from '@/context/AdminEditorContext'
@@ -58,6 +59,9 @@ export default function AdminStorePreview() {
     collectionCardsDraft,
     collectionCardsSaved,
     collectionCardsLoading,
+    collectionTabsDraft,
+    collectionTabsSaved,
+    collectionTabsLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -72,6 +76,7 @@ export default function AdminStorePreview() {
   const isEditingHomeDivider = activeSection === 'home-divider'
   const isEditingCollectionCards = activeSection === 'collection-cards'
   const isEditingHomeDividerAfterCards = activeSection === 'home-divider-after-cards'
+  const isEditingCollectionTabs = activeSection === 'collection-tabs'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
@@ -84,6 +89,7 @@ export default function AdminStorePreview() {
   const homeDividerAfterCardsPreview = isEditingHomeDividerAfterCards
     ? homeDividerAfterCardsDraft
     : homeDividerAfterCardsSaved
+  const collectionTabsPreview = isEditingCollectionTabs ? collectionTabsDraft : collectionTabsSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -95,6 +101,7 @@ export default function AdminStorePreview() {
     homeDividerLoading ||
     homeDividerAfterCardsLoading ||
     collectionCardsLoading ||
+    collectionTabsLoading ||
     generalSettingsLoading
 
   const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
@@ -205,6 +212,11 @@ export default function AdminStorePreview() {
               onPreviewNavigate={setPreviewPath}
             />
             <HomeDividerSection config={homeDividerAfterCardsPreview} />
+            <CollectionTabs
+              preview
+              configOverride={collectionTabsPreview}
+              onPreviewNavigate={setPreviewPath}
+            />
           </>
         ) : (
           <div className="flex flex-1 flex-col p-8 sm:p-12">

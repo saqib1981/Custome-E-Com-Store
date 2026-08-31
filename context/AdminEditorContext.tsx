@@ -35,6 +35,11 @@ import {
   type HomeDividerConfig,
 } from '@/lib/home-divider'
 import {
+  collectionTabsConfigsEqual,
+  DEFAULT_COLLECTION_TABS,
+  type CollectionTabsConfig,
+} from '@/lib/collection-tabs'
+import {
   collectionCardsConfigsEqual,
   DEFAULT_COLLECTION_CARDS,
   type CollectionCardsConfig,
@@ -49,6 +54,7 @@ export type AdminSectionId =
   | 'home-divider'
   | 'collection-cards'
   | 'home-divider-after-cards'
+  | 'collection-tabs'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -104,6 +110,14 @@ type AdminEditorContextValue = {
   collectionCardsStatus: 'idle' | 'saved' | 'error'
   updateCollectionCardsDraft: (patch: Partial<CollectionCardsConfig>) => void
   saveCollectionCards: () => Promise<boolean>
+  collectionTabsLoading: boolean
+  collectionTabsSaving: boolean
+  collectionTabsSaved: CollectionTabsConfig
+  collectionTabsDraft: CollectionTabsConfig
+  collectionTabsDirty: boolean
+  collectionTabsStatus: 'idle' | 'saved' | 'error'
+  updateCollectionTabsDraft: (patch: Partial<CollectionTabsConfig>) => void
+  saveCollectionTabs: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -220,6 +234,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [collectionCardsSaving, setCollectionCardsSaving] = useState(false)
   const [collectionCardsStatus, setCollectionCardsStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
+  const [collectionTabsSaved, setCollectionTabsSaved] =
+    useState<CollectionTabsConfig>(DEFAULT_COLLECTION_TABS)
+  const [collectionTabsDraft, setCollectionTabsDraft] =
+    useState<CollectionTabsConfig>(DEFAULT_COLLECTION_TABS)
+  const [collectionTabsLoading, setCollectionTabsLoading] = useState(true)
+  const [collectionTabsSaving, setCollectionTabsSaving] = useState(false)
+  const [collectionTabsStatus, setCollectionTabsStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
@@ -334,6 +356,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/collection-tabs', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_COLLECTION_TABS))
+      .then((data: CollectionTabsConfig) => {
+        setCollectionTabsSaved(data)
+        setCollectionTabsDraft(data)
+      })
+      .catch(() => {
+        setCollectionTabsSaved(DEFAULT_COLLECTION_TABS)
+        setCollectionTabsDraft(DEFAULT_COLLECTION_TABS)
+      })
+      .finally(() => setCollectionTabsLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -405,6 +441,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const collectionCardsDirty = useMemo(
     () => !collectionCardsConfigsEqual(collectionCardsSaved, collectionCardsDraft),
     [collectionCardsSaved, collectionCardsDraft]
+  )
+
+  const collectionTabsDirty = useMemo(
+    () => !collectionTabsConfigsEqual(collectionTabsSaved, collectionTabsDraft),
+    [collectionTabsSaved, collectionTabsDraft]
   )
 
   const logoFaviconDirty = useMemo(
@@ -615,6 +656,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [collectionCardsDraft])
 
+  const updateCollectionTabsDraft = useCallback((patch: Partial<CollectionTabsConfig>) => {
+    setCollectionTabsDraft((prev) => ({ ...prev, ...patch }))
+    setCollectionTabsStatus('idle')
+  }, [])
+
+  const saveCollectionTabs = useCallback(async () => {
+    setCollectionTabsSaving(true)
+    setCollectionTabsStatus('idle')
+    try {
+      const res = await fetch('/api/admin/collection-tabs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collectionTabsDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as CollectionTabsConfig
+      setCollectionTabsSaved(data)
+      setCollectionTabsDraft(data)
+      setCollectionTabsStatus('saved')
+      return true
+    } catch {
+      setCollectionTabsStatus('error')
+      return false
+    } finally {
+      setCollectionTabsSaving(false)
+    }
+  }, [collectionTabsDraft])
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -806,6 +875,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       collectionCardsStatus,
       updateCollectionCardsDraft,
       saveCollectionCards,
+      collectionTabsLoading,
+      collectionTabsSaving,
+      collectionTabsSaved,
+      collectionTabsDraft,
+      collectionTabsDirty,
+      collectionTabsStatus,
+      updateCollectionTabsDraft,
+      saveCollectionTabs,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -892,6 +969,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       collectionCardsStatus,
       updateCollectionCardsDraft,
       saveCollectionCards,
+      collectionTabsLoading,
+      collectionTabsSaving,
+      collectionTabsSaved,
+      collectionTabsDraft,
+      collectionTabsDirty,
+      collectionTabsStatus,
+      updateCollectionTabsDraft,
+      saveCollectionTabs,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

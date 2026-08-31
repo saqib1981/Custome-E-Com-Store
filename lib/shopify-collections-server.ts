@@ -233,3 +233,130 @@ export async function fetchShopifyCollectionsList(): Promise<ShopifyCollectionsL
     return { collections: [], error: detail }
   }
 }
+
+export type ShopifyCollectionProduct = {
+  id: string
+  title: string
+  handle: string
+  imageUrl: string
+  imageAlt: string
+  priceAmount: string
+  priceCurrency: string
+}
+
+type CollectionProductsQueryNode = CollectionNodeWithProducts & {
+  products?: {
+    nodes: Array<{
+      id: string
+      title: string
+      handle: string
+      featuredImage?: CollectionImageFields | null
+      priceRangeV2?: {
+        minVariantPrice?: { amount?: string | null; currencyCode?: string | null } | null
+      } | null
+    }>
+  }
+}
+
+function mapCollectionProduct(node: NonNullable<CollectionProductsQueryNode['products']>['nodes'][number]): ShopifyCollectionProduct {
+  return {
+    id: node.id,
+    title: node.title,
+    handle: node.handle,
+    imageUrl: node.featuredImage?.url?.trim() ?? '',
+    imageAlt: node.featuredImage?.altText?.trim() || node.title,
+    priceAmount: node.priceRangeV2?.minVariantPrice?.amount ?? '',
+    priceCurrency: node.priceRangeV2?.minVariantPrice?.currencyCode ?? 'USD',
+  }
+}
+
+const COLLECTION_TAB_PRODUCTS_FRAGMENT = (count: number) => `
+  products(first: ${count}) {
+    nodes {
+      id
+      title
+      handle
+      featuredImage {
+        url
+        altText
+      }
+      priceRangeV2 {
+        minVariantPrice {
+          amount
+          currencyCode
+        }
+      }
+    }
+  }
+`
+
+export async function fetchShopifyCollectionWithProducts(
+  selection: { collectionId?: string; collectionHandle?: string },
+  productCount = 8
+): Promise<{ collection: ShopifyCollectionSummary | null; products: ShopifyCollectionProduct[] }> {
+  if (!isShopifyConfigured()) {
+    return { collection: null, products: [] }
+  }
+
+  const access = await ensureProductsReadAccess()
+  if (!access.ok) {
+    return { collection: null, products: [] }
+  }
+
+  const limit = Math.min(Math.max(productCount, 1), 12)
+  const id = String(selection.collectionId ?? '').trim()
+  const handle = String(selection.collectionHandle ?? '').trim()
+
+  try {
+    if (id) {
+      const data = await shopifyAdminGraphql<{ collection: CollectionProductsQueryNode | null }>(
+        `
+          query ShopifyCollectionProductsById($id: ID!) {
+            collection(id: $id) {
+              id
+              title
+              handle
+              image {
+                url
+                altText
+              }
+              ${COLLECTION_TAB_PRODUCTS_FRAGMENT(limit)}
+            }
+          }
+        `,
+        { id }
+      )
+      const collection = data.collection ? mapCollectionNode(data.collection) : null
+      const products = data.collection?.products?.nodes?.map(mapCollectionProduct) ?? []
+      return { collection, products }
+    }
+
+    if (handle) {
+      const data = await shopifyAdminGraphql<{ collectionByHandle: CollectionProductsQueryNode | null }>(
+        `
+          query ShopifyCollectionProductsByHandle($handle: String!) {
+            collectionByHandle(handle: $handle) {
+              id
+              title
+              handle
+              image {
+                url
+                altText
+              }
+              ${COLLECTION_TAB_PRODUCTS_FRAGMENT(limit)}
+            }
+          }
+        `,
+        { handle }
+      )
+      const collection = data.collectionByHandle ? mapCollectionNode(data.collectionByHandle) : null
+      const products = data.collectionByHandle?.products?.nodes?.map(mapCollectionProduct) ?? []
+      return { collection, products }
+    }
+
+    return { collection: null, products: [] }
+  } catch (e) {
+    console.error('fetchShopifyCollectionWithProducts error:', e)
+    return { collection: null, products: [] }
+  }
+}

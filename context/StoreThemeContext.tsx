@@ -12,6 +12,10 @@ import {
   type ReactNode,
 } from 'react'
 import { DEFAULT_GENERAL_SETTINGS, type GeneralSettingsConfig } from '@/lib/general-settings'
+import {
+  DEFAULT_HEADER_NAV_SETTINGS,
+  type HeaderNavSettingsConfig,
+} from '@/lib/header-settings'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import {
   mainMenusEqual,
@@ -25,6 +29,7 @@ type StoreThemeContextValue = {
   loading: boolean
   logoFavicon: LogoFaviconConfig
   generalSettings: GeneralSettingsConfig
+  headerNav: HeaderNavSettingsConfig
   storeName: string
   mainMenu: StoreNavItem[]
   menuLoading: boolean
@@ -34,6 +39,7 @@ const StoreThemeContext = createContext<StoreThemeContextValue>({
   loading: true,
   logoFavicon: DEFAULT_LOGO_FAVICON,
   generalSettings: DEFAULT_GENERAL_SETTINGS,
+  headerNav: DEFAULT_HEADER_NAV_SETTINGS,
   storeName: '',
   mainMenu: FALLBACK_MAIN_MENU,
   menuLoading: true,
@@ -52,6 +58,7 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
   const [logoFavicon, setLogoFavicon] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [generalSettings, setGeneralSettings] =
     useState<GeneralSettingsConfig>(DEFAULT_GENERAL_SETTINGS)
+  const [headerNav, setHeaderNav] = useState<HeaderNavSettingsConfig>(DEFAULT_HEADER_NAV_SETTINGS)
   const [menuLoading, setMenuLoading] = useState(true)
   const [mainMenu, setMainMenu] = useState<StoreNavItem[]>(FALLBACK_MAIN_MENU)
   const [storeName, setStoreName] = useState('')
@@ -131,6 +138,15 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setLoading(false)
       })
 
+    void fetch('/api/admin/header-settings', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HEADER_NAV_SETTINGS))
+      .then((data: HeaderNavSettingsConfig) => {
+        if (!cancelled) setHeaderNav(data)
+      })
+      .catch(() => {
+        if (!cancelled) setHeaderNav(DEFAULT_HEADER_NAV_SETTINGS)
+      })
+
     void refreshMenu(hadCachedMenu.current ? 'background' : 'initial')
 
     const intervalId = window.setInterval(() => {
@@ -148,11 +164,12 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
       loading,
       logoFavicon,
       generalSettings,
+      headerNav,
       storeName,
       mainMenu,
       menuLoading,
     }),
-    [loading, logoFavicon, generalSettings, storeName, mainMenu, menuLoading]
+    [loading, logoFavicon, generalSettings, headerNav, storeName, mainMenu, menuLoading]
   )
 
   return <StoreThemeContext.Provider value={value}>{children}</StoreThemeContext.Provider>

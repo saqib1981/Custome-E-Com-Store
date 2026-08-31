@@ -5,6 +5,7 @@ import { Eye, LayoutPanelTop } from 'lucide-react'
 import { AdminEditorProvider, useAdminEditor } from '@/context/AdminEditorContext'
 import AdminSidebarNav from '@/components/admin/AdminSidebarNav'
 import { AnnouncementBarSettingsPanel } from '@/components/admin/AdminSidebar'
+import HeaderSettingsPanel from '@/components/admin/HeaderSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -18,6 +19,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'announcement') {
     return <AnnouncementBarSettingsPanel />
+  }
+
+  if (activeSection === 'header') {
+    return <HeaderSettingsPanel />
   }
 
   if (activeGlobalSetting) {

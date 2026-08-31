@@ -24,6 +24,9 @@ export default function AdminStorePreview() {
     logoFaviconDraft,
     logoFaviconSaved,
     logoFaviconLoading,
+    headerNavDraft,
+    headerNavSaved,
+    headerNavLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -34,14 +37,18 @@ export default function AdminStorePreview() {
   const { mainMenu } = useStoreTheme()
 
   const isEditingAnnouncement = activeSection === 'announcement'
+  const isEditingHeader = activeSection === 'header'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
-  const logoFaviconPreview = isEditingLogoFavicon ? logoFaviconDraft : logoFaviconSaved
+  const logoFaviconPreview =
+    isEditingHeader || isEditingLogoFavicon ? logoFaviconDraft : logoFaviconSaved
+  const headerNavPreview = isEditingHeader ? headerNavDraft : headerNavSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
-  const isLoading = announcementLoading || logoFaviconLoading || generalSettingsLoading
+  const isLoading =
+    announcementLoading || logoFaviconLoading || headerNavLoading || generalSettingsLoading
 
   const viewportWidth = PREVIEW_VIEWPORT_WIDTHS[previewViewport]
   const isDesktop = previewViewport === 'desktop'
@@ -85,6 +92,7 @@ export default function AdminStorePreview() {
           previewPath={previewPath}
           onPreviewNavigate={setPreviewPath}
           logoFaviconOverride={logoFaviconPreview}
+          headerNavOverride={headerNavPreview}
           menuOverride={mainMenu}
           onOpenMenu={() => setNavOpen(true)}
         />

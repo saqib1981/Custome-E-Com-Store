@@ -22,3 +22,112 @@ body {
 .announcement-marquee:hover {
   animation-play-state: paused;
 }
+
+.store-nav-menu-link {
+  position: relative;
+  display: inline-flex;
+  min-height: 50px;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  transition: color 0.15s ease;
+  color: var(--store-nav-link-color, #1f2937);
+}
+
+.store-nav-menu-link:hover {
+  color: var(--store-nav-link-hover-color, #0284c7);
+}
+
+.store-nav-menu-link[data-active='true'] {
+  color: var(--store-nav-link-active-color, #0284c7);
+}
+
+.store-nav-menu-link[data-active='true']::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background-color: var(--store-nav-link-active-underline-color, #0284c7);
+}
+
+.store-nav-dropdown-link {
+  font-size: 0.875rem;
+  transition: color 0.15s ease;
+  color: var(--store-nav-link-color, #1f2937);
+}
+
+.store-nav-dropdown-link:hover {
+  color: var(--store-nav-link-hover-color, #0284c7);
+}
+
+.store-nav-dropdown-link[data-active='true'] {
+  font-weight: 500;
+  color: var(--store-nav-link-active-color, #0284c7);
+}
+
+.store-nav-menu-link--featured {
+  color: var(--item-link-color) !important;
+}
+
+.store-nav-menu-link--featured:hover {
+  color: var(--item-link-hover-color) !important;
+}
+
+.store-nav-menu-link--featured[data-active='true'] {
+  color: var(--item-link-active-color) !important;
+}
+
+.store-nav-menu-link--featured::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background-color: var(--item-underline-color);
+}
+
+.store-nav-menu-label {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 0.75rem;
+}
+
+.store-nav-menu-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 1;
+  display: inline-flex;
+  min-width: 2rem;
+  transform: translateX(-50%);
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.store-nav-menu-badge::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  transform: translateX(-50%);
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 3px solid var(--badge-bg, #b91c1c);
+}

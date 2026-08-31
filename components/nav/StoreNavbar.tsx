@@ -7,6 +7,7 @@ import StoreBrandMark from '@/components/StoreBrandMark'
 import DesktopStoreNav from '@/components/nav/DesktopStoreNav'
 import StoreNavLink from '@/components/nav/StoreNavLink'
 import { useStoreTheme } from '@/context/StoreThemeContext'
+import type { HeaderNavSettingsConfig } from '@/lib/header-settings'
 import type { LogoFaviconConfig } from '@/lib/logo-favicon'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import { isPreviewCompactActions, isPreviewDesktopLayout } from '@/lib/preview-viewport'
@@ -20,6 +21,7 @@ type StoreNavbarProps = {
   onPreviewNavigate?: (path: string) => void
   logoFaviconOverride?: LogoFaviconConfig
   menuOverride?: StoreNavItem[]
+  headerNavOverride?: HeaderNavSettingsConfig
 }
 
 const iconButtonClass =
@@ -33,13 +35,16 @@ export default function StoreNavbar({
   onPreviewNavigate,
   logoFaviconOverride,
   menuOverride,
+  headerNavOverride,
 }: StoreNavbarProps) {
   const pathname = usePathname()
   const inPreview = previewViewport !== undefined
   const activePath = inPreview ? previewPath : pathname
-  const { storeName, logoFavicon: themeLogoFavicon, mainMenu } = useStoreTheme()
+  const { storeName, logoFavicon: themeLogoFavicon, mainMenu, headerNav: themeHeaderNav } =
+    useStoreTheme()
   const logoFavicon = logoFaviconOverride ?? themeLogoFavicon
   const menuItems = menuOverride ?? mainMenu
+  const headerNav = headerNavOverride ?? themeHeaderNav
   const logoUrl = logoFavicon.logoUrl
 
   const [responsiveLogoWidth, setResponsiveLogoWidth] = useState(logoFavicon.logoWidthDesktop)
@@ -144,6 +149,7 @@ export default function StoreNavbar({
         previewMode={inPreview}
         onPreviewNavigate={onPreviewNavigate}
         className={desktopNavClass}
+        navStyle={headerNav}
       />
     </header>
   )

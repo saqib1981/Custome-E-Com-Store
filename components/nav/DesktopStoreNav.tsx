@@ -1,20 +1,17 @@
 'use client'
 
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import type { CSSProperties } from 'react'
 import StoreNavLink from '@/components/nav/StoreNavLink'
+import {
+  DEFAULT_HEADER_NAV_SETTINGS,
+  findMenuHighlight,
+  headerNavSettingsToCssVars,
+  menuHighlightToCssVars,
+  type HeaderMenuItemHighlight,
+  type HeaderNavSettingsConfig,
+} from '@/lib/header-settings'
 import { isStoreNavActive, type StoreNavItem } from '@/lib/shopify-menu'
-
-const navLinkClass = (active: boolean) =>
-  `relative inline-flex min-h-[50px] items-center gap-1 px-4 py-2.5 text-sm font-medium tracking-wide transition-colors ${
-    active
-      ? 'text-primary-600 after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary-600'
-      : 'text-gray-800 hover:text-primary-600'
-  }`
-
-const dropdownLinkClass = (active: boolean) =>
-  `text-sm transition-colors ${
-    active ? 'font-medium text-primary-600' : 'text-gray-800 hover:text-primary-600'
-  }`
 
 type NavLinkProps = {
   item: StoreNavItem
@@ -22,19 +19,58 @@ type NavLinkProps = {
   className?: string
   previewMode?: boolean
   onPreviewNavigate?: (path: string) => void
+  highlight?: HeaderMenuItemHighlight
 }
 
-function NavAnchor({ item, active, className, previewMode, onPreviewNavigate }: NavLinkProps) {
+function NavMenuLabel({
+  title,
+  highlight,
+}: {
+  title: string
+  highlight?: HeaderMenuItemHighlight
+}) {
+  const badgeLabel = highlight?.badgeLabel.trim()
+
+  if (!badgeLabel || !highlight) {
+    return <span>{title}</span>
+  }
+
+  return (
+    <span className="store-nav-menu-label">
+      <span
+        className="store-nav-menu-badge"
+        style={{
+          backgroundColor: highlight.badgeBackgroundColor,
+          color: highlight.badgeTextColor,
+          ['--badge-bg' as string]: highlight.badgeBackgroundColor,
+        }}
+      >
+        {badgeLabel.toUpperCase()}
+      </span>
+      <span>{title}</span>
+    </span>
+  )
+}
+
+function NavAnchor({ item, active, className, previewMode, onPreviewNavigate, highlight }: NavLinkProps) {
+  const featured = Boolean(highlight)
+  const linkStyle = featured
+    ? (menuHighlightToCssVars(highlight!) as CSSProperties)
+    : undefined
+
   return (
     <StoreNavLink
       href={item.href}
       external={item.external}
+      openInNewTab={highlight?.openInNewTab}
       previewMode={previewMode}
       onPreviewNavigate={onPreviewNavigate}
-      className={`${navLinkClass(active)} ${className ?? ''}`}
+      className={`store-nav-menu-link ${featured ? 'store-nav-menu-link--featured' : ''} ${className ?? ''}`}
+      style={linkStyle}
       aria-current={active ? 'page' : undefined}
+      data-active={active ? 'true' : 'false'}
     >
-      {item.title}
+      <NavMenuLabel title={item.title} highlight={highlight} />
     </StoreNavLink>
   )
 }
@@ -52,8 +88,9 @@ function DropdownNavAnchor({
       external={item.external}
       previewMode={previewMode}
       onPreviewNavigate={onPreviewNavigate}
-      className={`${dropdownLinkClass(active)} ${className ?? ''}`}
+      className={`store-nav-dropdown-link ${className ?? ''}`}
       aria-current={active ? 'page' : undefined}
+      data-active={active ? 'true' : 'false'}
     >
       {item.title}
     </StoreNavLink>
@@ -120,11 +157,13 @@ function DesktopNavDropdown({
   pathname,
   previewMode,
   onPreviewNavigate,
+  highlight,
 }: {
   item: StoreNavItem
   pathname: string
   previewMode?: boolean
   onPreviewNavigate?: (path: string) => void
+  highlight?: HeaderMenuItemHighlight
 }) {
   const active = isStoreNavActive(pathname, item)
 
@@ -136,6 +175,7 @@ function DesktopNavDropdown({
           active={active}
           previewMode={previewMode}
           onPreviewNavigate={onPreviewNavigate}
+          highlight={highlight}
         />
         <ChevronDown
           className="-ml-2 mr-1 h-3.5 w-3.5 text-gray-500 transition-transform group-hover/menu:rotate-180 group-focus-within/menu:rotate-180"
@@ -163,14 +203,17 @@ function DesktopNavItem({
   pathname,
   previewMode,
   onPreviewNavigate,
+  menuHighlights,
 }: {
   item: StoreNavItem
   pathname: string
   previewMode?: boolean
   onPreviewNavigate?: (path: string) => void
+  menuHighlights: HeaderMenuItemHighlight[]
 }) {
   const active = isStoreNavActive(pathname, item)
   const hasChildren = item.items.length > 0
+  const highlight = findMenuHighlight(item.title, menuHighlights)
 
   if (!hasChildren) {
     return (
@@ -180,6 +223,7 @@ function DesktopNavItem({
           active={active}
           previewMode={previewMode}
           onPreviewNavigate={onPreviewNavigate}
+          highlight={highlight}
         />
       </li>
     )
@@ -191,6 +235,7 @@ function DesktopNavItem({
       pathname={pathname}
       previewMode={previewMode}
       onPreviewNavigate={onPreviewNavigate}
+      highlight={highlight}
     />
   )
 }
@@ -201,6 +246,7 @@ type DesktopStoreNavProps = {
   previewMode?: boolean
   onPreviewNavigate?: (path: string) => void
   className?: string
+  navStyle?: HeaderNavSettingsConfig
 }
 
 export default function DesktopStoreNav({
@@ -209,10 +255,17 @@ export default function DesktopStoreNav({
   previewMode,
   onPreviewNavigate,
   className = '',
+  navStyle = DEFAULT_HEADER_NAV_SETTINGS,
 }: DesktopStoreNavProps) {
+  const cssVars = headerNavSettingsToCssVars(navStyle)
+
   return (
     <nav
-      className={`relative border-y border-solid border-gray-200 ${className}`}
+      className={`relative border-y border-solid ${className}`}
+      style={{
+        ...cssVars,
+        borderColor: navStyle.navBorderColor,
+      }}
       aria-label="Main navigation"
     >
       <ul className="mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-0 px-4 sm:px-6">
@@ -223,6 +276,7 @@ export default function DesktopStoreNav({
             pathname={pathname}
             previewMode={previewMode}
             onPreviewNavigate={onPreviewNavigate}
+            menuHighlights={navStyle.menuHighlights}
           />
         ))}
       </ul>

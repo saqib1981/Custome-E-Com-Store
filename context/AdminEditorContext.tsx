@@ -18,10 +18,15 @@ import {
 } from '@/lib/admin-theme-pages'
 import { DEFAULT_ANNOUNCEMENT, type AnnouncementConfig } from '@/lib/announcement'
 import { DEFAULT_GENERAL_SETTINGS, type GeneralSettingsConfig } from '@/lib/general-settings'
+import {
+  DEFAULT_HEADER_NAV_SETTINGS,
+  menuHighlightsEqual,
+  type HeaderNavSettingsConfig,
+} from '@/lib/header-settings'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
-export type AdminSectionId = 'announcement'
+export type AdminSectionId = 'announcement' | 'header'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -53,6 +58,18 @@ type AdminEditorContextValue = {
   updateLogoFaviconDraft: (patch: Partial<LogoFaviconConfig>) => void
   uploadLogoFaviconImage: (folder: LogoFaviconUploadFolder, file: File) => Promise<void>
   saveLogoFavicon: () => Promise<boolean>
+  headerNavLoading: boolean
+  headerNavSaving: boolean
+  headerNavSaved: HeaderNavSettingsConfig
+  headerNavDraft: HeaderNavSettingsConfig
+  headerNavDirty: boolean
+  headerNavStatus: 'idle' | 'saved' | 'error'
+  updateHeaderNavDraft: (patch: Partial<HeaderNavSettingsConfig>) => void
+  saveHeaderNavSettings: () => Promise<boolean>
+  saveHeaderSection: () => Promise<boolean>
+  headerSectionDirty: boolean
+  headerSectionSaving: boolean
+  headerSectionStatus: 'idle' | 'saved' | 'error'
   generalSettingsLoading: boolean
   generalSettingsSaving: boolean
   generalSettingsSaved: GeneralSettingsConfig
@@ -132,6 +149,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     'idle'
   )
 
+  const [headerNavSaved, setHeaderNavSaved] =
+    useState<HeaderNavSettingsConfig>(DEFAULT_HEADER_NAV_SETTINGS)
+  const [headerNavDraft, setHeaderNavDraft] =
+    useState<HeaderNavSettingsConfig>(DEFAULT_HEADER_NAV_SETTINGS)
+  const [headerNavLoading, setHeaderNavLoading] = useState(true)
+  const [headerNavSaving, setHeaderNavSaving] = useState(false)
+  const [headerNavStatus, setHeaderNavStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [headerSectionSaving, setHeaderSectionSaving] = useState(false)
+  const [headerSectionStatus, setHeaderSectionStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
   useEffect(() => {
     void fetch('/api/admin/announcement', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_ANNOUNCEMENT))
@@ -174,6 +201,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       .finally(() => setGeneralSettingsLoading(false))
   }, [])
 
+  useEffect(() => {
+    void fetch('/api/admin/header-settings', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HEADER_NAV_SETTINGS))
+      .then((data: HeaderNavSettingsConfig) => {
+        setHeaderNavSaved(data)
+        setHeaderNavDraft(data)
+      })
+      .catch(() => {
+        setHeaderNavSaved(DEFAULT_HEADER_NAV_SETTINGS)
+        setHeaderNavDraft(DEFAULT_HEADER_NAV_SETTINGS)
+      })
+      .finally(() => setHeaderNavLoading(false))
+  }, [])
+
   const announcementDirty = useMemo(
     () =>
       announcementSaved.enabled !== announcementDraft.enabled ||
@@ -196,6 +237,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [generalSettingsSaved, generalSettingsDraft]
   )
 
+  const headerNavDirty = useMemo(
+    () =>
+      headerNavSaved.linkColor !== headerNavDraft.linkColor ||
+      headerNavSaved.linkHoverColor !== headerNavDraft.linkHoverColor ||
+      headerNavSaved.linkActiveColor !== headerNavDraft.linkActiveColor ||
+      headerNavSaved.linkActiveUnderlineColor !== headerNavDraft.linkActiveUnderlineColor ||
+      headerNavSaved.navBorderColor !== headerNavDraft.navBorderColor ||
+      !menuHighlightsEqual(headerNavSaved.menuHighlights, headerNavDraft.menuHighlights),
+    [headerNavSaved, headerNavDraft]
+  )
+
+  const headerSectionDirty = logoFaviconDirty || headerNavDirty
+
   const isDetailPanelOpen = activeSection !== null || activeGlobalSetting !== null
 
   const openSection = useCallback((id: AdminSectionId) => {
@@ -203,11 +257,17 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setActiveGlobalSetting(null)
     setActiveSection(id)
     setAnnouncementStatus('idle')
+    setLogoFaviconStatus('idle')
+    setHeaderNavStatus('idle')
+    setHeaderSectionStatus('idle')
   }, [])
 
   const closeSection = useCallback(() => {
     setActiveSection(null)
     setAnnouncementStatus('idle')
+    setLogoFaviconStatus('idle')
+    setHeaderNavStatus('idle')
+    setHeaderSectionStatus('idle')
   }, [])
 
   const openGlobalSetting = useCallback((id: AdminGlobalSettingId) => {
@@ -340,6 +400,58 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [generalSettingsDraft])
 
+  const updateHeaderNavDraft = useCallback((patch: Partial<HeaderNavSettingsConfig>) => {
+    setHeaderNavDraft((prev) => ({ ...prev, ...patch }))
+    setHeaderNavStatus('idle')
+    setHeaderSectionStatus('idle')
+  }, [])
+
+  const saveHeaderNavSettings = useCallback(async () => {
+    setHeaderNavSaving(true)
+    setHeaderNavStatus('idle')
+    try {
+      const res = await fetch('/api/admin/header-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(headerNavDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HeaderNavSettingsConfig
+      setHeaderNavSaved(data)
+      setHeaderNavDraft(data)
+      setHeaderNavStatus('saved')
+      return true
+    } catch {
+      setHeaderNavStatus('error')
+      return false
+    } finally {
+      setHeaderNavSaving(false)
+    }
+  }, [headerNavDraft])
+
+  const saveHeaderSection = useCallback(async () => {
+    setHeaderSectionSaving(true)
+    setHeaderSectionStatus('idle')
+    setLogoFaviconStatus('idle')
+    setHeaderNavStatus('idle')
+    try {
+      let ok = true
+      if (logoFaviconDirty) {
+        ok = (await saveLogoFavicon()) && ok
+      }
+      if (headerNavDirty) {
+        ok = (await saveHeaderNavSettings()) && ok
+      }
+      setHeaderSectionStatus(ok ? 'saved' : 'error')
+      return ok
+    } catch {
+      setHeaderSectionStatus('error')
+      return false
+    } finally {
+      setHeaderSectionSaving(false)
+    }
+  }, [headerNavDirty, logoFaviconDirty, saveHeaderNavSettings, saveLogoFavicon])
+
   const value = useMemo<AdminEditorContextValue>(
     () => ({
       sidebarTab,
@@ -369,6 +481,18 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       updateLogoFaviconDraft,
       uploadLogoFaviconImage,
       saveLogoFavicon,
+      headerNavLoading,
+      headerNavSaving,
+      headerNavSaved,
+      headerNavDraft,
+      headerNavDirty,
+      headerNavStatus,
+      updateHeaderNavDraft,
+      saveHeaderNavSettings,
+      saveHeaderSection,
+      headerSectionDirty,
+      headerSectionSaving,
+      headerSectionStatus,
       generalSettingsLoading,
       generalSettingsSaving,
       generalSettingsSaved,
@@ -411,6 +535,18 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       updateLogoFaviconDraft,
       uploadLogoFaviconImage,
       saveLogoFavicon,
+      headerNavLoading,
+      headerNavSaving,
+      headerNavSaved,
+      headerNavDraft,
+      headerNavDirty,
+      headerNavStatus,
+      updateHeaderNavDraft,
+      saveHeaderNavSettings,
+      saveHeaderSection,
+      headerSectionDirty,
+      headerSectionSaving,
+      headerSectionStatus,
       generalSettingsLoading,
       generalSettingsSaving,
       generalSettingsSaved,

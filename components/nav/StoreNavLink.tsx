@@ -15,6 +15,9 @@ type StoreNavLinkProps = {
   children: ReactNode
   'aria-current'?: 'page' | undefined
   'aria-label'?: string
+  'data-active'?: 'true' | 'false'
+  /** Opens internal links in a new browser tab. */
+  openInNewTab?: boolean
 }
 
 export default function StoreNavLink({
@@ -28,7 +31,11 @@ export default function StoreNavLink({
   children,
   'aria-current': ariaCurrent,
   'aria-label': ariaLabel,
+  'data-active': dataActive,
+  openInNewTab = false,
 }: StoreNavLinkProps) {
+  const newTabProps = openInNewTab ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {}
+
   if (external) {
     return (
       <a
@@ -39,6 +46,7 @@ export default function StoreNavLink({
         rel="noopener noreferrer"
         onClick={onClick}
         aria-label={ariaLabel}
+        data-active={dataActive}
       >
         {children}
       </a>
@@ -53,9 +61,13 @@ export default function StoreNavLink({
         style={style}
         aria-current={ariaCurrent}
         aria-label={ariaLabel}
+        data-active={dataActive}
+        {...newTabProps}
         onClick={(e) => {
-          e.preventDefault()
-          onPreviewNavigate?.(href)
+          if (!openInNewTab) {
+            e.preventDefault()
+            onPreviewNavigate?.(href)
+          }
           onClick?.(e)
         }}
       >
@@ -73,6 +85,8 @@ export default function StoreNavLink({
       onClick={onClick}
       aria-current={ariaCurrent}
       aria-label={ariaLabel}
+      data-active={dataActive}
+      {...newTabProps}
     >
       {children}
     </Link>

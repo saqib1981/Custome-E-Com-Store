@@ -2,6 +2,8 @@ export type ShopifyCollectionSummary = {
   id: string
   title: string
   handle: string
+  imageUrl?: string
+  imageAlt?: string
 }
 
 export function shopifyCollectionPath(handle: string): string {

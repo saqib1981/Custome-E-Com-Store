@@ -16,6 +16,9 @@ Run these in **Supabase → SQL Editor** in order.
 | 10 | [`011-hero-banner-mobile-image.sql`](./011-hero-banner-mobile-image.sql) | Old DB — separate mobile hero image fields |
 | 11 | [`012-hero-slider-slides.sql`](./012-hero-slider-slides.sql) | Old DB — hero banner → multi-slide slider |
 | 12 | [`013-home-divider.sql`](./013-home-divider.sql) | Old DB — divider below hero (color & gaps) |
+| 13 | [`014-collection-cards.sql`](./014-collection-cards.sql) | Old DB — 4 Shopify collection cards (3:4) |
+| 14 | [`015-collection-cards-title-position.sql`](./015-collection-cards-title-position.sql) | Old DB — card title overlay vs below |
+| 15 | [`016-home-divider-after-cards.sql`](./016-home-divider-after-cards.sql) | Old DB — divider below collection cards |
 
 ## Fresh install
 
@@ -23,4 +26,4 @@ Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`** (for admin i
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 013).
+Run any migrations you have not applied yet (002 → 016).

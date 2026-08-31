@@ -8,6 +8,7 @@ export type HomeDividerConfig = {
 }
 
 export const HOME_DIVIDER_SETTING_KEY = 'home-divider'
+export const HOME_DIVIDER_AFTER_CARDS_SETTING_KEY = 'home-divider-after-cards'
 
 export const DEFAULT_HOME_DIVIDER: HomeDividerConfig = {
   enabled: true,

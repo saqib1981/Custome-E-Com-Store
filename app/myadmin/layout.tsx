@@ -7,7 +7,10 @@ import AdminSidebarNav from '@/components/admin/AdminSidebarNav'
 import { AnnouncementBarSettingsPanel } from '@/components/admin/AdminSidebar'
 import HeaderSettingsPanel from '@/components/admin/HeaderSettingsPanel'
 import HeroBannerSettingsPanel from '@/components/admin/HeroBannerSettingsPanel'
-import HomeDividerSettingsPanel from '@/components/admin/HomeDividerSettingsPanel'
+import HomeDividerSettingsPanel, {
+  HomeDividerAfterCardsSettingsPanel,
+} from '@/components/admin/HomeDividerSettingsPanel'
+import CollectionCardsSettingsPanel from '@/components/admin/CollectionCardsSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -33,6 +36,14 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'home-divider') {
     return <HomeDividerSettingsPanel />
+  }
+
+  if (activeSection === 'collection-cards') {
+    return <CollectionCardsSettingsPanel />
+  }
+
+  if (activeSection === 'home-divider-after-cards') {
+    return <HomeDividerAfterCardsSettingsPanel />
   }
 
   if (activeGlobalSetting) {

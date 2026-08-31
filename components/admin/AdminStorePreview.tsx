@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react'
 import AnnouncementBarView from '@/components/announcement/AnnouncementBarView'
 import HeroBannerView from '@/components/hero/HeroBannerView'
 import HomeDividerSection from '@/components/home/HomeDividerSection'
+import CollectionCards from '@/components/CollectionCards'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
 import { useAdminEditor } from '@/context/AdminEditorContext'
@@ -51,6 +52,12 @@ export default function AdminStorePreview() {
     homeDividerDraft,
     homeDividerSaved,
     homeDividerLoading,
+    homeDividerAfterCardsDraft,
+    homeDividerAfterCardsSaved,
+    homeDividerAfterCardsLoading,
+    collectionCardsDraft,
+    collectionCardsSaved,
+    collectionCardsLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -63,6 +70,8 @@ export default function AdminStorePreview() {
   const isEditingHeader = activeSection === 'header'
   const isEditingHeroBanner = activeSection === 'hero-banner'
   const isEditingHomeDivider = activeSection === 'home-divider'
+  const isEditingCollectionCards = activeSection === 'collection-cards'
+  const isEditingHomeDividerAfterCards = activeSection === 'home-divider-after-cards'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
@@ -71,6 +80,10 @@ export default function AdminStorePreview() {
   const headerNavPreview = isEditingHeader ? headerNavDraft : headerNavSaved
   const heroBannerPreview = isEditingHeroBanner ? heroBannerDraft : heroBannerSaved
   const homeDividerPreview = isEditingHomeDivider ? homeDividerDraft : homeDividerSaved
+  const collectionCardsPreview = isEditingCollectionCards ? collectionCardsDraft : collectionCardsSaved
+  const homeDividerAfterCardsPreview = isEditingHomeDividerAfterCards
+    ? homeDividerAfterCardsDraft
+    : homeDividerAfterCardsSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -80,6 +93,8 @@ export default function AdminStorePreview() {
     headerNavLoading ||
     heroBannerLoading ||
     homeDividerLoading ||
+    homeDividerAfterCardsLoading ||
+    collectionCardsLoading ||
     generalSettingsLoading
 
   const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
@@ -183,14 +198,13 @@ export default function AdminStorePreview() {
               previewViewport={previewViewport}
               onPreviewNavigate={setPreviewPath}
             />
-            <HomeDividerSection
-              config={homeDividerPreview}
-              contentClassName="flex flex-1 flex-col px-8 pb-8 sm:px-12 sm:pb-12"
-            >
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                Homepage content below hero
-              </p>
-            </HomeDividerSection>
+            <HomeDividerSection config={homeDividerPreview} />
+            <CollectionCards
+              preview
+              configOverride={collectionCardsPreview}
+              onPreviewNavigate={setPreviewPath}
+            />
+            <HomeDividerSection config={homeDividerAfterCardsPreview} />
           </>
         ) : (
           <div className="flex flex-1 flex-col p-8 sm:p-12">

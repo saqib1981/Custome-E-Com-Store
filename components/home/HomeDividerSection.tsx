@@ -4,7 +4,7 @@ import type { HomeDividerConfig } from '@/lib/home-divider'
 
 type HomeDividerSectionProps = {
   config: HomeDividerConfig
-  children: React.ReactNode
+  children?: React.ReactNode
   contentClassName?: string
 }
 
@@ -14,19 +14,21 @@ export default function HomeDividerSection({
   contentClassName = '',
 }: HomeDividerSectionProps) {
   if (!config.enabled) {
+    if (!children) return null
     return <div className={contentClassName}>{children}</div>
   }
 
   return (
     <section
-      className="flex flex-1 flex-col border-t"
+      className="w-full shrink-0 border-t"
       style={{
         marginTop: config.gapTop,
         borderTopColor: config.lineColor,
         paddingTop: config.gapBottom,
       }}
+      aria-hidden={children ? undefined : true}
     >
-      <div className={contentClassName}>{children}</div>
+      {children ? <div className={contentClassName}>{children}</div> : null}
     </section>
   )
 }

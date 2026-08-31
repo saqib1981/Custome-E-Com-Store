@@ -7,6 +7,7 @@ import { useAdminEditor } from '@/context/AdminEditorContext'
 import {
   DEFAULT_HOME_DIVIDER,
   parseHomeDividerGapPx,
+  type HomeDividerConfig,
 } from '@/lib/home-divider'
 
 const GAP_PRESETS = [0, 8, 15, 24, 32, 48] as const
@@ -55,6 +56,84 @@ function GapField({ id, label, value, onChange }: GapFieldProps) {
   )
 }
 
+type DividerSettingsPanelProps = {
+  title: string
+  subtitle: string
+  idPrefix: string
+  gapTopLabel: string
+  gapBottomLabel: string
+  draft: HomeDividerConfig
+  dirty: boolean
+  saving: boolean
+  status: 'idle' | 'saved' | 'error'
+  onUpdate: (patch: Partial<HomeDividerConfig>) => void
+  onSave: () => void
+  onBack: () => void
+}
+
+function DividerSettingsPanel({
+  title,
+  subtitle,
+  idPrefix,
+  gapTopLabel,
+  gapBottomLabel,
+  draft,
+  dirty,
+  saving,
+  status,
+  onUpdate,
+  onSave,
+  onBack,
+}: DividerSettingsPanelProps) {
+  return (
+    <AdminPanelShell
+      title={title}
+      subtitle={subtitle}
+      onBack={onBack}
+      onSave={onSave}
+      saveDisabled={!dirty}
+      saving={saving}
+      status={status}
+    >
+      <SettingsCollapsibleSection title="Visibility" defaultOpen>
+        <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
+          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Show divider</span>
+          <input
+            type="checkbox"
+            checked={draft.enabled}
+            onChange={(e) => onUpdate({ enabled: e.target.checked })}
+            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+        </label>
+      </SettingsCollapsibleSection>
+
+      <SettingsCollapsibleSection title="Style" defaultOpen>
+        <div className="space-y-4 px-3 pb-2">
+          <ColorField
+            id={`${idPrefix}-line-color`}
+            label="Line color"
+            value={draft.lineColor}
+            fallback={DEFAULT_HOME_DIVIDER.lineColor}
+            onChange={(lineColor) => onUpdate({ lineColor })}
+          />
+          <GapField
+            id={`${idPrefix}-gap-top`}
+            label={gapTopLabel}
+            value={draft.gapTop}
+            onChange={(gapTop) => onUpdate({ gapTop })}
+          />
+          <GapField
+            id={`${idPrefix}-gap-bottom`}
+            label={gapBottomLabel}
+            value={draft.gapBottom}
+            onChange={(gapBottom) => onUpdate({ gapBottom })}
+          />
+        </div>
+      </SettingsCollapsibleSection>
+    </AdminPanelShell>
+  )
+}
+
 export default function HomeDividerSettingsPanel() {
   const {
     closeSection,
@@ -67,50 +146,48 @@ export default function HomeDividerSettingsPanel() {
   } = useAdminEditor()
 
   return (
-    <AdminPanelShell
+    <DividerSettingsPanel
       title="Divider"
-      subtitle="Line between hero slider and homepage sections"
-      onBack={closeSection}
-      onSave={() => void saveHomeDivider()}
-      saveDisabled={!homeDividerDirty}
+      subtitle="Line between hero slider and collection cards"
+      idPrefix="home-divider"
+      gapTopLabel="Gap above line (after slider)"
+      gapBottomLabel="Gap below line (before collection cards)"
+      draft={homeDividerDraft}
+      dirty={homeDividerDirty}
       saving={homeDividerSaving}
       status={homeDividerStatus}
-    >
-      <SettingsCollapsibleSection title="Visibility" defaultOpen>
-        <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Show divider</span>
-          <input
-            type="checkbox"
-            checked={homeDividerDraft.enabled}
-            onChange={(e) => updateHomeDividerDraft({ enabled: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-          />
-        </label>
-      </SettingsCollapsibleSection>
+      onUpdate={updateHomeDividerDraft}
+      onSave={() => void saveHomeDivider()}
+      onBack={closeSection}
+    />
+  )
+}
 
-      <SettingsCollapsibleSection title="Style" defaultOpen>
-        <div className="space-y-4 px-3 pb-2">
-          <ColorField
-            id="home-divider-line-color"
-            label="Line color"
-            value={homeDividerDraft.lineColor}
-            fallback={DEFAULT_HOME_DIVIDER.lineColor}
-            onChange={(lineColor) => updateHomeDividerDraft({ lineColor })}
-          />
-          <GapField
-            id="home-divider-gap-top"
-            label="Gap above line (after slider)"
-            value={homeDividerDraft.gapTop}
-            onChange={(gapTop) => updateHomeDividerDraft({ gapTop })}
-          />
-          <GapField
-            id="home-divider-gap-bottom"
-            label="Gap below line (before sections)"
-            value={homeDividerDraft.gapBottom}
-            onChange={(gapBottom) => updateHomeDividerDraft({ gapBottom })}
-          />
-        </div>
-      </SettingsCollapsibleSection>
-    </AdminPanelShell>
+export function HomeDividerAfterCardsSettingsPanel() {
+  const {
+    closeSection,
+    homeDividerAfterCardsDraft,
+    homeDividerAfterCardsDirty,
+    homeDividerAfterCardsSaving,
+    homeDividerAfterCardsStatus,
+    updateHomeDividerAfterCardsDraft,
+    saveHomeDividerAfterCards,
+  } = useAdminEditor()
+
+  return (
+    <DividerSettingsPanel
+      title="Divider"
+      subtitle="Line below collection cards"
+      idPrefix="home-divider-after-cards"
+      gapTopLabel="Gap above line (after collection cards)"
+      gapBottomLabel="Gap below line (before next sections)"
+      draft={homeDividerAfterCardsDraft}
+      dirty={homeDividerAfterCardsDirty}
+      saving={homeDividerAfterCardsSaving}
+      status={homeDividerAfterCardsStatus}
+      onUpdate={updateHomeDividerAfterCardsDraft}
+      onSave={() => void saveHomeDividerAfterCards()}
+      onBack={closeSection}
+    />
   )
 }

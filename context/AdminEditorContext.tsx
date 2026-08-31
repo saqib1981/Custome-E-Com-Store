@@ -34,10 +34,21 @@ import {
   homeDividerConfigsEqual,
   type HomeDividerConfig,
 } from '@/lib/home-divider'
+import {
+  collectionCardsConfigsEqual,
+  DEFAULT_COLLECTION_CARDS,
+  type CollectionCardsConfig,
+} from '@/lib/collection-cards'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
-export type AdminSectionId = 'announcement' | 'header' | 'hero-banner' | 'home-divider'
+export type AdminSectionId =
+  | 'announcement'
+  | 'header'
+  | 'hero-banner'
+  | 'home-divider'
+  | 'collection-cards'
+  | 'home-divider-after-cards'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -77,6 +88,22 @@ type AdminEditorContextValue = {
   homeDividerStatus: 'idle' | 'saved' | 'error'
   updateHomeDividerDraft: (patch: Partial<HomeDividerConfig>) => void
   saveHomeDivider: () => Promise<boolean>
+  homeDividerAfterCardsLoading: boolean
+  homeDividerAfterCardsSaving: boolean
+  homeDividerAfterCardsSaved: HomeDividerConfig
+  homeDividerAfterCardsDraft: HomeDividerConfig
+  homeDividerAfterCardsDirty: boolean
+  homeDividerAfterCardsStatus: 'idle' | 'saved' | 'error'
+  updateHomeDividerAfterCardsDraft: (patch: Partial<HomeDividerConfig>) => void
+  saveHomeDividerAfterCards: () => Promise<boolean>
+  collectionCardsLoading: boolean
+  collectionCardsSaving: boolean
+  collectionCardsSaved: CollectionCardsConfig
+  collectionCardsDraft: CollectionCardsConfig
+  collectionCardsDirty: boolean
+  collectionCardsStatus: 'idle' | 'saved' | 'error'
+  updateCollectionCardsDraft: (patch: Partial<CollectionCardsConfig>) => void
+  saveCollectionCards: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -175,6 +202,24 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [homeDividerSaving, setHomeDividerSaving] = useState(false)
   const [homeDividerStatus, setHomeDividerStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
+  const [homeDividerAfterCardsSaved, setHomeDividerAfterCardsSaved] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterCardsDraft, setHomeDividerAfterCardsDraft] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterCardsLoading, setHomeDividerAfterCardsLoading] = useState(true)
+  const [homeDividerAfterCardsSaving, setHomeDividerAfterCardsSaving] = useState(false)
+  const [homeDividerAfterCardsStatus, setHomeDividerAfterCardsStatus] = useState<
+    'idle' | 'saved' | 'error'
+  >('idle')
+
+  const [collectionCardsSaved, setCollectionCardsSaved] =
+    useState<CollectionCardsConfig>(DEFAULT_COLLECTION_CARDS)
+  const [collectionCardsDraft, setCollectionCardsDraft] =
+    useState<CollectionCardsConfig>(DEFAULT_COLLECTION_CARDS)
+  const [collectionCardsLoading, setCollectionCardsLoading] = useState(true)
+  const [collectionCardsSaving, setCollectionCardsSaving] = useState(false)
+  const [collectionCardsStatus, setCollectionCardsStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
@@ -261,6 +306,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/home-divider-after-cards', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
+      .then((data: HomeDividerConfig) => {
+        setHomeDividerAfterCardsSaved(data)
+        setHomeDividerAfterCardsDraft(data)
+      })
+      .catch(() => {
+        setHomeDividerAfterCardsSaved(DEFAULT_HOME_DIVIDER)
+        setHomeDividerAfterCardsDraft(DEFAULT_HOME_DIVIDER)
+      })
+      .finally(() => setHomeDividerAfterCardsLoading(false))
+  }, [])
+
+  useEffect(() => {
+    void fetch('/api/admin/collection-cards', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_COLLECTION_CARDS))
+      .then((data: CollectionCardsConfig) => {
+        setCollectionCardsSaved(data)
+        setCollectionCardsDraft(data)
+      })
+      .catch(() => {
+        setCollectionCardsSaved(DEFAULT_COLLECTION_CARDS)
+        setCollectionCardsDraft(DEFAULT_COLLECTION_CARDS)
+      })
+      .finally(() => setCollectionCardsLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -322,6 +395,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const homeDividerDirty = useMemo(
     () => !homeDividerConfigsEqual(homeDividerSaved, homeDividerDraft),
     [homeDividerSaved, homeDividerDraft]
+  )
+
+  const homeDividerAfterCardsDirty = useMemo(
+    () => !homeDividerConfigsEqual(homeDividerAfterCardsSaved, homeDividerAfterCardsDraft),
+    [homeDividerAfterCardsSaved, homeDividerAfterCardsDraft]
+  )
+
+  const collectionCardsDirty = useMemo(
+    () => !collectionCardsConfigsEqual(collectionCardsSaved, collectionCardsDraft),
+    [collectionCardsSaved, collectionCardsDraft]
   )
 
   const logoFaviconDirty = useMemo(
@@ -475,6 +558,62 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setHomeDividerSaving(false)
     }
   }, [homeDividerDraft])
+
+  const updateHomeDividerAfterCardsDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
+    setHomeDividerAfterCardsDraft((prev) => ({ ...prev, ...patch }))
+    setHomeDividerAfterCardsStatus('idle')
+  }, [])
+
+  const saveHomeDividerAfterCards = useCallback(async () => {
+    setHomeDividerAfterCardsSaving(true)
+    setHomeDividerAfterCardsStatus('idle')
+    try {
+      const res = await fetch('/api/admin/home-divider-after-cards', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(homeDividerAfterCardsDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HomeDividerConfig
+      setHomeDividerAfterCardsSaved(data)
+      setHomeDividerAfterCardsDraft(data)
+      setHomeDividerAfterCardsStatus('saved')
+      return true
+    } catch {
+      setHomeDividerAfterCardsStatus('error')
+      return false
+    } finally {
+      setHomeDividerAfterCardsSaving(false)
+    }
+  }, [homeDividerAfterCardsDraft])
+
+  const updateCollectionCardsDraft = useCallback((patch: Partial<CollectionCardsConfig>) => {
+    setCollectionCardsDraft((prev) => ({ ...prev, ...patch }))
+    setCollectionCardsStatus('idle')
+  }, [])
+
+  const saveCollectionCards = useCallback(async () => {
+    setCollectionCardsSaving(true)
+    setCollectionCardsStatus('idle')
+    try {
+      const res = await fetch('/api/admin/collection-cards', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collectionCardsDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as CollectionCardsConfig
+      setCollectionCardsSaved(data)
+      setCollectionCardsDraft(data)
+      setCollectionCardsStatus('saved')
+      return true
+    } catch {
+      setCollectionCardsStatus('error')
+      return false
+    } finally {
+      setCollectionCardsSaving(false)
+    }
+  }, [collectionCardsDraft])
 
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
@@ -651,6 +790,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerStatus,
       updateHomeDividerDraft,
       saveHomeDivider,
+      homeDividerAfterCardsLoading,
+      homeDividerAfterCardsSaving,
+      homeDividerAfterCardsSaved,
+      homeDividerAfterCardsDraft,
+      homeDividerAfterCardsDirty,
+      homeDividerAfterCardsStatus,
+      updateHomeDividerAfterCardsDraft,
+      saveHomeDividerAfterCards,
+      collectionCardsLoading,
+      collectionCardsSaving,
+      collectionCardsSaved,
+      collectionCardsDraft,
+      collectionCardsDirty,
+      collectionCardsStatus,
+      updateCollectionCardsDraft,
+      saveCollectionCards,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -721,6 +876,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerStatus,
       updateHomeDividerDraft,
       saveHomeDivider,
+      homeDividerAfterCardsLoading,
+      homeDividerAfterCardsSaving,
+      homeDividerAfterCardsSaved,
+      homeDividerAfterCardsDraft,
+      homeDividerAfterCardsDirty,
+      homeDividerAfterCardsStatus,
+      updateHomeDividerAfterCardsDraft,
+      saveHomeDividerAfterCards,
+      collectionCardsLoading,
+      collectionCardsSaving,
+      collectionCardsSaved,
+      collectionCardsDraft,
+      collectionCardsDirty,
+      collectionCardsStatus,
+      updateCollectionCardsDraft,
+      saveCollectionCards,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

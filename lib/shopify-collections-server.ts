@@ -13,7 +13,160 @@ export type ShopifyCollectionsListResult = {
 
 type CollectionsListQueryResponse = {
   collections: {
-    nodes: ShopifyCollectionSummary[]
+    nodes: Array<{
+      id: string
+      title: string
+      handle: string
+      image?: { url?: string | null; altText?: string | null } | null
+    }>
+  }
+}
+
+type CollectionImageFields = {
+  url?: string | null
+  altText?: string | null
+}
+
+type CollectionProductNode = {
+  featuredImage?: CollectionImageFields | null
+  images?: { nodes: CollectionImageFields[] }
+}
+
+type CollectionNodeWithProducts = {
+  id: string
+  title: string
+  handle: string
+  image?: CollectionImageFields | null
+  products?: { nodes: CollectionProductNode[] }
+}
+
+type CollectionDetailResponse = {
+  collection: CollectionNodeWithProducts | null
+}
+
+type CollectionByHandleResponse = {
+  collectionByHandle: CollectionNodeWithProducts | null
+}
+
+const COLLECTION_PRODUCTS_FRAGMENT = `
+  products(first: 1) {
+    nodes {
+      featuredImage {
+        url
+        altText
+      }
+      images(first: 1) {
+        nodes {
+          url
+          altText
+        }
+      }
+    }
+  }
+`
+
+function resolveCollectionImage(node: CollectionNodeWithProducts): {
+  imageUrl: string
+  imageAlt: string
+} {
+  const collectionUrl = node.image?.url?.trim()
+  if (collectionUrl) {
+    return {
+      imageUrl: collectionUrl,
+      imageAlt: node.image?.altText?.trim() || node.title,
+    }
+  }
+
+  const firstProduct = node.products?.nodes?.[0]
+  const featuredUrl = firstProduct?.featuredImage?.url?.trim()
+  if (featuredUrl) {
+    return {
+      imageUrl: featuredUrl,
+      imageAlt: firstProduct?.featuredImage?.altText?.trim() || node.title,
+    }
+  }
+
+  const fallbackImage = firstProduct?.images?.nodes?.[0]
+  const fallbackUrl = fallbackImage?.url?.trim()
+  if (fallbackUrl) {
+    return {
+      imageUrl: fallbackUrl,
+      imageAlt: fallbackImage?.altText?.trim() || node.title,
+    }
+  }
+
+  return { imageUrl: '', imageAlt: node.title }
+}
+
+function mapCollectionNode(node: CollectionNodeWithProducts): ShopifyCollectionSummary {
+  const { imageUrl, imageAlt } = resolveCollectionImage(node)
+  return {
+    id: node.id,
+    title: node.title,
+    handle: node.handle,
+    imageUrl,
+    imageAlt,
+  }
+}
+
+export async function fetchShopifyCollectionDetail(
+  selection: { collectionId?: string; collectionHandle?: string }
+): Promise<ShopifyCollectionSummary | null> {
+  if (!isShopifyConfigured()) return null
+
+  const access = await ensureProductsReadAccess()
+  if (!access.ok) return null
+
+  const id = String(selection.collectionId ?? '').trim()
+  const handle = String(selection.collectionHandle ?? '').trim()
+
+  try {
+    if (id) {
+      const data = await shopifyAdminGraphql<CollectionDetailResponse>(
+        `
+          query ShopifyCollectionById($id: ID!) {
+            collection(id: $id) {
+              id
+              title
+              handle
+              image {
+                url
+                altText
+              }
+              ${COLLECTION_PRODUCTS_FRAGMENT}
+            }
+          }
+        `,
+        { id }
+      )
+      return data.collection ? mapCollectionNode(data.collection) : null
+    }
+
+    if (handle) {
+      const data = await shopifyAdminGraphql<CollectionByHandleResponse>(
+        `
+          query ShopifyCollectionByHandle($handle: String!) {
+            collectionByHandle(handle: $handle) {
+              id
+              title
+              handle
+              image {
+                url
+                altText
+              }
+              ${COLLECTION_PRODUCTS_FRAGMENT}
+            }
+          }
+        `,
+        { handle }
+      )
+      return data.collectionByHandle ? mapCollectionNode(data.collectionByHandle) : null
+    }
+
+    return null
+  } catch (e) {
+    console.error('fetchShopifyCollectionDetail error:', e)
+    return null
   }
 }
 
@@ -47,6 +200,10 @@ export async function fetchShopifyCollectionsList(): Promise<ShopifyCollectionsL
               id
               title
               handle
+              image {
+                url
+                altText
+              }
             }
           }
         }
@@ -55,11 +212,7 @@ export async function fetchShopifyCollectionsList(): Promise<ShopifyCollectionsL
 
     return {
       collections: data.collections.nodes
-        .map((collection) => ({
-          id: collection.id,
-          title: collection.title,
-          handle: collection.handle,
-        }))
+        .map((collection) => mapCollectionNode(collection))
         .sort((a, b) => a.title.localeCompare(b.title)),
       error: null,
     }

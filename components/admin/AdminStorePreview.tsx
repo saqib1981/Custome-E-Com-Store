@@ -1,24 +1,37 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import AnnouncementBarView from '@/components/announcement/AnnouncementBarView'
 import HeroBannerView from '@/components/hero/HeroBannerView'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
 import { useAdminEditor } from '@/context/AdminEditorContext'
-import { useStoreTheme } from '@/context/StoreThemeContext'
 import {
   PREVIEW_VIEWPORT_WIDTHS,
   isPreviewDesktopLayout,
 } from '@/lib/preview-viewport'
 import { resolveThemePageLabel } from '@/lib/admin-theme-pages'
 import { FALLBACK_MAIN_MENU, type StoreNavItem } from '@/lib/shopify-menu'
+import { MENU_ADMIN_PREVIEW_REFRESH_MS } from '@/lib/store-menu-client'
+
+async function fetchPreviewMenu(menuId: string, menuHandle: string): Promise<StoreNavItem[]> {
+  const params = new URLSearchParams()
+  if (menuId) params.set('menuId', menuId)
+  if (menuHandle) params.set('menuHandle', menuHandle)
+
+  const res = await fetch(`/api/admin/preview-menu?${params.toString()}`, { cache: 'no-store' })
+  if (!res.ok) return FALLBACK_MAIN_MENU
+
+  const data = (await res.json()) as { items?: StoreNavItem[] }
+  if (Array.isArray(data.items) && data.items.length) return data.items
+  return FALLBACK_MAIN_MENU
+}
 
 export default function AdminStorePreview() {
   const [navOpen, setNavOpen] = useState(false)
   const [previewMenu, setPreviewMenu] = useState<StoreNavItem[] | null>(null)
-  const [previewMenuLoading, setPreviewMenuLoading] = useState(false)
+  const [previewMenuLoading, setPreviewMenuLoading] = useState(true)
   const {
     activeSection,
     activeGlobalSetting,
@@ -41,7 +54,6 @@ export default function AdminStorePreview() {
     previewPath,
     setPreviewPath,
   } = useAdminEditor()
-  const { mainMenu } = useStoreTheme()
 
   const isEditingAnnouncement = activeSection === 'announcement'
   const isEditingHeader = activeSection === 'header'
@@ -63,6 +75,8 @@ export default function AdminStorePreview() {
     heroBannerLoading ||
     generalSettingsLoading
 
+  const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
+
   const isHomePreview = previewPath === '/'
 
   const viewportWidth = PREVIEW_VIEWPORT_WIDTHS[previewViewport]
@@ -73,49 +87,51 @@ export default function AdminStorePreview() {
   }, [previewViewport])
 
   useEffect(() => {
-    if (!isEditingHeader) {
-      setPreviewMenu(null)
-      setPreviewMenuLoading(false)
-      return
-    }
+    if (headerNavLoading) return
 
     let cancelled = false
-    setPreviewMenuLoading(true)
 
-    const params = new URLSearchParams()
-    if (headerNavDraft.menuId) params.set('menuId', headerNavDraft.menuId)
-    if (headerNavDraft.menuHandle) params.set('menuHandle', headerNavDraft.menuHandle)
-
-    void fetch(`/api/admin/preview-menu?${params.toString()}`, { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { items?: StoreNavItem[] } | null) => {
-        if (cancelled) return
-        if (Array.isArray(data?.items) && data.items.length) {
-          setPreviewMenu(data.items)
-        } else {
-          setPreviewMenu(FALLBACK_MAIN_MENU)
-        }
-      })
-      .catch(() => {
+    const run = async () => {
+      setPreviewMenuLoading(true)
+      try {
+        const items = await fetchPreviewMenu(menuSelection.menuId, menuSelection.menuHandle)
+        if (!cancelled) setPreviewMenu(items)
+      } catch {
         if (!cancelled) setPreviewMenu(FALLBACK_MAIN_MENU)
-      })
-      .finally(() => {
+      } finally {
         if (!cancelled) setPreviewMenuLoading(false)
-      })
+      }
+    }
+
+    void run()
+
+    const intervalId = window.setInterval(() => {
+      void fetchPreviewMenu(menuSelection.menuId, menuSelection.menuHandle)
+        .then((items) => {
+          if (!cancelled) setPreviewMenu(items)
+        })
+        .catch(() => {
+          // keep last good menu on poll failure
+        })
+    }, MENU_ADMIN_PREVIEW_REFRESH_MS)
+
+    const onFocus = () => {
+      void run()
+    }
+    window.addEventListener('focus', onFocus)
 
     return () => {
       cancelled = true
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', onFocus)
     }
-  }, [isEditingHeader, headerNavDraft.menuId, headerNavDraft.menuHandle])
+  }, [headerNavLoading, menuSelection.menuId, menuSelection.menuHandle])
 
-  const menuForPreview = useMemo(() => {
-    if (isEditingHeader && previewMenu) return previewMenu
-    return mainMenu
-  }, [isEditingHeader, previewMenu, mainMenu])
+  const menuForPreview = previewMenu ?? FALLBACK_MAIN_MENU
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 justify-center overflow-y-auto bg-white p-4 sm:p-6">
-      {isLoading || (isEditingHeader && previewMenuLoading && !previewMenu) ? (
+      {isLoading || (previewMenuLoading && !previewMenu) ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
           <Loader2 className="mr-2 h-6 w-6 animate-spin text-gray-500" aria-hidden />
           <span className="text-sm text-gray-600">Loading preview…</span>

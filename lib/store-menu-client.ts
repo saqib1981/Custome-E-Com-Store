@@ -57,5 +57,8 @@ export function mainMenusEqual(a: StoreNavItem[], b: StoreNavItem[]): boolean {
   return JSON.stringify(a) === JSON.stringify(b)
 }
 
-/** Matches /api/store/menu revalidate window. */
-export const MENU_BACKGROUND_REFRESH_MS = 5 * 60 * 1000
+/** Background refresh on live storefront (admin preview fetches directly). */
+export const MENU_BACKGROUND_REFRESH_MS = 60 * 1000
+
+/** Admin theme preview — poll Shopify while editor is open. */
+export const MENU_ADMIN_PREVIEW_REFRESH_MS = 30 * 1000

@@ -48,7 +48,7 @@ const StoreThemeContext = createContext<StoreThemeContextValue>({
 })
 
 async function fetchMainMenuFromApi(): Promise<StoreNavItem[] | null> {
-  const res = await fetch('/api/store/menu')
+  const res = await fetch('/api/store/menu', { cache: 'no-store' })
   if (!res.ok) return null
   const data = (await res.json()) as { items?: StoreNavItem[] }
   if (!Array.isArray(data.items) || !data.items.length) return null
@@ -78,8 +78,8 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshMenu = useCallback(
-    async (mode: 'initial' | 'background', menuKey: string) => {
-      if (menuRefreshInFlight.current) return
+    async (mode: 'initial' | 'background' | 'force', menuKey: string) => {
+      if (menuRefreshInFlight.current && mode === 'background') return
       menuRefreshInFlight.current = true
       try {
         const items = await fetchMainMenuFromApi()
@@ -167,6 +167,24 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
+    }
+  }, [refreshMenu])
+
+  useEffect(() => {
+    const refreshFromShopify = () => {
+      clearCachedMainMenu()
+      void refreshMenu('force', menuCacheKeyRef.current)
+    }
+
+    window.addEventListener('focus', refreshFromShopify)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshFromShopify()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      window.removeEventListener('focus', refreshFromShopify)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [refreshMenu])
 

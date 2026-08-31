@@ -239,6 +239,8 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
 
   const headerNavDirty = useMemo(
     () =>
+      headerNavSaved.menuId !== headerNavDraft.menuId ||
+      headerNavSaved.menuHandle !== headerNavDraft.menuHandle ||
       headerNavSaved.linkColor !== headerNavDraft.linkColor ||
       headerNavSaved.linkHoverColor !== headerNavDraft.linkHoverColor ||
       headerNavSaved.linkActiveColor !== headerNavDraft.linkActiveColor ||

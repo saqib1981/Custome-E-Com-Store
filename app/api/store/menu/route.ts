@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { fetchShopifyMainMenu } from '@/lib/shopify-menu-server'
 
-export const revalidate = 300
+export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
@@ -10,7 +10,7 @@ export async function GET() {
       { items },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'Cache-Control': 'no-store',
         },
       }
     )

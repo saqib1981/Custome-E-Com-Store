@@ -47,9 +47,21 @@ Legacy names from `.env.local` also work: `Shopify_Store_URL`, `Shopify_Store_Cl
 
 Optional: set `SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...` instead of client credentials.
 
-The app needs **Files** access (`write_files`) and **Navigation** read access (`read_online_store_navigation`), and must be **installed** on the store.
+### Required access scopes (every store)
 
-Main menu is loaded from Shopify handle **`main-menu`** (override with `SHOPIFY_MAIN_MENU_HANDLE`).
+In **Shopify Dev Dashboard → your app → Configuration → Access scopes**, enable:
+
+| Scope | Used for |
+| --- | --- |
+| `read_online_store_navigation` | Header / mobile menus from Online Store → Navigation |
+| `write_files` | Logo & favicon uploads to Shopify Files |
+
+Then **release a new app version** and **install / approve the app** on that store.  
+If menus fail with *Access denied for menus field*, this scope is missing on that store's app install.
+
+Check connection from admin: `GET /api/admin/shopify-connection` (also shown in Header → Navigation menu panel).
+
+Main menu is loaded from the menu you pick in admin (or Shopify handle **`main-menu`** by default). Override fallback with `SHOPIFY_MAIN_MENU_HANDLE`.
 
 Admin uploads (logo, favicon) go to **Shopify Files** (CDN URLs saved in Supabase `store_settings`).
 

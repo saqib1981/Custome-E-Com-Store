@@ -5,7 +5,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -18,9 +17,12 @@ import {
 } from '@/lib/header-settings'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import {
+  buildMenuCacheKey,
+  clearCachedMainMenu,
   mainMenusEqual,
   MENU_BACKGROUND_REFRESH_MS,
   readCachedMainMenu,
+  STORE_MENU_REFRESH_EVENT,
   writeCachedMainMenu,
 } from '@/lib/store-menu-client'
 import { FALLBACK_MAIN_MENU, type StoreNavItem } from '@/lib/shopify-menu'
@@ -64,23 +66,25 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
   const [storeName, setStoreName] = useState('')
   const menuRefreshInFlight = useRef(false)
   const hadCachedMenu = useRef(false)
+  const menuCacheKeyRef = useRef('default')
 
-  const applyMenuItems = useCallback((items: StoreNavItem[]) => {
+  const applyMenuItems = useCallback((items: StoreNavItem[], menuKey: string) => {
     setMainMenu((prev) => {
       if (mainMenusEqual(prev, items)) return prev
-      writeCachedMainMenu(items)
+      writeCachedMainMenu(items, menuKey)
+      menuCacheKeyRef.current = menuKey
       return items
     })
   }, [])
 
   const refreshMenu = useCallback(
-    async (mode: 'initial' | 'background') => {
+    async (mode: 'initial' | 'background', menuKey: string) => {
       if (menuRefreshInFlight.current) return
       menuRefreshInFlight.current = true
       try {
         const items = await fetchMainMenuFromApi()
         if (items) {
-          applyMenuItems(items)
+          applyMenuItems(items, menuKey)
         } else if (mode === 'initial' && !hadCachedMenu.current) {
           setMainMenu(FALLBACK_MAIN_MENU)
         }
@@ -95,15 +99,6 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
     },
     [applyMenuItems]
   )
-
-  useLayoutEffect(() => {
-    const cached = readCachedMainMenu()
-    if (cached) {
-      hadCachedMenu.current = true
-      setMainMenu(cached)
-      setMenuLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -141,22 +136,68 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/header-settings', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HEADER_NAV_SETTINGS))
       .then((data: HeaderNavSettingsConfig) => {
-        if (!cancelled) setHeaderNav(data)
+        if (cancelled) return
+        setHeaderNav(data)
+
+        const menuKey = buildMenuCacheKey(data.menuId, data.menuHandle)
+        menuCacheKeyRef.current = menuKey
+
+        const cached = readCachedMainMenu(menuKey)
+        if (cached) {
+          hadCachedMenu.current = true
+          setMainMenu(cached)
+          setMenuLoading(false)
+          void refreshMenu('background', menuKey)
+        } else {
+          hadCachedMenu.current = false
+          void refreshMenu('initial', menuKey)
+        }
       })
       .catch(() => {
-        if (!cancelled) setHeaderNav(DEFAULT_HEADER_NAV_SETTINGS)
+        if (!cancelled) {
+          setHeaderNav(DEFAULT_HEADER_NAV_SETTINGS)
+          void refreshMenu('initial', 'default')
+        }
       })
 
-    void refreshMenu(hadCachedMenu.current ? 'background' : 'initial')
-
     const intervalId = window.setInterval(() => {
-      void refreshMenu('background')
+      void refreshMenu('background', menuCacheKeyRef.current)
     }, MENU_BACKGROUND_REFRESH_MS)
 
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
     }
+  }, [refreshMenu])
+
+  useEffect(() => {
+    const onRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<{ menuKey?: string; menuId?: string; menuHandle?: string }>)
+        .detail
+
+      void fetch('/api/admin/header-settings', { cache: 'no-store' })
+        .then((res) => (res.ok ? res.json() : DEFAULT_HEADER_NAV_SETTINGS))
+        .then((data: HeaderNavSettingsConfig) => {
+          setHeaderNav(data)
+          menuCacheKeyRef.current =
+            detail?.menuKey ?? buildMenuCacheKey(data.menuId, data.menuHandle)
+          clearCachedMainMenu()
+          hadCachedMenu.current = false
+          void refreshMenu('initial', menuCacheKeyRef.current)
+        })
+        .catch(() => {
+          if (detail?.menuKey) menuCacheKeyRef.current = detail.menuKey
+          else if (detail) {
+            menuCacheKeyRef.current = buildMenuCacheKey(detail.menuId ?? '', detail.menuHandle ?? '')
+          }
+          clearCachedMainMenu()
+          hadCachedMenu.current = false
+          void refreshMenu('initial', menuCacheKeyRef.current)
+        })
+    }
+
+    window.addEventListener(STORE_MENU_REFRESH_EVENT, onRefresh)
+    return () => window.removeEventListener(STORE_MENU_REFRESH_EVENT, onRefresh)
   }, [refreshMenu])
 
   const value = useMemo<StoreThemeContextValue>(

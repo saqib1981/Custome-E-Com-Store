@@ -16,6 +16,10 @@ export type HeaderMenuItemHighlight = {
 }
 
 export type HeaderNavSettingsConfig = {
+  /** Shopify Menu GID (gid://shopify/Menu/...). Empty → store default main-menu. */
+  menuId: string
+  /** Shopify navigation menu handle (e.g. main-menu). Kept for display / fallback. */
+  menuHandle: string
   /** Default menu title color. */
   linkColor: string
   /** Menu title color on hover. */
@@ -52,12 +56,29 @@ export const DEFAULT_MENU_ITEM_HIGHLIGHT: Omit<HeaderMenuItemHighlight, 'id'> = 
 }
 
 export const DEFAULT_HEADER_NAV_SETTINGS: HeaderNavSettingsConfig = {
+  menuId: '',
+  menuHandle: '',
   linkColor: '#1f2937',
   linkHoverColor: '#0284c7',
   linkActiveColor: '#0284c7',
   linkActiveUnderlineColor: '#0284c7',
   navBorderColor: '#e5e7eb',
   menuHighlights: [],
+}
+
+export function normalizeMenuId(value: unknown): string {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  if (raw.startsWith('gid://shopify/Menu/')) return raw
+  if (/^\d+$/.test(raw)) return `gid://shopify/Menu/${raw}`
+  return raw
+}
+
+export function normalizeMenuHandle(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')
 }
 
 function createHighlightId(): string {
@@ -111,6 +132,8 @@ export function normalizeHeaderNavSettingsConfig(
   const rawHighlights = Array.isArray(input?.menuHighlights) ? input.menuHighlights : []
 
   return {
+    menuId: normalizeMenuId(input?.menuId),
+    menuHandle: normalizeMenuHandle(input?.menuHandle),
     linkColor: normalizeHexColor(input?.linkColor, DEFAULT_HEADER_NAV_SETTINGS.linkColor),
     linkHoverColor: normalizeHexColor(
       input?.linkHoverColor,

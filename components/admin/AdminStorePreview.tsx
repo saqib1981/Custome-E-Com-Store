@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import AnnouncementBarView from '@/components/announcement/AnnouncementBarView'
 import StoreNavbar from '@/components/nav/StoreNavbar'
@@ -12,9 +12,12 @@ import {
   isPreviewDesktopLayout,
 } from '@/lib/preview-viewport'
 import { resolveThemePageLabel } from '@/lib/admin-theme-pages'
+import { FALLBACK_MAIN_MENU, type StoreNavItem } from '@/lib/shopify-menu'
 
 export default function AdminStorePreview() {
   const [navOpen, setNavOpen] = useState(false)
+  const [previewMenu, setPreviewMenu] = useState<StoreNavItem[] | null>(null)
+  const [previewMenuLoading, setPreviewMenuLoading] = useState(false)
   const {
     activeSection,
     activeGlobalSetting,
@@ -57,9 +60,50 @@ export default function AdminStorePreview() {
     if (isPreviewDesktopLayout(previewViewport)) setNavOpen(false)
   }, [previewViewport])
 
+  useEffect(() => {
+    if (!isEditingHeader) {
+      setPreviewMenu(null)
+      setPreviewMenuLoading(false)
+      return
+    }
+
+    let cancelled = false
+    setPreviewMenuLoading(true)
+
+    const params = new URLSearchParams()
+    if (headerNavDraft.menuId) params.set('menuId', headerNavDraft.menuId)
+    if (headerNavDraft.menuHandle) params.set('menuHandle', headerNavDraft.menuHandle)
+
+    void fetch(`/api/admin/preview-menu?${params.toString()}`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { items?: StoreNavItem[] } | null) => {
+        if (cancelled) return
+        if (Array.isArray(data?.items) && data.items.length) {
+          setPreviewMenu(data.items)
+        } else {
+          setPreviewMenu(FALLBACK_MAIN_MENU)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPreviewMenu(FALLBACK_MAIN_MENU)
+      })
+      .finally(() => {
+        if (!cancelled) setPreviewMenuLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isEditingHeader, headerNavDraft.menuId, headerNavDraft.menuHandle])
+
+  const menuForPreview = useMemo(() => {
+    if (isEditingHeader && previewMenu) return previewMenu
+    return mainMenu
+  }, [isEditingHeader, previewMenu, mainMenu])
+
   return (
     <div className="relative flex h-full min-h-0 flex-1 justify-center overflow-y-auto bg-white p-4 sm:p-6">
-      {isLoading ? (
+      {isLoading || (isEditingHeader && previewMenuLoading && !previewMenu) ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
           <Loader2 className="mr-2 h-6 w-6 animate-spin text-gray-500" aria-hidden />
           <span className="text-sm text-gray-600">Loading preview…</span>
@@ -83,7 +127,7 @@ export default function AdminStorePreview() {
           contained
           previewPath={previewPath}
           onPreviewNavigate={setPreviewPath}
-          menuOverride={mainMenu}
+          menuOverride={menuForPreview}
           logoFaviconOverride={logoFaviconPreview}
         />
         <AnnouncementBarView config={announcementPreview} repeats={6} />
@@ -93,7 +137,7 @@ export default function AdminStorePreview() {
           onPreviewNavigate={setPreviewPath}
           logoFaviconOverride={logoFaviconPreview}
           headerNavOverride={headerNavPreview}
-          menuOverride={mainMenu}
+          menuOverride={menuForPreview}
           onOpenMenu={() => setNavOpen(true)}
         />
         <div className="flex flex-1 flex-col p-8 sm:p-12">

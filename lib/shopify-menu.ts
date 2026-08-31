@@ -22,6 +22,20 @@ export function getMainMenuHandle(): string {
   )
 }
 
+/** Saved handle from admin → env → default. */
+export function resolveMainMenuHandle(savedHandle?: string | null): string {
+  const trimmed = normalizeMenuHandle(savedHandle)
+  if (trimmed) return trimmed
+  return getMainMenuHandle()
+}
+
+function normalizeMenuHandle(value: unknown): string {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '')
+}
+
 /** Map Shopify menu URLs to paths on this storefront. */
 export function normalizeShopifyMenuHref(url: string, shopDomain: string): { href: string; external: boolean } {
   const raw = String(url ?? '').trim()

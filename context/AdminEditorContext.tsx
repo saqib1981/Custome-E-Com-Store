@@ -55,6 +55,7 @@ export type AdminSectionId =
   | 'collection-cards'
   | 'home-divider-after-cards'
   | 'collection-tabs'
+  | 'home-divider-after-tabs'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -102,6 +103,14 @@ type AdminEditorContextValue = {
   homeDividerAfterCardsStatus: 'idle' | 'saved' | 'error'
   updateHomeDividerAfterCardsDraft: (patch: Partial<HomeDividerConfig>) => void
   saveHomeDividerAfterCards: () => Promise<boolean>
+  homeDividerAfterTabsLoading: boolean
+  homeDividerAfterTabsSaving: boolean
+  homeDividerAfterTabsSaved: HomeDividerConfig
+  homeDividerAfterTabsDraft: HomeDividerConfig
+  homeDividerAfterTabsDirty: boolean
+  homeDividerAfterTabsStatus: 'idle' | 'saved' | 'error'
+  updateHomeDividerAfterTabsDraft: (patch: Partial<HomeDividerConfig>) => void
+  saveHomeDividerAfterTabs: () => Promise<boolean>
   collectionCardsLoading: boolean
   collectionCardsSaving: boolean
   collectionCardsSaved: CollectionCardsConfig
@@ -226,6 +235,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     'idle' | 'saved' | 'error'
   >('idle')
 
+  const [homeDividerAfterTabsSaved, setHomeDividerAfterTabsSaved] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterTabsDraft, setHomeDividerAfterTabsDraft] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterTabsLoading, setHomeDividerAfterTabsLoading] = useState(true)
+  const [homeDividerAfterTabsSaving, setHomeDividerAfterTabsSaving] = useState(false)
+  const [homeDividerAfterTabsStatus, setHomeDividerAfterTabsStatus] = useState<
+    'idle' | 'saved' | 'error'
+  >('idle')
+
   const [collectionCardsSaved, setCollectionCardsSaved] =
     useState<CollectionCardsConfig>(DEFAULT_COLLECTION_CARDS)
   const [collectionCardsDraft, setCollectionCardsDraft] =
@@ -342,6 +361,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/home-divider-after-tabs', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
+      .then((data: HomeDividerConfig) => {
+        setHomeDividerAfterTabsSaved(data)
+        setHomeDividerAfterTabsDraft(data)
+      })
+      .catch(() => {
+        setHomeDividerAfterTabsSaved(DEFAULT_HOME_DIVIDER)
+        setHomeDividerAfterTabsDraft(DEFAULT_HOME_DIVIDER)
+      })
+      .finally(() => setHomeDividerAfterTabsLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/collection-cards', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_COLLECTION_CARDS))
       .then((data: CollectionCardsConfig) => {
@@ -436,6 +469,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const homeDividerAfterCardsDirty = useMemo(
     () => !homeDividerConfigsEqual(homeDividerAfterCardsSaved, homeDividerAfterCardsDraft),
     [homeDividerAfterCardsSaved, homeDividerAfterCardsDraft]
+  )
+
+  const homeDividerAfterTabsDirty = useMemo(
+    () => !homeDividerConfigsEqual(homeDividerAfterTabsSaved, homeDividerAfterTabsDraft),
+    [homeDividerAfterTabsSaved, homeDividerAfterTabsDraft]
   )
 
   const collectionCardsDirty = useMemo(
@@ -627,6 +665,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setHomeDividerAfterCardsSaving(false)
     }
   }, [homeDividerAfterCardsDraft])
+
+  const updateHomeDividerAfterTabsDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
+    setHomeDividerAfterTabsDraft((prev) => ({ ...prev, ...patch }))
+    setHomeDividerAfterTabsStatus('idle')
+  }, [])
+
+  const saveHomeDividerAfterTabs = useCallback(async () => {
+    setHomeDividerAfterTabsSaving(true)
+    setHomeDividerAfterTabsStatus('idle')
+    try {
+      const res = await fetch('/api/admin/home-divider-after-tabs', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(homeDividerAfterTabsDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HomeDividerConfig
+      setHomeDividerAfterTabsSaved(data)
+      setHomeDividerAfterTabsDraft(data)
+      setHomeDividerAfterTabsStatus('saved')
+      return true
+    } catch {
+      setHomeDividerAfterTabsStatus('error')
+      return false
+    } finally {
+      setHomeDividerAfterTabsSaving(false)
+    }
+  }, [homeDividerAfterTabsDraft])
 
   const updateCollectionCardsDraft = useCallback((patch: Partial<CollectionCardsConfig>) => {
     setCollectionCardsDraft((prev) => ({ ...prev, ...patch }))
@@ -867,6 +933,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerAfterCardsStatus,
       updateHomeDividerAfterCardsDraft,
       saveHomeDividerAfterCards,
+      homeDividerAfterTabsLoading,
+      homeDividerAfterTabsSaving,
+      homeDividerAfterTabsSaved,
+      homeDividerAfterTabsDraft,
+      homeDividerAfterTabsDirty,
+      homeDividerAfterTabsStatus,
+      updateHomeDividerAfterTabsDraft,
+      saveHomeDividerAfterTabs,
       collectionCardsLoading,
       collectionCardsSaving,
       collectionCardsSaved,
@@ -961,6 +1035,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerAfterCardsStatus,
       updateHomeDividerAfterCardsDraft,
       saveHomeDividerAfterCards,
+      homeDividerAfterTabsLoading,
+      homeDividerAfterTabsSaving,
+      homeDividerAfterTabsSaved,
+      homeDividerAfterTabsDraft,
+      homeDividerAfterTabsDirty,
+      homeDividerAfterTabsStatus,
+      updateHomeDividerAfterTabsDraft,
+      saveHomeDividerAfterTabs,
       collectionCardsLoading,
       collectionCardsSaving,
       collectionCardsSaved,

@@ -56,6 +56,9 @@ export default function AdminStorePreview() {
     homeDividerAfterCardsDraft,
     homeDividerAfterCardsSaved,
     homeDividerAfterCardsLoading,
+    homeDividerAfterTabsDraft,
+    homeDividerAfterTabsSaved,
+    homeDividerAfterTabsLoading,
     collectionCardsDraft,
     collectionCardsSaved,
     collectionCardsLoading,
@@ -77,6 +80,7 @@ export default function AdminStorePreview() {
   const isEditingCollectionCards = activeSection === 'collection-cards'
   const isEditingHomeDividerAfterCards = activeSection === 'home-divider-after-cards'
   const isEditingCollectionTabs = activeSection === 'collection-tabs'
+  const isEditingHomeDividerAfterTabs = activeSection === 'home-divider-after-tabs'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
@@ -90,6 +94,9 @@ export default function AdminStorePreview() {
     ? homeDividerAfterCardsDraft
     : homeDividerAfterCardsSaved
   const collectionTabsPreview = isEditingCollectionTabs ? collectionTabsDraft : collectionTabsSaved
+  const homeDividerAfterTabsPreview = isEditingHomeDividerAfterTabs
+    ? homeDividerAfterTabsDraft
+    : homeDividerAfterTabsSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -102,6 +109,7 @@ export default function AdminStorePreview() {
     homeDividerAfterCardsLoading ||
     collectionCardsLoading ||
     collectionTabsLoading ||
+    homeDividerAfterTabsLoading ||
     generalSettingsLoading
 
   const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
@@ -218,6 +226,7 @@ export default function AdminStorePreview() {
               configOverride={collectionTabsPreview}
               onPreviewNavigate={setPreviewPath}
             />
+            <HomeDividerSection config={homeDividerAfterTabsPreview} />
           </>
         ) : (
           <div className="flex flex-1 flex-col p-8 sm:p-12">

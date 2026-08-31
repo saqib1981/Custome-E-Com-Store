@@ -9,6 +9,7 @@ import HeaderSettingsPanel from '@/components/admin/HeaderSettingsPanel'
 import HeroBannerSettingsPanel from '@/components/admin/HeroBannerSettingsPanel'
 import HomeDividerSettingsPanel, {
   HomeDividerAfterCardsSettingsPanel,
+  HomeDividerAfterTabsSettingsPanel,
 } from '@/components/admin/HomeDividerSettingsPanel'
 import CollectionCardsSettingsPanel from '@/components/admin/CollectionCardsSettingsPanel'
 import CollectionTabsSettingsPanel from '@/components/admin/CollectionTabsSettingsPanel'
@@ -49,6 +50,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'collection-tabs') {
     return <CollectionTabsSettingsPanel />
+  }
+
+  if (activeSection === 'home-divider-after-tabs') {
+    return <HomeDividerAfterTabsSettingsPanel />
   }
 
   if (activeGlobalSetting) {

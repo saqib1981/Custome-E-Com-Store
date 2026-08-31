@@ -72,6 +72,14 @@ export default function AdminSidebarNav() {
                 <LayoutList className="h-4 w-4 shrink-0" aria-hidden />
                 Collection tabs
               </button>
+              <button
+                type="button"
+                onClick={() => openSection('home-divider-after-tabs')}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <Minus className="h-4 w-4 shrink-0" aria-hidden />
+                Divider
+              </button>
             </nav>
           </div>
         ) : (

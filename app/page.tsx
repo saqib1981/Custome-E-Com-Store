@@ -1,6 +1,7 @@
 import HeroBanner from '@/components/HeroBanner'
 import HomeDivider from '@/components/HomeDivider'
 import HomeDividerAfterCards from '@/components/HomeDividerAfterCards'
+import HomeDividerAfterTabs from '@/components/HomeDividerAfterTabs'
 import CollectionCards from '@/components/CollectionCards'
 import CollectionTabs from '@/components/CollectionTabs'
 
@@ -13,6 +14,7 @@ export default function HomePage() {
       <CollectionCards />
       <HomeDividerAfterCards />
       <CollectionTabs />
+      <HomeDividerAfterTabs />
     </>
   )
 }

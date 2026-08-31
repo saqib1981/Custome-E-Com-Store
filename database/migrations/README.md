@@ -20,6 +20,7 @@ Run these in **Supabase → SQL Editor** in order.
 | 14 | [`015-collection-cards-title-position.sql`](./015-collection-cards-title-position.sql) | Old DB — card title overlay vs below |
 | 15 | [`016-home-divider-after-cards.sql`](./016-home-divider-after-cards.sql) | Old DB — divider below collection cards |
 | 16 | [`017-collection-tabs.sql`](./017-collection-tabs.sql) | Old DB — tabbed collection product rows |
+| 17 | [`018-home-divider-after-tabs.sql`](./018-home-divider-after-tabs.sql) | Old DB — divider below collection tabs |
 
 ## Fresh install
 
@@ -27,4 +28,4 @@ Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`** (for admin i
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 017).
+Run any migrations you have not applied yet (002 → 018).

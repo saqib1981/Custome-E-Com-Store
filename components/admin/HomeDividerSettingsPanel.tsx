@@ -191,3 +191,32 @@ export function HomeDividerAfterCardsSettingsPanel() {
     />
   )
 }
+
+export function HomeDividerAfterTabsSettingsPanel() {
+  const {
+    closeSection,
+    homeDividerAfterTabsDraft,
+    homeDividerAfterTabsDirty,
+    homeDividerAfterTabsSaving,
+    homeDividerAfterTabsStatus,
+    updateHomeDividerAfterTabsDraft,
+    saveHomeDividerAfterTabs,
+  } = useAdminEditor()
+
+  return (
+    <DividerSettingsPanel
+      title="Divider"
+      subtitle="Line below collection tabs"
+      idPrefix="home-divider-after-tabs"
+      gapTopLabel="Gap above line (after collection tabs)"
+      gapBottomLabel="Gap below line (before next sections)"
+      draft={homeDividerAfterTabsDraft}
+      dirty={homeDividerAfterTabsDirty}
+      saving={homeDividerAfterTabsSaving}
+      status={homeDividerAfterTabsStatus}
+      onUpdate={updateHomeDividerAfterTabsDraft}
+      onSave={() => void saveHomeDividerAfterTabs()}
+      onBack={closeSection}
+    />
+  )
+}

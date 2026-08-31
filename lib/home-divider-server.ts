@@ -2,6 +2,7 @@ import type { HomeDividerConfig } from '@/lib/home-divider'
 import {
   DEFAULT_HOME_DIVIDER,
   HOME_DIVIDER_AFTER_CARDS_SETTING_KEY,
+  HOME_DIVIDER_AFTER_TABS_SETTING_KEY,
   HOME_DIVIDER_SETTING_KEY,
   normalizeHomeDividerConfig,
 } from '@/lib/home-divider'
@@ -87,4 +88,14 @@ export async function writeHomeDividerAfterCardsConfig(
   config: Partial<HomeDividerConfig> | HomeDividerConfig
 ): Promise<HomeDividerConfig> {
   return writeDividerConfigByKey(HOME_DIVIDER_AFTER_CARDS_SETTING_KEY, config)
+}
+
+export async function readHomeDividerAfterTabsConfig(): Promise<HomeDividerConfig> {
+  return readDividerConfigByKey(HOME_DIVIDER_AFTER_TABS_SETTING_KEY, DEFAULT_HOME_DIVIDER)
+}
+
+export async function writeHomeDividerAfterTabsConfig(
+  config: Partial<HomeDividerConfig> | HomeDividerConfig
+): Promise<HomeDividerConfig> {
+  return writeDividerConfigByKey(HOME_DIVIDER_AFTER_TABS_SETTING_KEY, config)
 }

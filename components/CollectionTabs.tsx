@@ -7,15 +7,18 @@ import {
   type CollectionTabsConfig,
   type ResolvedCollectionTab,
 } from '@/lib/collection-tabs'
+import type { PreviewViewport } from '@/lib/preview-viewport'
 
 type CollectionTabsProps = {
   preview?: boolean
+  previewViewport?: PreviewViewport
   configOverride?: CollectionTabsConfig
   onPreviewNavigate?: (path: string) => void
 }
 
 export default function CollectionTabs({
   preview = false,
+  previewViewport,
   configOverride,
   onPreviewNavigate,
 }: CollectionTabsProps) {
@@ -89,6 +92,7 @@ export default function CollectionTabs({
       config={config}
       tabs={tabs}
       preview={preview}
+      previewViewport={previewViewport}
       onPreviewNavigate={onPreviewNavigate}
     />
   )

@@ -159,6 +159,25 @@ body {
   display: block;
   height: 100%;
   width: 100%;
-  object-fit: contain;
   object-position: center;
+}
+
+/* Storefront: mobile fills width (no side gaps); desktop keeps full image visible. */
+.hero-banner .hero-banner__slide-media {
+  object-fit: cover;
+}
+
+@media (min-width: 768px) {
+  .hero-banner .hero-banner__slide-media {
+    object-fit: contain;
+  }
+}
+
+/* Admin preview: match viewport switcher, not browser window width. */
+.hero-banner__slide-media--cover {
+  object-fit: cover;
+}
+
+.hero-banner__slide-media--contain {
+  object-fit: contain;
 }

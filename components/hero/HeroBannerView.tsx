@@ -28,6 +28,12 @@ function slideDesktopSrc(slide: HeroSlide): string {
   return slide.imageUrl.trim() || slide.imageUrlMobile.trim()
 }
 
+function slideMediaClass(layout: ImageLayout): string {
+  if (layout === 'mobile') return 'hero-banner__slide-media hero-banner__slide-media--cover'
+  if (layout === 'desktop') return 'hero-banner__slide-media hero-banner__slide-media--contain'
+  return 'hero-banner__slide-media'
+}
+
 function SlidePicture({
   slide,
   layout,
@@ -37,6 +43,7 @@ function SlidePicture({
 }) {
   const desktop = slideDesktopSrc(slide)
   const mobile = slideMobileSrc(slide)
+  const mediaClass = slideMediaClass(layout)
 
   if (!desktop && !mobile) return null
 
@@ -44,7 +51,7 @@ function SlidePicture({
     const src = mobile || desktop
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img src={src} alt={slide.alt} className={mediaClass} loading="eager" />
     )
   }
 
@@ -52,7 +59,7 @@ function SlidePicture({
     const src = desktop || mobile
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img src={src} alt={slide.alt} className={mediaClass} loading="eager" />
     )
   }
 
@@ -60,7 +67,7 @@ function SlidePicture({
   if (same) {
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img src={desktop} alt={slide.alt} className={mediaClass} loading="eager" />
     )
   }
 
@@ -68,7 +75,7 @@ function SlidePicture({
     <picture className="block h-full w-full leading-none">
       {desktop ? <source media="(min-width: 768px)" srcSet={desktop} /> : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={mobile || desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img src={mobile || desktop} alt={slide.alt} className={mediaClass} loading="eager" />
     </picture>
   )
 }

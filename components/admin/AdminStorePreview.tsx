@@ -214,6 +214,7 @@ export default function AdminStorePreview() {
             <HomeDividerSection config={homeDividerAfterCardsPreview} />
             <CollectionTabs
               preview
+              previewViewport={previewViewport}
               configOverride={collectionTabsPreview}
               onPreviewNavigate={setPreviewPath}
             />

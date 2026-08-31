@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { CollectionTabsConfig, ResolvedCollectionTab } from '@/lib/collection-tabs'
+import type { PreviewViewport } from '@/lib/preview-viewport'
 
 type CollectionTabsViewProps = {
   config: CollectionTabsConfig
   tabs: ResolvedCollectionTab[]
   preview?: boolean
+  previewViewport?: PreviewViewport
   onPreviewNavigate?: (path: string) => void
 }
 
@@ -77,10 +79,19 @@ function ProductCard({
   )
 }
 
+function resolveProductGridClass(preview: boolean, previewViewport?: PreviewViewport): string {
+  if (preview && previewViewport) {
+    if (previewViewport === 'mobile') return 'grid grid-cols-2 gap-2'
+    return 'grid grid-cols-4 gap-3'
+  }
+  return 'grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3'
+}
+
 export default function CollectionTabsView({
   config,
   tabs,
   preview = false,
+  previewViewport,
   onPreviewNavigate,
 }: CollectionTabsViewProps) {
   const visibleTabs = useMemo(() => tabs.filter((tab) => tab.title && tab.href), [tabs])
@@ -136,7 +147,7 @@ export default function CollectionTabsView({
           </div>
 
           {activeTab ? (
-            <div role="tabpanel" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+            <div role="tabpanel" className={resolveProductGridClass(preview, previewViewport)}>
               {activeTab.products.length ? (
                 activeTab.products.map((product) => (
                   <ProductCard

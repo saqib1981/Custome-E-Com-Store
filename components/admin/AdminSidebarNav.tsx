@@ -1,6 +1,6 @@
 'use client'
 
-import { LayoutPanelTop, Megaphone } from 'lucide-react'
+import { Image, LayoutPanelTop, Megaphone } from 'lucide-react'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { GLOBAL_SETTINGS_ITEMS } from '@/lib/admin-global-settings'
 
@@ -31,6 +31,14 @@ export default function AdminSidebarNav() {
               >
                 <LayoutPanelTop className="h-4 w-4 shrink-0" aria-hidden />
                 Header
+              </button>
+              <button
+                type="button"
+                onClick={() => openSection('hero-banner')}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <Image className="h-4 w-4 shrink-0" aria-hidden />
+                Hero slider
               </button>
             </nav>
           </div>

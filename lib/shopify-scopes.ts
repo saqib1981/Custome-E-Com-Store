@@ -6,6 +6,11 @@ export const SHOPIFY_REQUIRED_SCOPES = [
     description: 'Load header / mobile menus from Online Store → Navigation',
   },
   {
+    handle: 'read_products',
+    label: 'Products & collections',
+    description: 'List collections for hero slider links and catalog features',
+  },
+  {
     handle: 'write_files',
     label: 'Files',
     description: 'Upload logo and favicon to Shopify Files (CDN)',

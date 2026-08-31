@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadStoreAsset } from '@/lib/store-assets-server'
+import type { StoreAssetFolder } from '@/lib/shopify-files-server'
 
-const ALLOWED_FOLDERS = new Set(['favicon', 'logo', 'logo-transparent'])
+const ALLOWED_FOLDERS = new Set<StoreAssetFolder>(['favicon', 'logo', 'logo-transparent', 'hero'])
+
+function isAllowedMime(folder: StoreAssetFolder, mime: string): boolean {
+  if (mime.startsWith('image/')) return true
+  if (folder === 'hero' && mime.startsWith('video/')) return true
+  return false
+}
 
 export async function POST(request: NextRequest) {
   try {
     const form = await request.formData()
     const file = form.get('file')
-    const folder = String(form.get('folder') ?? '')
+    const folder = String(form.get('folder') ?? '') as StoreAssetFolder
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
@@ -17,19 +24,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid upload folder' }, { status: 400 })
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 })
+    if (!isAllowedMime(folder, file.type)) {
+      return NextResponse.json(
+        { error: 'Only image files are allowed (hero also accepts video/*)' },
+        { status: 400 }
+      )
     }
 
-    const maxBytes = folder === 'favicon' ? 512 * 1024 : 2 * 1024 * 1024
+    const maxBytes =
+      folder === 'favicon' ? 512 * 1024 : folder === 'hero' ? 20 * 1024 * 1024 : 4 * 1024 * 1024
     if (file.size > maxBytes) {
       return NextResponse.json({ error: 'File is too large' }, { status: 400 })
     }
 
-    const result = await uploadStoreAsset(
-      file,
-      folder as 'favicon' | 'logo' | 'logo-transparent'
-    )
+    const result = await uploadStoreAsset(file, folder)
 
     return NextResponse.json(result)
   } catch (e) {

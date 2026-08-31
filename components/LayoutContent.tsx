@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import StoreNavbar from './nav/StoreNavbar'
@@ -13,7 +13,6 @@ function StoreShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { generalSettings, logoFavicon } = useStoreTheme()
   const [navOpen, setNavOpen] = useState(false)
-  const mainScrollRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     setNavOpen(false)
@@ -21,17 +20,15 @@ function StoreShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="flex h-screen flex-col"
+      className="flex min-h-screen flex-col"
       style={{ backgroundColor: generalSettings.backgroundColor }}
     >
       <StoreFavicon faviconUrl={logoFavicon.faviconUrl} />
       <AnnouncementBar />
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <StoreNavbar onOpenMenu={() => setNavOpen(true)} />
-      <main ref={mainScrollRef} className="flex-1 min-h-0 overflow-y-auto">
-        {children}
-      </main>
-      <ScrollToTopButton scrollRef={mainScrollRef} pathname={pathname} />
+      <main className="flex-1">{children}</main>
+      <ScrollToTopButton pathname={pathname} />
     </div>
   )
 }

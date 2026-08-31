@@ -1,9 +1,9 @@
 import { isShopifyConfigured } from '@/lib/shopify-config'
-import { uploadStoreAssetToShopify } from '@/lib/shopify-files-server'
+import { uploadStoreAssetToShopify, type StoreAssetFolder } from '@/lib/shopify-files-server'
 
 export async function uploadStoreAsset(
   file: File,
-  folder: 'favicon' | 'logo' | 'logo-transparent'
+  folder: StoreAssetFolder
 ): Promise<{ url: string; fileName: string }> {
   if (!isShopifyConfigured()) {
     throw new Error(

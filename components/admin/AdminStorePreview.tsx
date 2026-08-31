@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import AnnouncementBarView from '@/components/announcement/AnnouncementBarView'
+import HeroBannerView from '@/components/hero/HeroBannerView'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
 import { useAdminEditor } from '@/context/AdminEditorContext'
@@ -30,6 +31,9 @@ export default function AdminStorePreview() {
     headerNavDraft,
     headerNavSaved,
     headerNavLoading,
+    heroBannerDraft,
+    heroBannerSaved,
+    heroBannerLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -41,17 +45,25 @@ export default function AdminStorePreview() {
 
   const isEditingAnnouncement = activeSection === 'announcement'
   const isEditingHeader = activeSection === 'header'
+  const isEditingHeroBanner = activeSection === 'hero-banner'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
   const logoFaviconPreview =
     isEditingHeader || isEditingLogoFavicon ? logoFaviconDraft : logoFaviconSaved
   const headerNavPreview = isEditingHeader ? headerNavDraft : headerNavSaved
+  const heroBannerPreview = isEditingHeroBanner ? heroBannerDraft : heroBannerSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
   const isLoading =
-    announcementLoading || logoFaviconLoading || headerNavLoading || generalSettingsLoading
+    announcementLoading ||
+    logoFaviconLoading ||
+    headerNavLoading ||
+    heroBannerLoading ||
+    generalSettingsLoading
+
+  const isHomePreview = previewPath === '/'
 
   const viewportWidth = PREVIEW_VIEWPORT_WIDTHS[previewViewport]
   const isDesktop = previewViewport === 'desktop'
@@ -140,16 +152,32 @@ export default function AdminStorePreview() {
           menuOverride={menuForPreview}
           onOpenMenu={() => setNavOpen(true)}
         />
+        {isHomePreview ? (
+          <HeroBannerView
+            config={heroBannerPreview}
+            preview
+            previewViewport={previewViewport}
+            onPreviewNavigate={setPreviewPath}
+          />
+        ) : null}
         <div className="flex flex-1 flex-col p-8 sm:p-12">
-          <p className="mb-4 text-xs font-medium uppercase tracking-wide text-gray-400">
-            Preview · {resolveThemePageLabel(previewPath)}
-          </p>
-          <div className="mb-4 h-6 w-32 rounded bg-gray-200" aria-hidden />
-          <div className="space-y-2">
-            <div className="h-3 w-full max-w-md rounded bg-gray-200" aria-hidden />
-            <div className="h-3 w-full max-w-sm rounded bg-gray-200" aria-hidden />
-            <div className="h-3 w-full max-w-lg rounded bg-gray-200" aria-hidden />
-          </div>
+          {!isHomePreview ? (
+            <>
+              <p className="mb-4 text-xs font-medium uppercase tracking-wide text-gray-400">
+                Preview · {resolveThemePageLabel(previewPath)}
+              </p>
+              <div className="mb-4 h-6 w-32 rounded bg-gray-200" aria-hidden />
+              <div className="space-y-2">
+                <div className="h-3 w-full max-w-md rounded bg-gray-200" aria-hidden />
+                <div className="h-3 w-full max-w-sm rounded bg-gray-200" aria-hidden />
+                <div className="h-3 w-full max-w-lg rounded bg-gray-200" aria-hidden />
+              </div>
+            </>
+          ) : (
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              Homepage content below hero
+            </p>
+          )}
         </div>
       </div>
     </div>

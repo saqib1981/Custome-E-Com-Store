@@ -1,0 +1,25 @@
+---
+description: All theme images and videos must be stored in Shopify Files (CDN)
+alwaysApply: true
+---
+
+# Shopify Files only for theme media
+
+All storefront theme media — hero slider images, logo, favicon, banners, and videos — **must be uploaded to Shopify Files** via `uploadStoreAsset` / `uploadBufferToShopify` (`lib/shopify-files-server.ts`).
+
+## Required
+
+- Use `/api/admin/upload` with allowed folders (`hero`, `logo`, `favicon`, `logo-transparent`).
+- Persist only Shopify CDN URLs (`cdn.shopify.com`, `shopifycdn.com`) in Supabase `store_settings`.
+- Validate saved URLs with `assertShopifyFilesUrl` from `lib/store-media.ts`.
+
+## Forbidden
+
+- Supabase Storage buckets for theme assets.
+- External URLs (Imgur, Cloudinary, raw GitHub, `/public/` static paths for admin-managed theme media).
+- Saving arbitrary pasted image/video URLs without Shopify upload.
+
+## Hero slider
+
+- Each slide has separate desktop (1920×800) and mobile (600×480) images in Shopify Files.
+- Hero folder also accepts `video/*` for future video slides — still via Shopify staged upload.

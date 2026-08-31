@@ -10,7 +10,8 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS
 const SHOW_AFTER_PX = 160
 
 type ScrollToTopButtonProps = {
-  scrollRef: RefObject<HTMLElement | null>
+  /** When omitted, listens to window scroll (normal document flow). */
+  scrollRef?: RefObject<HTMLElement | null>
   pathname?: string
 }
 
@@ -19,36 +20,56 @@ export default function ScrollToTopButton({ scrollRef, pathname }: ScrollToTopBu
   const [visible, setVisible] = useState(false)
 
   const measure = useCallback(() => {
-    const el = scrollRef.current
-    if (!el) {
-      setProgress(0)
-      setVisible(false)
+    const el = scrollRef?.current
+    if (el) {
+      const max = el.scrollHeight - el.clientHeight
+      const p = max <= 0 ? 0 : Math.min(1, Math.max(0, el.scrollTop / max))
+      setProgress(p)
+      setVisible(el.scrollTop > SHOW_AFTER_PX)
       return
     }
-    const max = el.scrollHeight - el.clientHeight
-    const p = max <= 0 ? 0 : Math.min(1, Math.max(0, el.scrollTop / max))
+
+    const max = document.documentElement.scrollHeight - window.innerHeight
+    const p = max <= 0 ? 0 : Math.min(1, Math.max(0, window.scrollY / max))
     setProgress(p)
-    setVisible(el.scrollTop > SHOW_AFTER_PX)
+    setVisible(window.scrollY > SHOW_AFTER_PX)
   }, [scrollRef])
 
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
+    const el = scrollRef?.current
 
     measure()
-    el.addEventListener('scroll', measure, { passive: true })
+
+    if (el) {
+      el.addEventListener('scroll', measure, { passive: true })
+      const ro = new ResizeObserver(() => measure())
+      ro.observe(el)
+      if (el.firstElementChild) ro.observe(el.firstElementChild)
+
+      return () => {
+        el.removeEventListener('scroll', measure)
+        ro.disconnect()
+      }
+    }
+
+    window.addEventListener('scroll', measure, { passive: true })
+    window.addEventListener('resize', measure, { passive: true })
     const ro = new ResizeObserver(() => measure())
-    ro.observe(el)
-    if (el.firstElementChild) ro.observe(el.firstElementChild)
+    ro.observe(document.documentElement)
 
     return () => {
-      el.removeEventListener('scroll', measure)
+      window.removeEventListener('scroll', measure)
+      window.removeEventListener('resize', measure)
       ro.disconnect()
     }
   }, [scrollRef, pathname, measure])
 
   const scrollToTop = () => {
-    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+    if (scrollRef?.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const dashOffset = CIRCUMFERENCE * (1 - progress)

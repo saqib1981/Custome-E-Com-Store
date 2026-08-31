@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -23,10 +24,15 @@ import {
   menuHighlightsEqual,
   type HeaderNavSettingsConfig,
 } from '@/lib/header-settings'
+import {
+  DEFAULT_HERO_BANNER,
+  heroBannerConfigsEqual,
+  type HeroBannerConfig,
+} from '@/lib/hero-banner'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
-export type AdminSectionId = 'announcement' | 'header'
+export type AdminSectionId = 'announcement' | 'header' | 'hero-banner'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -48,6 +54,16 @@ type AdminEditorContextValue = {
   announcementStatus: 'idle' | 'saved' | 'error'
   updateAnnouncementDraft: (patch: Partial<AnnouncementConfig>) => void
   saveAnnouncement: () => Promise<boolean>
+  heroBannerLoading: boolean
+  heroBannerSaving: boolean
+  heroBannerSaved: HeroBannerConfig
+  heroBannerDraft: HeroBannerConfig
+  heroBannerDirty: boolean
+  heroBannerStatus: 'idle' | 'saved' | 'error'
+  updateHeroBannerDraft: (
+    patch: Partial<HeroBannerConfig> | ((prev: HeroBannerConfig) => Partial<HeroBannerConfig>)
+  ) => void
+  saveHeroBanner: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -130,6 +146,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [announcementSaving, setAnnouncementSaving] = useState(false)
   const [announcementStatus, setAnnouncementStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
+  const [heroBannerSaved, setHeroBannerSaved] = useState<HeroBannerConfig>(DEFAULT_HERO_BANNER)
+  const [heroBannerDraft, setHeroBannerDraft] = useState<HeroBannerConfig>(DEFAULT_HERO_BANNER)
+  const [heroBannerLoading, setHeroBannerLoading] = useState(true)
+  const [heroBannerSaving, setHeroBannerSaving] = useState(false)
+  const [heroBannerStatus, setHeroBannerStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const heroBannerDraftRef = useRef(heroBannerDraft)
+  heroBannerDraftRef.current = heroBannerDraft
+  const heroBannerSavedRef = useRef(heroBannerSaved)
+  heroBannerSavedRef.current = heroBannerSaved
+
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
@@ -171,6 +197,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
         setAnnouncementDraft(DEFAULT_ANNOUNCEMENT)
       })
       .finally(() => setAnnouncementLoading(false))
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void fetch('/api/admin/hero-banner', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HERO_BANNER))
+      .then((data: HeroBannerConfig) => {
+        if (cancelled) return
+        setHeroBannerSaved(data)
+        setHeroBannerDraft((prev) =>
+          heroBannerConfigsEqual(prev, heroBannerSavedRef.current) ? data : prev
+        )
+      })
+      .catch(() => {
+        if (cancelled) return
+        setHeroBannerSaved(DEFAULT_HERO_BANNER)
+        setHeroBannerDraft((prev) =>
+          heroBannerConfigsEqual(prev, heroBannerSavedRef.current) ? DEFAULT_HERO_BANNER : prev
+        )
+      })
+      .finally(() => {
+        if (!cancelled) setHeroBannerLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -227,6 +281,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [announcementSaved, announcementDraft]
   )
 
+  const heroBannerDirty = useMemo(
+    () => !heroBannerConfigsEqual(heroBannerSaved, heroBannerDraft),
+    [heroBannerSaved, heroBannerDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -259,6 +318,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setActiveGlobalSetting(null)
     setActiveSection(id)
     setAnnouncementStatus('idle')
+    setHeroBannerStatus('idle')
     setLogoFaviconStatus('idle')
     setHeaderNavStatus('idle')
     setHeaderSectionStatus('idle')
@@ -267,6 +327,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const closeSection = useCallback(() => {
     setActiveSection(null)
     setAnnouncementStatus('idle')
+    setHeroBannerStatus('idle')
     setLogoFaviconStatus('idle')
     setHeaderNavStatus('idle')
     setHeaderSectionStatus('idle')
@@ -313,6 +374,41 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setAnnouncementSaving(false)
     }
   }, [announcementDraft])
+
+  const updateHeroBannerDraft = useCallback(
+    (patch: Partial<HeroBannerConfig> | ((prev: HeroBannerConfig) => Partial<HeroBannerConfig>)) => {
+      setHeroBannerDraft((prev) => ({
+        ...prev,
+        ...(typeof patch === 'function' ? patch(prev) : patch),
+      }))
+      setHeroBannerStatus('idle')
+    },
+    []
+  )
+
+  const saveHeroBanner = useCallback(async () => {
+    const draft = heroBannerDraftRef.current
+    setHeroBannerSaving(true)
+    setHeroBannerStatus('idle')
+    try {
+      const res = await fetch('/api/admin/hero-banner', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(draft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HeroBannerConfig
+      setHeroBannerSaved(data)
+      setHeroBannerDraft(data)
+      setHeroBannerStatus('saved')
+      return true
+    } catch {
+      setHeroBannerStatus('error')
+      return false
+    } finally {
+      setHeroBannerSaving(false)
+    }
+  }, [])
 
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
@@ -473,6 +569,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       announcementStatus,
       updateAnnouncementDraft,
       saveAnnouncement,
+      heroBannerLoading,
+      heroBannerSaving,
+      heroBannerSaved,
+      heroBannerDraft,
+      heroBannerDirty,
+      heroBannerStatus,
+      updateHeroBannerDraft,
+      saveHeroBanner,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -527,6 +631,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       announcementStatus,
       updateAnnouncementDraft,
       saveAnnouncement,
+      heroBannerLoading,
+      heroBannerSaving,
+      heroBannerSaved,
+      heroBannerDraft,
+      heroBannerDirty,
+      heroBannerStatus,
+      updateHeroBannerDraft,
+      saveHeroBanner,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

@@ -6,6 +6,7 @@ import { AdminEditorProvider, useAdminEditor } from '@/context/AdminEditorContex
 import AdminSidebarNav from '@/components/admin/AdminSidebarNav'
 import { AnnouncementBarSettingsPanel } from '@/components/admin/AdminSidebar'
 import HeaderSettingsPanel from '@/components/admin/HeaderSettingsPanel'
+import HeroBannerSettingsPanel from '@/components/admin/HeroBannerSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -23,6 +24,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'header') {
     return <HeaderSettingsPanel />
+  }
+
+  if (activeSection === 'hero-banner') {
+    return <HeroBannerSettingsPanel />
   }
 
   if (activeGlobalSetting) {

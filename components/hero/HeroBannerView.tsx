@@ -28,12 +28,6 @@ function slideDesktopSrc(slide: HeroSlide): string {
   return slide.imageUrl.trim() || slide.imageUrlMobile.trim()
 }
 
-function slideMediaClass(layout: ImageLayout): string {
-  if (layout === 'mobile') return 'hero-banner__slide-media hero-banner__slide-media--cover'
-  if (layout === 'desktop') return 'hero-banner__slide-media hero-banner__slide-media--contain'
-  return 'hero-banner__slide-media'
-}
-
 function SlidePicture({
   slide,
   layout,
@@ -43,7 +37,6 @@ function SlidePicture({
 }) {
   const desktop = slideDesktopSrc(slide)
   const mobile = slideMobileSrc(slide)
-  const mediaClass = slideMediaClass(layout)
 
   if (!desktop && !mobile) return null
 
@@ -51,7 +44,7 @@ function SlidePicture({
     const src = mobile || desktop
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={src} alt={slide.alt} className={mediaClass} loading="eager" />
+      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
     )
   }
 
@@ -59,7 +52,7 @@ function SlidePicture({
     const src = desktop || mobile
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={src} alt={slide.alt} className={mediaClass} loading="eager" />
+      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
     )
   }
 
@@ -67,15 +60,15 @@ function SlidePicture({
   if (same) {
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={desktop} alt={slide.alt} className={mediaClass} loading="eager" />
+      <img src={desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
     )
   }
 
   return (
-    <picture className="block h-full w-full leading-none">
+    <picture className="block h-full w-full leading-none max-md:h-auto max-md:w-full">
       {desktop ? <source media="(min-width: 768px)" srcSet={desktop} /> : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={mobile || desktop} alt={slide.alt} className={mediaClass} loading="eager" />
+      <img src={mobile || desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
     </picture>
   )
 }
@@ -136,15 +129,10 @@ export default function HeroBannerView({
   previewViewport,
   onPreviewNavigate,
 }: HeroBannerViewProps) {
-  const { enabled, slides, autoplay, autoplaySeconds, heightDesktop, heightMobile } = config
+  const { enabled, slides, autoplay, autoplaySeconds, heightDesktop } = config
   const [activeIndex, setActiveIndex] = useState(0)
 
   const imageLayout = resolveImageLayout(preview, previewViewport)
-  const mobileAspect = heroBannerAspectRatio(
-    HERO_BANNER_DESIGN_WIDTH.mobile,
-    heightMobile,
-    480
-  )
   const desktopAspect = heroBannerAspectRatio(
     HERO_BANNER_DESIGN_WIDTH.desktop,
     heightDesktop,
@@ -175,19 +163,28 @@ export default function HeroBannerView({
   if (!enabled || !slides.length) return null
 
   const usePreviewLayout = preview && Boolean(previewViewport)
-  const previewAspect =
-    previewViewport === 'mobile' ? mobileAspect : desktopAspect
+  const isPreviewMobile = usePreviewLayout && previewViewport === 'mobile'
+  const isPreviewDesktop = usePreviewLayout && previewViewport === 'desktop'
 
-  const sectionStyle: React.CSSProperties = usePreviewLayout
-    ? { aspectRatio: previewAspect }
-    : {
-        ['--hero-aspect-mobile' as string]: mobileAspect,
-        ['--hero-aspect-desktop' as string]: desktopAspect,
-      }
+  const sectionStyle: React.CSSProperties = isPreviewDesktop
+    ? { aspectRatio: desktopAspect }
+    : isPreviewMobile
+      ? {}
+      : {
+          ['--hero-aspect-desktop' as string]: desktopAspect,
+        }
+
+  const sectionClass = [
+    'hero-banner relative block w-full shrink-0 overflow-hidden leading-none bg-gray-100',
+    isPreviewMobile ? 'hero-banner--preview-mobile' : '',
+    isPreviewDesktop ? 'hero-banner--preview-desktop' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <section
-      className={`relative block w-full shrink-0 overflow-hidden leading-none bg-gray-100 ${usePreviewLayout ? '' : 'hero-banner'}`}
+      className={sectionClass}
       style={sectionStyle}
       aria-label="Hero slider"
       aria-roledescription="carousel"
@@ -197,8 +194,8 @@ export default function HeroBannerView({
         return (
           <div
             key={slide.id}
-            className={`absolute inset-0 overflow-hidden transition-opacity duration-700 ease-in-out ${
-              active ? 'z-[1] opacity-100' : 'z-0 opacity-0 pointer-events-none'
+            className={`hero-banner__slide transition-opacity duration-700 ease-in-out ${
+              active ? 'hero-banner__slide--active z-[1] opacity-100' : 'z-0 opacity-0 pointer-events-none'
             }`}
             aria-hidden={!active}
           >

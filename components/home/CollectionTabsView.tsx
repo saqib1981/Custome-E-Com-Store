@@ -118,7 +118,7 @@ export default function CollectionTabsView({
       {visibleTabs.length ? (
         <>
           <div className="mb-4 w-full border-b border-gray-200 dark:border-gray-700">
-            <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+            <div className="scrollbar-hide overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
               <div
                 className="mx-auto flex w-max min-w-full justify-center gap-1"
                 role="tablist"

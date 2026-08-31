@@ -144,7 +144,7 @@ body {
 }
 
 .hero-banner {
-  aspect-ratio: var(--hero-aspect-mobile, 600 / 480);
+  aspect-ratio: auto;
   width: 100%;
   overflow: hidden;
 }
@@ -155,29 +155,87 @@ body {
   }
 }
 
+.hero-banner__slide {
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .hero-banner__slide {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-banner__slide {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+  }
+
+  .hero-banner__slide--active {
+    position: relative;
+    inset: auto;
+  }
+}
+
 .hero-banner__slide-media {
   display: block;
-  height: 100%;
   width: 100%;
   object-position: center;
 }
 
-/* Storefront: mobile fills width (no side gaps); desktop keeps full image visible. */
-.hero-banner .hero-banner__slide-media {
-  object-fit: cover;
-}
-
-@media (min-width: 768px) {
+@media (max-width: 767px) {
   .hero-banner .hero-banner__slide-media {
+    height: auto;
     object-fit: contain;
   }
 }
 
-/* Admin preview: match viewport switcher, not browser window width. */
-.hero-banner__slide-media--cover {
-  object-fit: cover;
+@media (min-width: 768px) {
+  .hero-banner .hero-banner__slide-media {
+    height: 100%;
+    object-fit: contain;
+  }
 }
 
-.hero-banner__slide-media--contain {
+/* Admin preview mobile: natural image height (not browser viewport width). */
+.hero-banner--preview-mobile {
+  aspect-ratio: auto !important;
+}
+
+.hero-banner--preview-mobile .hero-banner__slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+}
+
+.hero-banner--preview-mobile .hero-banner__slide--active {
+  position: relative;
+  inset: auto;
+}
+
+.hero-banner--preview-mobile .hero-banner__slide-media {
+  height: auto;
   object-fit: contain;
+}
+
+.hero-banner--preview-desktop .hero-banner__slide {
+  position: absolute;
+  inset: 0;
+}
+
+.hero-banner--preview-desktop .hero-banner__slide-media {
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Horizontal scroll without visible scrollbar (touch swipe / trackpad still works). */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

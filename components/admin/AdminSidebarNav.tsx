@@ -1,6 +1,6 @@
 'use client'
 
-import { Image, LayoutPanelTop, Megaphone } from 'lucide-react'
+import { Image, LayoutPanelTop, Megaphone, Minus } from 'lucide-react'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { GLOBAL_SETTINGS_ITEMS } from '@/lib/admin-global-settings'
 
@@ -39,6 +39,14 @@ export default function AdminSidebarNav() {
               >
                 <Image className="h-4 w-4 shrink-0" aria-hidden />
                 Hero slider
+              </button>
+              <button
+                type="button"
+                onClick={() => openSection('home-divider')}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <Minus className="h-4 w-4 shrink-0" aria-hidden />
+                Divider
               </button>
             </nav>
           </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import AnnouncementBarView from '@/components/announcement/AnnouncementBarView'
 import HeroBannerView from '@/components/hero/HeroBannerView'
+import HomeDividerSection from '@/components/home/HomeDividerSection'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
 import { useAdminEditor } from '@/context/AdminEditorContext'
@@ -47,6 +48,9 @@ export default function AdminStorePreview() {
     heroBannerDraft,
     heroBannerSaved,
     heroBannerLoading,
+    homeDividerDraft,
+    homeDividerSaved,
+    homeDividerLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -58,6 +62,7 @@ export default function AdminStorePreview() {
   const isEditingAnnouncement = activeSection === 'announcement'
   const isEditingHeader = activeSection === 'header'
   const isEditingHeroBanner = activeSection === 'hero-banner'
+  const isEditingHomeDivider = activeSection === 'home-divider'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
@@ -65,6 +70,7 @@ export default function AdminStorePreview() {
     isEditingHeader || isEditingLogoFavicon ? logoFaviconDraft : logoFaviconSaved
   const headerNavPreview = isEditingHeader ? headerNavDraft : headerNavSaved
   const heroBannerPreview = isEditingHeroBanner ? heroBannerDraft : heroBannerSaved
+  const homeDividerPreview = isEditingHomeDivider ? homeDividerDraft : homeDividerSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -73,6 +79,7 @@ export default function AdminStorePreview() {
     logoFaviconLoading ||
     headerNavLoading ||
     heroBannerLoading ||
+    homeDividerLoading ||
     generalSettingsLoading
 
   const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
@@ -169,15 +176,24 @@ export default function AdminStorePreview() {
           onOpenMenu={() => setNavOpen(true)}
         />
         {isHomePreview ? (
-          <HeroBannerView
-            config={heroBannerPreview}
-            preview
-            previewViewport={previewViewport}
-            onPreviewNavigate={setPreviewPath}
-          />
-        ) : null}
-        <div className="flex flex-1 flex-col p-8 sm:p-12">
-          {!isHomePreview ? (
+          <>
+            <HeroBannerView
+              config={heroBannerPreview}
+              preview
+              previewViewport={previewViewport}
+              onPreviewNavigate={setPreviewPath}
+            />
+            <HomeDividerSection
+              config={homeDividerPreview}
+              contentClassName="flex flex-1 flex-col px-8 pb-8 sm:px-12 sm:pb-12"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                Homepage content below hero
+              </p>
+            </HomeDividerSection>
+          </>
+        ) : (
+          <div className="flex flex-1 flex-col p-8 sm:p-12">
             <>
               <p className="mb-4 text-xs font-medium uppercase tracking-wide text-gray-400">
                 Preview · {resolveThemePageLabel(previewPath)}
@@ -189,12 +205,8 @@ export default function AdminStorePreview() {
                 <div className="h-3 w-full max-w-lg rounded bg-gray-200" aria-hidden />
               </div>
             </>
-          ) : (
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-              Homepage content below hero
-            </p>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   )

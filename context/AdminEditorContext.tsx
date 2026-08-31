@@ -29,10 +29,15 @@ import {
   heroBannerConfigsEqual,
   type HeroBannerConfig,
 } from '@/lib/hero-banner'
+import {
+  DEFAULT_HOME_DIVIDER,
+  homeDividerConfigsEqual,
+  type HomeDividerConfig,
+} from '@/lib/home-divider'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
-export type AdminSectionId = 'announcement' | 'header' | 'hero-banner'
+export type AdminSectionId = 'announcement' | 'header' | 'hero-banner' | 'home-divider'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -64,6 +69,14 @@ type AdminEditorContextValue = {
     patch: Partial<HeroBannerConfig> | ((prev: HeroBannerConfig) => Partial<HeroBannerConfig>)
   ) => void
   saveHeroBanner: () => Promise<boolean>
+  homeDividerLoading: boolean
+  homeDividerSaving: boolean
+  homeDividerSaved: HomeDividerConfig
+  homeDividerDraft: HomeDividerConfig
+  homeDividerDirty: boolean
+  homeDividerStatus: 'idle' | 'saved' | 'error'
+  updateHomeDividerDraft: (patch: Partial<HomeDividerConfig>) => void
+  saveHomeDivider: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -156,6 +169,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const heroBannerSavedRef = useRef(heroBannerSaved)
   heroBannerSavedRef.current = heroBannerSaved
 
+  const [homeDividerSaved, setHomeDividerSaved] = useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerDraft, setHomeDividerDraft] = useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerLoading, setHomeDividerLoading] = useState(true)
+  const [homeDividerSaving, setHomeDividerSaving] = useState(false)
+  const [homeDividerStatus, setHomeDividerStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
@@ -228,6 +247,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/home-divider', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
+      .then((data: HomeDividerConfig) => {
+        setHomeDividerSaved(data)
+        setHomeDividerDraft(data)
+      })
+      .catch(() => {
+        setHomeDividerSaved(DEFAULT_HOME_DIVIDER)
+        setHomeDividerDraft(DEFAULT_HOME_DIVIDER)
+      })
+      .finally(() => setHomeDividerLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -284,6 +317,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const heroBannerDirty = useMemo(
     () => !heroBannerConfigsEqual(heroBannerSaved, heroBannerDraft),
     [heroBannerSaved, heroBannerDraft]
+  )
+
+  const homeDividerDirty = useMemo(
+    () => !homeDividerConfigsEqual(homeDividerSaved, homeDividerDraft),
+    [homeDividerSaved, homeDividerDraft]
   )
 
   const logoFaviconDirty = useMemo(
@@ -409,6 +447,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setHeroBannerSaving(false)
     }
   }, [])
+
+  const updateHomeDividerDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
+    setHomeDividerDraft((prev) => ({ ...prev, ...patch }))
+    setHomeDividerStatus('idle')
+  }, [])
+
+  const saveHomeDivider = useCallback(async () => {
+    setHomeDividerSaving(true)
+    setHomeDividerStatus('idle')
+    try {
+      const res = await fetch('/api/admin/home-divider', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(homeDividerDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HomeDividerConfig
+      setHomeDividerSaved(data)
+      setHomeDividerDraft(data)
+      setHomeDividerStatus('saved')
+      return true
+    } catch {
+      setHomeDividerStatus('error')
+      return false
+    } finally {
+      setHomeDividerSaving(false)
+    }
+  }, [homeDividerDraft])
 
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
@@ -577,6 +643,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       heroBannerStatus,
       updateHeroBannerDraft,
       saveHeroBanner,
+      homeDividerLoading,
+      homeDividerSaving,
+      homeDividerSaved,
+      homeDividerDraft,
+      homeDividerDirty,
+      homeDividerStatus,
+      updateHomeDividerDraft,
+      saveHomeDivider,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -639,6 +713,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       heroBannerStatus,
       updateHeroBannerDraft,
       saveHeroBanner,
+      homeDividerLoading,
+      homeDividerSaving,
+      homeDividerSaved,
+      homeDividerDraft,
+      homeDividerDirty,
+      homeDividerStatus,
+      updateHomeDividerDraft,
+      saveHomeDivider,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

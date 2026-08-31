@@ -261,7 +261,7 @@ export default function DesktopStoreNav({
 
   return (
     <nav
-      className={`relative border-y border-solid ${className}`}
+      className={`relative border-t border-solid ${className}`}
       style={{
         ...cssVars,
         borderColor: navStyle.navBorderColor,

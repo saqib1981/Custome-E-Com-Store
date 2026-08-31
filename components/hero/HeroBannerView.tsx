@@ -65,7 +65,7 @@ function SlidePicture({
   }
 
   return (
-    <picture className="block h-full w-full">
+    <picture className="block h-full w-full leading-none">
       {desktop ? <source media="(min-width: 768px)" srcSet={desktop} /> : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={mobile || desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
@@ -180,7 +180,7 @@ export default function HeroBannerView({
 
   return (
     <section
-      className={`relative w-full shrink-0 overflow-hidden bg-gray-100 ${usePreviewLayout ? '' : 'hero-banner'}`}
+      className={`relative block w-full shrink-0 overflow-hidden leading-none bg-gray-100 ${usePreviewLayout ? '' : 'hero-banner'}`}
       style={sectionStyle}
       aria-label="Hero slider"
       aria-roledescription="carousel"

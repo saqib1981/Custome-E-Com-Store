@@ -94,8 +94,14 @@ export default function StoreNavbar({
       : 'h-14'
     : 'h-14 lg:h-[60px]'
 
+  const headerBottomBorderClass = inPreview
+    ? previewDesktop
+      ? ''
+      : 'border-b border-gray-200 dark:border-gray-800'
+    : 'border-b border-gray-200 lg:border-b-0 dark:border-gray-800'
+
   return (
-    <header className="sticky top-0 z-30 shrink-0 border-b border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
+    <header className={`sticky top-0 z-30 shrink-0 bg-white shadow-sm dark:bg-gray-900 ${headerBottomBorderClass}`}>
       <div className={`mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 ${topRowClass}`}>
         <div className={`flex min-w-0 flex-1 items-center gap-2 ${inPreview ? (previewDesktop ? 'lg:flex-none' : '') : 'lg:flex-none'}`}>
           <button

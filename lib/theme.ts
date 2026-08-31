@@ -14,7 +14,7 @@ export function readStoredTheme(): ThemePreference | null {
 }
 
 export function getDefaultTheme(): ThemePreference {
-  return 'dark'
+  return 'light'
 }
 
 export function applyThemePreference(theme: ThemePreference): void {

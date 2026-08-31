@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import ThemeInit from '@/components/ThemeInit'
 import LayoutContent from '@/components/LayoutContent'
+import { fetchShopifyShopName } from '@/lib/shopify-shop-server'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -10,10 +11,15 @@ const inter = Inter({
   preload: false,
 })
 
-export const metadata: Metadata = {
-  title: { default: 'Custom E-Com Store', template: '%s | Custom E-Com Store' },
-  description: 'Custom E-Commerce Store — Shopify products display',
-  applicationName: 'Custom E-Com Store',
+export async function generateMetadata(): Promise<Metadata> {
+  const storeName = await fetchShopifyShopName()
+  const title = storeName.trim() || 'Store'
+
+  return {
+    title: { default: title, template: `%s | ${title}` },
+    description: `${title} — online store`,
+    applicationName: title,
+  }
 }
 
 export default function RootLayout({

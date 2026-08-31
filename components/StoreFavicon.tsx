@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useStoreTheme } from '@/context/StoreThemeContext'
+
+type StoreFaviconProps = {
+  faviconUrl?: string
+}
 
 /** Sets the document favicon from saved store settings. */
-export default function StoreFavicon() {
-  const { logoFavicon } = useStoreTheme()
-  const faviconUrl = logoFavicon.faviconUrl.trim()
+export default function StoreFavicon({ faviconUrl: faviconUrlOverride }: StoreFaviconProps = {}) {
+  const faviconUrl = faviconUrlOverride?.trim() ?? ''
 
   useEffect(() => {
     if (!faviconUrl) return

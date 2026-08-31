@@ -1,8 +1,8 @@
-import { Image } from 'lucide-react'
+import { Image, Palette } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 /** Keys under Supabase `store_settings` for site-wide theme options. */
-export type AdminGlobalSettingId = 'logo-favicon'
+export type AdminGlobalSettingId = 'general' | 'logo-favicon'
 
 export type AdminGlobalSettingItem = {
   id: AdminGlobalSettingId
@@ -12,6 +12,12 @@ export type AdminGlobalSettingItem = {
 }
 
 export const GLOBAL_SETTINGS_ITEMS: AdminGlobalSettingItem[] = [
+  {
+    id: 'general',
+    name: 'General settings',
+    description: 'Theme background color',
+    icon: Palette,
+  },
   {
     id: 'logo-favicon',
     name: 'Logo and favicon',

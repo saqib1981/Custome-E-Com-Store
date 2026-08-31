@@ -4,11 +4,11 @@ export type StoreProfile = {
 }
 
 export const DEFAULT_STORE_PROFILE: StoreProfile = {
-  storeName: 'Custom E-Com Store',
+  storeName: '',
   logoUrl: '',
 }
 
-/** Acronym from store name (e.g. "My Store" → "MS"). */
+/** @deprecated Use logo or Shopify store name text instead of initials. */
 export function getStoreNameInitials(name: string): string {
   const parts = String(name ?? '')
     .trim()

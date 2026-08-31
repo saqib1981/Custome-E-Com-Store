@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server'
-import { fetchShopifyMainMenu } from '@/lib/shopify-menu-server'
+import { fetchShopifyShopName } from '@/lib/shopify-shop-server'
 
 export const revalidate = 300
 
 export async function GET() {
   try {
-    const items = await fetchShopifyMainMenu()
+    const name = await fetchShopifyShopName()
     return NextResponse.json(
-      { items },
+      { name },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
@@ -15,7 +15,7 @@ export async function GET() {
       }
     )
   } catch (e) {
-    console.error('Store menu GET error:', e)
-    return NextResponse.json({ error: 'Failed to load menu' }, { status: 500 })
+    console.error('Store shop GET error:', e)
+    return NextResponse.json({ error: 'Failed to load shop name' }, { status: 500 })
   }
 }

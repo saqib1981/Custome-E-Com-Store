@@ -10,8 +10,16 @@ import {
   type ReactNode,
 } from 'react'
 import type { AdminGlobalSettingId } from '@/lib/admin-global-settings'
+import {
+  DEFAULT_ADMIN_THEME_PAGE_ID,
+  getThemePageById,
+  getThemePageByPath,
+  type AdminThemePageId,
+} from '@/lib/admin-theme-pages'
 import { DEFAULT_ANNOUNCEMENT, type AnnouncementConfig } from '@/lib/announcement'
+import { DEFAULT_GENERAL_SETTINGS, type GeneralSettingsConfig } from '@/lib/general-settings'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
+import type { PreviewViewport } from '@/lib/preview-viewport'
 
 export type AdminSectionId = 'announcement'
 export type AdminSidebarTab = 'sections' | 'global'
@@ -45,6 +53,20 @@ type AdminEditorContextValue = {
   updateLogoFaviconDraft: (patch: Partial<LogoFaviconConfig>) => void
   uploadLogoFaviconImage: (folder: LogoFaviconUploadFolder, file: File) => Promise<void>
   saveLogoFavicon: () => Promise<boolean>
+  generalSettingsLoading: boolean
+  generalSettingsSaving: boolean
+  generalSettingsSaved: GeneralSettingsConfig
+  generalSettingsDraft: GeneralSettingsConfig
+  generalSettingsDirty: boolean
+  generalSettingsStatus: 'idle' | 'saved' | 'error'
+  updateGeneralSettingsDraft: (patch: Partial<GeneralSettingsConfig>) => void
+  saveGeneralSettings: () => Promise<boolean>
+  previewViewport: PreviewViewport
+  setPreviewViewport: (viewport: PreviewViewport) => void
+  activeThemePageId: AdminThemePageId
+  previewPath: string
+  setActiveThemePage: (id: AdminThemePageId) => void
+  setPreviewPath: (path: string) => void
 }
 
 const AdminEditorContext = createContext<AdminEditorContextValue | null>(null)
@@ -66,6 +88,24 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [sidebarTab, setSidebarTab] = useState<AdminSidebarTab>('sections')
   const [activeSection, setActiveSection] = useState<AdminSectionId | null>(null)
   const [activeGlobalSetting, setActiveGlobalSetting] = useState<AdminGlobalSettingId | null>(null)
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>('desktop')
+  const [activeThemePageId, setActiveThemePageId] =
+    useState<AdminThemePageId>(DEFAULT_ADMIN_THEME_PAGE_ID)
+  const [previewPath, setPreviewPathState] = useState(
+    () => getThemePageById(DEFAULT_ADMIN_THEME_PAGE_ID).path
+  )
+
+  const setActiveThemePage = useCallback((id: AdminThemePageId) => {
+    const page = getThemePageById(id)
+    setActiveThemePageId(page.id)
+    setPreviewPathState(page.path)
+  }, [])
+
+  const setPreviewPath = useCallback((path: string) => {
+    setPreviewPathState(path)
+    const page = getThemePageByPath(path)
+    if (page) setActiveThemePageId(page.id)
+  }, [])
 
   const [announcementSaved, setAnnouncementSaved] = useState<AnnouncementConfig>(DEFAULT_ANNOUNCEMENT)
   const [announcementDraft, setAnnouncementDraft] = useState<AnnouncementConfig>(DEFAULT_ANNOUNCEMENT)
@@ -80,6 +120,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [logoFaviconStatus, setLogoFaviconStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [logoFaviconUploading, setLogoFaviconUploading] = useState<LogoFaviconUploadFolder | null>(
     null
+  )
+
+  const [generalSettingsSaved, setGeneralSettingsSaved] =
+    useState<GeneralSettingsConfig>(DEFAULT_GENERAL_SETTINGS)
+  const [generalSettingsDraft, setGeneralSettingsDraft] =
+    useState<GeneralSettingsConfig>(DEFAULT_GENERAL_SETTINGS)
+  const [generalSettingsLoading, setGeneralSettingsLoading] = useState(true)
+  const [generalSettingsSaving, setGeneralSettingsSaving] = useState(false)
+  const [generalSettingsStatus, setGeneralSettingsStatus] = useState<'idle' | 'saved' | 'error'>(
+    'idle'
   )
 
   useEffect(() => {
@@ -110,6 +160,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       .finally(() => setLogoFaviconLoading(false))
   }, [])
 
+  useEffect(() => {
+    void fetch('/api/admin/general-settings', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_GENERAL_SETTINGS))
+      .then((data: GeneralSettingsConfig) => {
+        setGeneralSettingsSaved(data)
+        setGeneralSettingsDraft(data)
+      })
+      .catch(() => {
+        setGeneralSettingsSaved(DEFAULT_GENERAL_SETTINGS)
+        setGeneralSettingsDraft(DEFAULT_GENERAL_SETTINGS)
+      })
+      .finally(() => setGeneralSettingsLoading(false))
+  }, [])
+
   const announcementDirty = useMemo(
     () =>
       announcementSaved.enabled !== announcementDraft.enabled ||
@@ -125,6 +189,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
+  )
+
+  const generalSettingsDirty = useMemo(
+    () => generalSettingsSaved.backgroundColor !== generalSettingsDraft.backgroundColor,
+    [generalSettingsSaved, generalSettingsDraft]
   )
 
   const isDetailPanelOpen = activeSection !== null || activeGlobalSetting !== null
@@ -146,11 +215,13 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setActiveSection(null)
     setActiveGlobalSetting(id)
     setLogoFaviconStatus('idle')
+    setGeneralSettingsStatus('idle')
   }, [])
 
   const closeGlobalSetting = useCallback(() => {
     setActiveGlobalSetting(null)
     setLogoFaviconStatus('idle')
+    setGeneralSettingsStatus('idle')
   }, [])
 
   const updateAnnouncementDraft = useCallback((patch: Partial<AnnouncementConfig>) => {
@@ -241,6 +312,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [logoFaviconDraft])
 
+  const updateGeneralSettingsDraft = useCallback((patch: Partial<GeneralSettingsConfig>) => {
+    setGeneralSettingsDraft((prev) => ({ ...prev, ...patch }))
+    setGeneralSettingsStatus('idle')
+  }, [])
+
+  const saveGeneralSettings = useCallback(async () => {
+    setGeneralSettingsSaving(true)
+    setGeneralSettingsStatus('idle')
+    try {
+      const res = await fetch('/api/admin/general-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(generalSettingsDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as GeneralSettingsConfig
+      setGeneralSettingsSaved(data)
+      setGeneralSettingsDraft(data)
+      setGeneralSettingsStatus('saved')
+      return true
+    } catch {
+      setGeneralSettingsStatus('error')
+      return false
+    } finally {
+      setGeneralSettingsSaving(false)
+    }
+  }, [generalSettingsDraft])
+
   const value = useMemo<AdminEditorContextValue>(
     () => ({
       sidebarTab,
@@ -270,6 +369,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       updateLogoFaviconDraft,
       uploadLogoFaviconImage,
       saveLogoFavicon,
+      generalSettingsLoading,
+      generalSettingsSaving,
+      generalSettingsSaved,
+      generalSettingsDraft,
+      generalSettingsDirty,
+      generalSettingsStatus,
+      updateGeneralSettingsDraft,
+      saveGeneralSettings,
+      previewViewport,
+      setPreviewViewport,
+      activeThemePageId,
+      previewPath,
+      setActiveThemePage,
+      setPreviewPath,
     }),
     [
       sidebarTab,
@@ -298,6 +411,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       updateLogoFaviconDraft,
       uploadLogoFaviconImage,
       saveLogoFavicon,
+      generalSettingsLoading,
+      generalSettingsSaving,
+      generalSettingsSaved,
+      generalSettingsDraft,
+      generalSettingsDirty,
+      generalSettingsStatus,
+      updateGeneralSettingsDraft,
+      saveGeneralSettings,
+      previewViewport,
+      activeThemePageId,
+      previewPath,
+      setActiveThemePage,
+      setPreviewPath,
     ]
   )
 

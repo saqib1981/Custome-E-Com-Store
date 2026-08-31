@@ -7,10 +7,11 @@ import StoreNavbar from './nav/StoreNavbar'
 import ScrollToTopButton from './ScrollToTopButton'
 import AnnouncementBar from './AnnouncementBar'
 import StoreFavicon from './StoreFavicon'
-import { StoreThemeProvider } from '@/context/StoreThemeContext'
+import { StoreThemeProvider, useStoreTheme } from '@/context/StoreThemeContext'
 
 function StoreShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const { generalSettings, logoFavicon } = useStoreTheme()
   const [navOpen, setNavOpen] = useState(false)
   const mainScrollRef = useRef<HTMLElement | null>(null)
 
@@ -19,8 +20,11 @@ function StoreShell({ children }: { children: React.ReactNode }) {
   }, [pathname])
 
   return (
-    <div className="flex h-screen flex-col bg-gray-50 dark:bg-gray-900">
-      <StoreFavicon />
+    <div
+      className="flex h-screen flex-col"
+      style={{ backgroundColor: generalSettings.backgroundColor }}
+    >
+      <StoreFavicon faviconUrl={logoFavicon.faviconUrl} />
       <AnnouncementBar />
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <StoreNavbar onOpenMenu={() => setNavOpen(true)} />
@@ -35,13 +39,13 @@ function StoreShell({ children }: { children: React.ReactNode }) {
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
 
-  if (pathname.startsWith('/myadmin')) {
-    return <>{children}</>
-  }
-
   return (
     <StoreThemeProvider>
-      <StoreShell>{children}</StoreShell>
+      {pathname.startsWith('/myadmin') ? (
+        <>{children}</>
+      ) : (
+        <StoreShell>{children}</StoreShell>
+      )}
     </StoreThemeProvider>
   )
 }

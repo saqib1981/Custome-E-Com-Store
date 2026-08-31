@@ -7,7 +7,6 @@ import StoreBrandMark from '@/components/StoreBrandMark'
 import StoreNavLink from '@/components/nav/StoreNavLink'
 import { useStoreTheme } from '@/context/StoreThemeContext'
 import type { LogoFaviconConfig } from '@/lib/logo-favicon'
-import { getStoreNameInitials } from '@/lib/storeProfile'
 import { isStoreNavActive, type StoreNavItem } from '@/lib/shopify-menu'
 
 type SidebarProps = {
@@ -117,8 +116,6 @@ export default function Sidebar({
   const logoFavicon = logoFaviconOverride ?? themeLogoFavicon
   const menuItems = menuOverride ?? mainMenu
   const logoUrl = logoFavicon.logoUrl
-  const hasLogo = Boolean(logoUrl.trim())
-  const storeInitials = getStoreNameInitials(storeName)
 
   const overlayClass = contained
     ? `absolute inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
@@ -172,14 +169,6 @@ export default function Sidebar({
               logoWidth={logoFavicon.logoWidthMobile}
               size="sm"
             />
-            {hasLogo ? (
-              <span
-                className="shrink-0 text-lg font-bold tracking-tight text-primary-600 dark:text-primary-400"
-                title={storeName}
-              >
-                {storeInitials}
-              </span>
-            ) : null}
           </StoreNavLink>
           <button
             type="button"

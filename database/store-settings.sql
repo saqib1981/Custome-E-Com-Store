@@ -42,6 +42,16 @@ values (
 )
 on conflict (key) do nothing;
 
+-- Default general theme settings
+insert into public.store_settings (key, value)
+values (
+  'general',
+  jsonb_build_object(
+    'backgroundColor', '#ffffff'
+  )
+)
+on conflict (key) do nothing;
+
 alter table public.store_settings enable row level security;
 
 -- No public policies: reads/writes go through Next.js API using the service role key.

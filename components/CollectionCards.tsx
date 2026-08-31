@@ -1,12 +1,16 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import CollectionCardsView from '@/components/home/CollectionCardsView'
 import {
   DEFAULT_COLLECTION_CARDS,
   type CollectionCardsConfig,
   type ResolvedCollectionCard,
 } from '@/lib/collection-cards'
+import {
+  PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS,
+  STORE_SECTION_FOCUS_REFRESH_MS,
+} from '@/lib/store-section-client'
 
 type CollectionCardsProps = {
   preview?: boolean
@@ -24,6 +28,12 @@ export default function CollectionCards({
   )
   const [cards, setCards] = useState<ResolvedCollectionCard[]>([])
 
+  const isPreviewMode = preview || Boolean(configOverride)
+  const previewConfigKey = useMemo(
+    () => (isPreviewMode && configOverride ? JSON.stringify(configOverride) : null),
+    [isPreviewMode, configOverride]
+  )
+
   useEffect(() => {
     if (configOverride) {
       setConfig(configOverride)
@@ -31,54 +41,88 @@ export default function CollectionCards({
   }, [configOverride])
 
   useEffect(() => {
-    if (!config.enabled) {
+    if (!isPreviewMode || !configOverride) return
+
+    if (!configOverride.enabled) {
       setCards([])
       return
     }
 
     let cancelled = false
+    const timer = window.setTimeout(() => {
+      void fetch('/api/admin/collection-cards', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configOverride),
+        cache: 'no-store',
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { cards?: ResolvedCollectionCard[] } | null) => {
+          if (!cancelled) setCards(Array.isArray(data?.cards) ? data.cards : [])
+        })
+        .catch(() => {
+          if (!cancelled) setCards([])
+        })
+    }, PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [isPreviewMode, configOverride, previewConfigKey])
+
+  useEffect(() => {
+    if (isPreviewMode) return
+
+    let cancelled = false
+    let lastFocusAt = 0
 
     const load = () => {
-      if (preview || configOverride) {
-        void fetch('/api/admin/collection-cards', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(config),
-          cache: 'no-store',
-        })
-          .then((res) => (res.ok ? res.json() : null))
-          .then((data: { cards?: ResolvedCollectionCard[] } | null) => {
-            if (!cancelled) setCards(Array.isArray(data?.cards) ? data.cards : [])
-          })
-          .catch(() => {
-            if (!cancelled) setCards([])
-          })
-        return
-      }
-
       void fetch('/api/store/collection-cards', { cache: 'no-store' })
         .then((res) => (res.ok ? res.json() : null))
-        .then((data: { enabled?: boolean; titlePosition?: CollectionCardsConfig['titlePosition']; cards?: ResolvedCollectionCard[] } | null) => {
-          if (cancelled) return
-          setConfig((prev) => ({
-            ...prev,
-            enabled: Boolean(data?.enabled ?? prev.enabled),
-            titlePosition: data?.titlePosition === 'below' ? 'below' : 'overlay',
-          }))
-          setCards(Array.isArray(data?.cards) ? data.cards : [])
-        })
+        .then(
+          (data: {
+            enabled?: boolean
+            titlePosition?: CollectionCardsConfig['titlePosition']
+            cards?: ResolvedCollectionCard[]
+          } | null) => {
+            if (cancelled || !data) return
+
+            setConfig((prev) => {
+              const nextEnabled = Boolean(data.enabled ?? prev.enabled)
+              const nextTitlePosition = data.titlePosition === 'below' ? 'below' : 'overlay'
+              if (prev.enabled === nextEnabled && prev.titlePosition === nextTitlePosition) {
+                return prev
+              }
+              return { ...prev, enabled: nextEnabled, titlePosition: nextTitlePosition }
+            })
+
+            const nextCards = Array.isArray(data.cards) ? data.cards : []
+            setCards((prev) =>
+              JSON.stringify(prev) === JSON.stringify(nextCards) ? prev : nextCards
+            )
+          }
+        )
         .catch(() => {
           if (!cancelled) setCards([])
         })
     }
 
     load()
-    window.addEventListener('focus', load)
+
+    const onFocus = () => {
+      const now = Date.now()
+      if (now - lastFocusAt < STORE_SECTION_FOCUS_REFRESH_MS) return
+      lastFocusAt = now
+      load()
+    }
+
+    window.addEventListener('focus', onFocus)
     return () => {
       cancelled = true
-      window.removeEventListener('focus', load)
+      window.removeEventListener('focus', onFocus)
     }
-  }, [config, preview, configOverride])
+  }, [isPreviewMode])
 
   return (
     <CollectionCardsView

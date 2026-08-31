@@ -20,6 +20,11 @@ import {
 import { DEFAULT_ANNOUNCEMENT, type AnnouncementConfig } from '@/lib/announcement'
 import { DEFAULT_GENERAL_SETTINGS, type GeneralSettingsConfig } from '@/lib/general-settings'
 import {
+  DEFAULT_FLOATING_BUTTONS,
+  floatingButtonsConfigsEqual,
+  type FloatingButtonsConfig,
+} from '@/lib/floating-buttons'
+import {
   DEFAULT_HEADER_NAV_SETTINGS,
   menuHighlightsEqual,
   type HeaderNavSettingsConfig,
@@ -40,6 +45,11 @@ import {
   type CollectionTabsConfig,
 } from '@/lib/collection-tabs'
 import {
+  trustBannerConfigsEqual,
+  DEFAULT_TRUST_BANNER,
+  type TrustBannerConfig,
+} from '@/lib/trust-banner'
+import {
   collectionCardsConfigsEqual,
   DEFAULT_COLLECTION_CARDS,
   type CollectionCardsConfig,
@@ -56,6 +66,7 @@ export type AdminSectionId =
   | 'home-divider-after-cards'
   | 'collection-tabs'
   | 'home-divider-after-tabs'
+  | 'trust-banner'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -127,6 +138,14 @@ type AdminEditorContextValue = {
   collectionTabsStatus: 'idle' | 'saved' | 'error'
   updateCollectionTabsDraft: (patch: Partial<CollectionTabsConfig>) => void
   saveCollectionTabs: () => Promise<boolean>
+  trustBannerLoading: boolean
+  trustBannerSaving: boolean
+  trustBannerSaved: TrustBannerConfig
+  trustBannerDraft: TrustBannerConfig
+  trustBannerDirty: boolean
+  trustBannerStatus: 'idle' | 'saved' | 'error'
+  updateTrustBannerDraft: (patch: Partial<TrustBannerConfig>) => void
+  saveTrustBanner: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -157,6 +176,14 @@ type AdminEditorContextValue = {
   generalSettingsStatus: 'idle' | 'saved' | 'error'
   updateGeneralSettingsDraft: (patch: Partial<GeneralSettingsConfig>) => void
   saveGeneralSettings: () => Promise<boolean>
+  floatingButtonsLoading: boolean
+  floatingButtonsSaving: boolean
+  floatingButtonsSaved: FloatingButtonsConfig
+  floatingButtonsDraft: FloatingButtonsConfig
+  floatingButtonsDirty: boolean
+  floatingButtonsStatus: 'idle' | 'saved' | 'error'
+  updateFloatingButtonsDraft: (patch: Partial<FloatingButtonsConfig>) => void
+  saveFloatingButtons: () => Promise<boolean>
   previewViewport: PreviewViewport
   setPreviewViewport: (viewport: PreviewViewport) => void
   activeThemePageId: AdminThemePageId
@@ -261,6 +288,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [collectionTabsSaving, setCollectionTabsSaving] = useState(false)
   const [collectionTabsStatus, setCollectionTabsStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
+  const [trustBannerSaved, setTrustBannerSaved] = useState<TrustBannerConfig>(DEFAULT_TRUST_BANNER)
+  const [trustBannerDraft, setTrustBannerDraft] = useState<TrustBannerConfig>(DEFAULT_TRUST_BANNER)
+  const [trustBannerLoading, setTrustBannerLoading] = useState(true)
+  const [trustBannerSaving, setTrustBannerSaving] = useState(false)
+  const [trustBannerStatus, setTrustBannerStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
@@ -277,6 +310,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [generalSettingsLoading, setGeneralSettingsLoading] = useState(true)
   const [generalSettingsSaving, setGeneralSettingsSaving] = useState(false)
   const [generalSettingsStatus, setGeneralSettingsStatus] = useState<'idle' | 'saved' | 'error'>(
+    'idle'
+  )
+
+  const [floatingButtonsSaved, setFloatingButtonsSaved] =
+    useState<FloatingButtonsConfig>(DEFAULT_FLOATING_BUTTONS)
+  const [floatingButtonsDraft, setFloatingButtonsDraft] =
+    useState<FloatingButtonsConfig>(DEFAULT_FLOATING_BUTTONS)
+  const [floatingButtonsLoading, setFloatingButtonsLoading] = useState(true)
+  const [floatingButtonsSaving, setFloatingButtonsSaving] = useState(false)
+  const [floatingButtonsStatus, setFloatingButtonsStatus] = useState<'idle' | 'saved' | 'error'>(
     'idle'
   )
 
@@ -403,6 +446,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/trust-banner', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_TRUST_BANNER))
+      .then((data: TrustBannerConfig) => {
+        setTrustBannerSaved(data)
+        setTrustBannerDraft(data)
+      })
+      .catch(() => {
+        setTrustBannerSaved(DEFAULT_TRUST_BANNER)
+        setTrustBannerDraft(DEFAULT_TRUST_BANNER)
+      })
+      .finally(() => setTrustBannerLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -428,6 +485,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
         setGeneralSettingsDraft(DEFAULT_GENERAL_SETTINGS)
       })
       .finally(() => setGeneralSettingsLoading(false))
+  }, [])
+
+  useEffect(() => {
+    void fetch('/api/admin/floating-buttons', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_FLOATING_BUTTONS))
+      .then((data: FloatingButtonsConfig) => {
+        setFloatingButtonsSaved(data)
+        setFloatingButtonsDraft(data)
+      })
+      .catch(() => {
+        setFloatingButtonsSaved(DEFAULT_FLOATING_BUTTONS)
+        setFloatingButtonsDraft(DEFAULT_FLOATING_BUTTONS)
+      })
+      .finally(() => setFloatingButtonsLoading(false))
   }, [])
 
   useEffect(() => {
@@ -486,6 +557,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [collectionTabsSaved, collectionTabsDraft]
   )
 
+  const trustBannerDirty = useMemo(
+    () => !trustBannerConfigsEqual(trustBannerSaved, trustBannerDraft),
+    [trustBannerSaved, trustBannerDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -494,6 +570,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const generalSettingsDirty = useMemo(
     () => generalSettingsSaved.backgroundColor !== generalSettingsDraft.backgroundColor,
     [generalSettingsSaved, generalSettingsDraft]
+  )
+
+  const floatingButtonsDirty = useMemo(
+    () => !floatingButtonsConfigsEqual(floatingButtonsSaved, floatingButtonsDraft),
+    [floatingButtonsSaved, floatingButtonsDraft]
   )
 
   const headerNavDirty = useMemo(
@@ -750,6 +831,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [collectionTabsDraft])
 
+  const updateTrustBannerDraft = useCallback((patch: Partial<TrustBannerConfig>) => {
+    setTrustBannerDraft((prev) => ({ ...prev, ...patch }))
+    setTrustBannerStatus('idle')
+  }, [])
+
+  const saveTrustBanner = useCallback(async () => {
+    setTrustBannerSaving(true)
+    setTrustBannerStatus('idle')
+    try {
+      const res = await fetch('/api/admin/trust-banner', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(trustBannerDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as TrustBannerConfig
+      setTrustBannerSaved(data)
+      setTrustBannerDraft(data)
+      setTrustBannerStatus('saved')
+      return true
+    } catch {
+      setTrustBannerStatus('error')
+      return false
+    } finally {
+      setTrustBannerSaving(false)
+    }
+  }, [trustBannerDraft])
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -837,6 +946,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setGeneralSettingsSaving(false)
     }
   }, [generalSettingsDraft])
+
+  const updateFloatingButtonsDraft = useCallback((patch: Partial<FloatingButtonsConfig>) => {
+    setFloatingButtonsDraft((prev) => ({ ...prev, ...patch }))
+    setFloatingButtonsStatus('idle')
+  }, [])
+
+  const saveFloatingButtons = useCallback(async () => {
+    setFloatingButtonsSaving(true)
+    setFloatingButtonsStatus('idle')
+    try {
+      const res = await fetch('/api/admin/floating-buttons', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(floatingButtonsDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as FloatingButtonsConfig
+      setFloatingButtonsSaved(data)
+      setFloatingButtonsDraft(data)
+      setFloatingButtonsStatus('saved')
+      return true
+    } catch {
+      setFloatingButtonsStatus('error')
+      return false
+    } finally {
+      setFloatingButtonsSaving(false)
+    }
+  }, [floatingButtonsDraft])
 
   const updateHeaderNavDraft = useCallback((patch: Partial<HeaderNavSettingsConfig>) => {
     setHeaderNavDraft((prev) => ({ ...prev, ...patch }))
@@ -957,6 +1094,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       collectionTabsStatus,
       updateCollectionTabsDraft,
       saveCollectionTabs,
+      trustBannerLoading,
+      trustBannerSaving,
+      trustBannerSaved,
+      trustBannerDraft,
+      trustBannerDirty,
+      trustBannerStatus,
+      updateTrustBannerDraft,
+      saveTrustBanner,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -987,6 +1132,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       generalSettingsStatus,
       updateGeneralSettingsDraft,
       saveGeneralSettings,
+      floatingButtonsLoading,
+      floatingButtonsSaving,
+      floatingButtonsSaved,
+      floatingButtonsDraft,
+      floatingButtonsDirty,
+      floatingButtonsStatus,
+      updateFloatingButtonsDraft,
+      saveFloatingButtons,
       previewViewport,
       setPreviewViewport,
       activeThemePageId,
@@ -1059,6 +1212,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       collectionTabsStatus,
       updateCollectionTabsDraft,
       saveCollectionTabs,
+      trustBannerLoading,
+      trustBannerSaving,
+      trustBannerSaved,
+      trustBannerDraft,
+      trustBannerDirty,
+      trustBannerStatus,
+      updateTrustBannerDraft,
+      saveTrustBanner,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -1089,6 +1250,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       generalSettingsStatus,
       updateGeneralSettingsDraft,
       saveGeneralSettings,
+      floatingButtonsLoading,
+      floatingButtonsSaving,
+      floatingButtonsSaved,
+      floatingButtonsDraft,
+      floatingButtonsDirty,
+      floatingButtonsStatus,
+      updateFloatingButtonsDraft,
+      saveFloatingButtons,
       previewViewport,
       activeThemePageId,
       previewPath,

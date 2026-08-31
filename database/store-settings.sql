@@ -52,6 +52,18 @@ values (
 )
 on conflict (key) do nothing;
 
+-- Default floating buttons (back to top + WhatsApp)
+insert into public.store_settings (key, value)
+values (
+  'floating-buttons',
+  jsonb_build_object(
+    'backToTopEnabled', true,
+    'whatsappEnabled', false,
+    'whatsappNumber', ''
+  )
+)
+on conflict (key) do nothing;
+
 alter table public.store_settings enable row level security;
 
 -- No public policies: reads/writes go through Next.js API using the service role key.

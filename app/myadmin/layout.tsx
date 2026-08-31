@@ -13,6 +13,7 @@ import HomeDividerSettingsPanel, {
 } from '@/components/admin/HomeDividerSettingsPanel'
 import CollectionCardsSettingsPanel from '@/components/admin/CollectionCardsSettingsPanel'
 import CollectionTabsSettingsPanel from '@/components/admin/CollectionTabsSettingsPanel'
+import TrustBannerSettingsPanel from '@/components/admin/TrustBannerSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -54,6 +55,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'home-divider-after-tabs') {
     return <HomeDividerAfterTabsSettingsPanel />
+  }
+
+  if (activeSection === 'trust-banner') {
+    return <TrustBannerSettingsPanel />
   }
 
   if (activeGlobalSetting) {

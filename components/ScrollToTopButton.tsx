@@ -13,9 +13,20 @@ type ScrollToTopButtonProps = {
   /** When omitted, listens to window scroll (normal document flow). */
   scrollRef?: RefObject<HTMLElement | null>
   pathname?: string
+  enabled?: boolean
+  /** Stack inside StoreFloatingButtons instead of fixed bottom-right. */
+  embedded?: boolean
+  /** Theme editor preview — always visible regardless of scroll. */
+  preview?: boolean
 }
 
-export default function ScrollToTopButton({ scrollRef, pathname }: ScrollToTopButtonProps) {
+export default function ScrollToTopButton({
+  scrollRef,
+  pathname,
+  enabled = true,
+  embedded = false,
+  preview = false,
+}: ScrollToTopButtonProps) {
   const [progress, setProgress] = useState(0)
   const [visible, setVisible] = useState(false)
 
@@ -74,14 +85,16 @@ export default function ScrollToTopButton({ scrollRef, pathname }: ScrollToTopBu
 
   const dashOffset = CIRCUMFERENCE * (1 - progress)
 
+  if (!enabled) return null
+
   return (
     <button
       type="button"
       onClick={scrollToTop}
       aria-label="Back to top"
       title="Back to top"
-      className={`fixed bottom-5 right-5 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-white text-primary-600 shadow-lg ring-1 ring-gray-200 transition-all duration-200 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-primary-400 dark:ring-gray-600 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900 ${
-        visible
+      className={`${embedded ? 'relative' : 'fixed bottom-5 right-5'} z-40 flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-primary-600 shadow-lg ring-1 ring-gray-200 transition-all duration-200 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-primary-400 dark:ring-gray-600 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-900 ${
+        preview || visible
           ? 'translate-y-0 opacity-100 pointer-events-auto'
           : 'translate-y-3 opacity-0 pointer-events-none'
       }`}

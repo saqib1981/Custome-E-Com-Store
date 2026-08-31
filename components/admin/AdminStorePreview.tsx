@@ -7,6 +7,8 @@ import HeroBannerView from '@/components/hero/HeroBannerView'
 import HomeDividerSection from '@/components/home/HomeDividerSection'
 import CollectionCards from '@/components/CollectionCards'
 import CollectionTabs from '@/components/CollectionTabs'
+import TrustBannerView from '@/components/home/TrustBannerView'
+import StoreFloatingButtons from '@/components/StoreFloatingButtons'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
 import { useAdminEditor } from '@/context/AdminEditorContext'
@@ -65,9 +67,15 @@ export default function AdminStorePreview() {
     collectionTabsDraft,
     collectionTabsSaved,
     collectionTabsLoading,
+    trustBannerDraft,
+    trustBannerSaved,
+    trustBannerLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
+    floatingButtonsDraft,
+    floatingButtonsSaved,
+    floatingButtonsLoading,
     previewViewport,
     previewPath,
     setPreviewPath,
@@ -81,8 +89,10 @@ export default function AdminStorePreview() {
   const isEditingHomeDividerAfterCards = activeSection === 'home-divider-after-cards'
   const isEditingCollectionTabs = activeSection === 'collection-tabs'
   const isEditingHomeDividerAfterTabs = activeSection === 'home-divider-after-tabs'
+  const isEditingTrustBanner = activeSection === 'trust-banner'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
+  const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
   const logoFaviconPreview =
     isEditingHeader || isEditingLogoFavicon ? logoFaviconDraft : logoFaviconSaved
@@ -97,9 +107,13 @@ export default function AdminStorePreview() {
   const homeDividerAfterTabsPreview = isEditingHomeDividerAfterTabs
     ? homeDividerAfterTabsDraft
     : homeDividerAfterTabsSaved
+  const trustBannerPreview = isEditingTrustBanner ? trustBannerDraft : trustBannerSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
+  const floatingButtonsPreview = isEditingFloatingButtons
+    ? floatingButtonsDraft
+    : floatingButtonsSaved
   const isLoading =
     announcementLoading ||
     logoFaviconLoading ||
@@ -110,7 +124,9 @@ export default function AdminStorePreview() {
     collectionCardsLoading ||
     collectionTabsLoading ||
     homeDividerAfterTabsLoading ||
-    generalSettingsLoading
+    trustBannerLoading ||
+    generalSettingsLoading ||
+    floatingButtonsLoading
 
   const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
 
@@ -165,6 +181,7 @@ export default function AdminStorePreview() {
   }, [headerNavLoading, menuSelection.menuId, menuSelection.menuHandle])
 
   const menuForPreview = previewMenu ?? FALLBACK_MAIN_MENU
+  const previewPageUrl = `https://yourstore.com${previewPath === '/' ? '/' : previewPath}`
 
   return (
     <div className="relative flex h-full min-h-0 flex-1 justify-center overflow-y-auto bg-white p-4 sm:p-6">
@@ -227,6 +244,7 @@ export default function AdminStorePreview() {
               onPreviewNavigate={setPreviewPath}
             />
             <HomeDividerSection config={homeDividerAfterTabsPreview} />
+            <TrustBannerView config={trustBannerPreview} preview previewViewport={previewViewport} />
           </>
         ) : (
           <div className="flex flex-1 flex-col p-8 sm:p-12">
@@ -243,6 +261,12 @@ export default function AdminStorePreview() {
             </>
           </div>
         )}
+        <StoreFloatingButtons
+          preview
+          configOverride={floatingButtonsPreview}
+          pageUrlOverride={previewPageUrl}
+          pathname={previewPath}
+        />
       </div>
     </div>
   )

@@ -25,6 +25,23 @@ values (
 )
 on conflict (key) do nothing;
 
+-- Default logo and favicon (global theme settings)
+insert into public.store_settings (key, value)
+values (
+  'logo-favicon',
+  jsonb_build_object(
+    'faviconUrl', '',
+    'faviconFileName', '',
+    'logoUrl', '',
+    'logoFileName', '',
+    'logoTransparentUrl', '',
+    'logoTransparentFileName', '',
+    'logoWidthDesktop', 200,
+    'logoWidthMobile', 150
+  )
+)
+on conflict (key) do nothing;
+
 alter table public.store_settings enable row level security;
 
 -- No public policies: reads/writes go through Next.js API using the service role key.

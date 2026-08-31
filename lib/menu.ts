@@ -13,7 +13,7 @@ export interface MenuItem {
   subItems?: MenuSubItem[]
 }
 
-/** Main navigation — add items here as the store grows. */
+/** Fallback local menu — live navigation comes from Shopify main menu. */
 export const MENU_ITEMS: MenuItem[] = [
   {
     name: 'Home',

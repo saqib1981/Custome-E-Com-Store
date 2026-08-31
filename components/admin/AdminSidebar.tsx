@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronLeft, Loader2, Megaphone, Save } from 'lucide-react'
+import AdminPanelShell from '@/components/admin/AdminPanelShell'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { normalizeHexColor } from '@/lib/announcement'
 
@@ -89,28 +89,6 @@ function ColorField({
   )
 }
 
-export default function AdminSectionsNav() {
-  const { openSection } = useAdminEditor()
-
-  return (
-    <div className="p-4">
-      <p className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-        Sections
-      </p>
-      <nav className="mt-2 space-y-1">
-        <button
-          type="button"
-          onClick={() => openSection('announcement')}
-          className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
-        >
-          <Megaphone className="h-4 w-4 shrink-0" aria-hidden />
-          Announcement bar
-        </button>
-      </nav>
-    </div>
-  )
-}
-
 export function AnnouncementBarSettingsPanel() {
   const {
     closeSection,
@@ -125,57 +103,17 @@ export function AnnouncementBarSettingsPanel() {
   const speedSeconds = parseSpeedSeconds(announcementDraft.speed)
   const heightPx = parseHeightPx(announcementDraft.height)
 
-  const handleSave = async () => {
-    await saveAnnouncement()
-  }
-
   return (
-    <div className="flex h-full flex-col">
-      <div className="sticky top-0 z-10 shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 backdrop-blur">
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 dark:border-gray-800">
-          <button
-            type="button"
-            onClick={closeSection}
-            className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            <ChevronLeft className="h-4 w-4" aria-hidden />
-            Back
-          </button>
-        </div>
-        <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <div className="min-w-0">
-            <h1 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">Announcement bar</h1>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Top marquee message</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => void handleSave()}
-            disabled={announcementSaving || !announcementDirty}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-primary-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {announcementSaving ? (
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-            ) : (
-              <Save className="h-4 w-4" aria-hidden />
-            )}
-            Save
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        {announcementStatus === 'saved' && (
-          <p className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 px-3 py-2 rounded-md">
-            Settings saved. Storefront updates when you switch back to the store tab.
-          </p>
-        )}
-        {announcementStatus === 'error' && (
-          <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 px-3 py-2 rounded-md">
-            Could not save. Please try again.
-          </p>
-        )}
-
-        <label className="flex items-center justify-between gap-3 cursor-pointer">
+    <AdminPanelShell
+      title="Announcement bar"
+      subtitle="Top marquee message"
+      onBack={closeSection}
+      onSave={() => void saveAnnouncement()}
+      saveDisabled={!announcementDirty}
+      saving={announcementSaving}
+      status={announcementStatus}
+    >
+      <label className="flex items-center justify-between gap-3 cursor-pointer">
           <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Show announcement bar</span>
           <input
             type="checkbox"
@@ -318,7 +256,6 @@ export function AnnouncementBarSettingsPanel() {
             ))}
           </select>
         </div>
-      </div>
-    </div>
+    </AdminPanelShell>
   )
 }

@@ -1,26 +1,140 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { X, type LucideIcon } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronDown, ChevronRight, X } from 'lucide-react'
 import StoreBrandMark from '@/components/StoreBrandMark'
-import { DEFAULT_STORE_PROFILE, getStoreNameInitials } from '@/lib/storeProfile'
-import { MENU_ITEMS } from '@/lib/menu'
+import StoreNavLink from '@/components/nav/StoreNavLink'
+import { useStoreTheme } from '@/context/StoreThemeContext'
+import type { LogoFaviconConfig } from '@/lib/logo-favicon'
+import { getStoreNameInitials } from '@/lib/storeProfile'
+import { isStoreNavActive, type StoreNavItem } from '@/lib/shopify-menu'
 
 type SidebarProps = {
   open?: boolean
   onClose?: () => void
+  /** Render inside a preview frame instead of the full viewport. */
+  contained?: boolean
+  previewPath?: string
+  onPreviewNavigate?: (path: string) => void
+  menuOverride?: StoreNavItem[]
+  logoFaviconOverride?: LogoFaviconConfig
 }
 
-/** Off-canvas navigation drawer (mobile + desktop). */
-export default function Sidebar({ open = false, onClose }: SidebarProps) {
-  const pathname = usePathname()
+function MobileNavItem({
+  item,
+  pathname,
+  onClose,
+  previewMode,
+  onPreviewNavigate,
+  depth = 0,
+}: {
+  item: StoreNavItem
+  pathname: string
+  onClose?: () => void
+  previewMode?: boolean
+  onPreviewNavigate?: (path: string) => void
+  depth?: number
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const active = isStoreNavActive(pathname, item)
+  const hasChildren = item.items.length > 0
+  const paddingLeft = 24 + depth * 16
 
-  const storeName = DEFAULT_STORE_PROFILE.storeName
-  const logoUrl = DEFAULT_STORE_PROFILE.logoUrl
+  const rowClass = `flex items-center justify-between py-3 text-gray-700 transition-colors hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-primary-400 ${
+    active
+      ? 'bg-primary-50 text-primary-600 dark:bg-gray-700 dark:text-primary-400 border-r-4 border-primary-600'
+      : ''
+  }`
+
+  const linkContent = (
+    <span className="font-medium truncate">{item.title}</span>
+  )
+
+  return (
+    <li>
+      <div className={rowClass} style={{ paddingLeft, paddingRight: 24 }}>
+        <StoreNavLink
+          href={item.href}
+          external={item.external}
+          previewMode={previewMode}
+          onPreviewNavigate={onPreviewNavigate}
+          onClick={onClose}
+          className="flex flex-1 items-center min-w-0"
+          aria-current={active ? 'page' : undefined}
+        >
+          {linkContent}
+        </StoreNavLink>
+        {hasChildren ? (
+          <button
+            type="button"
+            onClick={() => setExpanded((prev) => !prev)}
+            className="ml-2 rounded p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
+            aria-label={expanded ? 'Collapse submenu' : 'Expand submenu'}
+          >
+            {expanded ? (
+              <ChevronDown className="h-4 w-4" aria-hidden />
+            ) : (
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            )}
+          </button>
+        ) : null}
+      </div>
+      {hasChildren && expanded ? (
+        <ul>
+          {item.items.map((child) => (
+            <MobileNavItem
+              key={child.id}
+              item={child}
+              pathname={pathname}
+              onClose={onClose}
+              previewMode={previewMode}
+              onPreviewNavigate={onPreviewNavigate}
+              depth={depth + 1}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  )
+}
+
+/** Off-canvas navigation drawer — Shopify main menu on mobile. */
+export default function Sidebar({
+  open = false,
+  onClose,
+  contained = false,
+  previewPath = '/',
+  onPreviewNavigate,
+  menuOverride,
+  logoFaviconOverride,
+}: SidebarProps) {
+  const pathname = usePathname()
+  const activePath = contained ? previewPath : pathname
+  const previewMode = contained
+  const { storeName, logoFavicon: themeLogoFavicon, mainMenu } = useStoreTheme()
+
+  const logoFavicon = logoFaviconOverride ?? themeLogoFavicon
+  const menuItems = menuOverride ?? mainMenu
+  const logoUrl = logoFavicon.logoUrl
   const hasLogo = Boolean(logoUrl.trim())
   const storeInitials = getStoreNameInitials(storeName)
+
+  const overlayClass = contained
+    ? `absolute inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
+        open ? 'opacity-100' : 'pointer-events-none opacity-0'
+      }`
+    : `fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
+        open ? 'opacity-100' : 'pointer-events-none opacity-0'
+      }`
+
+  const panelClass = contained
+    ? `absolute inset-y-0 left-0 z-50 flex w-[min(18rem,85%)] transform flex-col bg-white shadow-xl transition-transform duration-200 ease-out dark:bg-gray-800 ${
+        open ? 'translate-x-0' : '-translate-x-full'
+      }`
+    : `fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] transform flex-col bg-white shadow-xl transition-transform duration-200 ease-out dark:bg-gray-800 ${
+        open ? 'translate-x-0' : '-translate-x-full'
+      }`
 
   useEffect(() => {
     if (!open) return
@@ -28,86 +142,66 @@ export default function Sidebar({ open = false, onClose }: SidebarProps) {
       if (e.key === 'Escape') onClose?.()
     }
     document.addEventListener('keydown', onKeyDown)
+    if (contained) {
+      return () => document.removeEventListener('keydown', onKeyDown)
+    }
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
       document.removeEventListener('keydown', onKeyDown)
       document.body.style.overflow = prevOverflow
     }
-  }, [open, onClose])
+  }, [open, onClose, contained])
 
   return (
     <>
-      <div
-        className={`fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
-          open ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
-        onClick={onClose}
-        aria-hidden
-      />
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] transform flex-col bg-white shadow-xl transition-transform duration-200 ease-out dark:bg-gray-800 ${
-          open ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        aria-label="Main navigation"
-        aria-hidden={!open}
-      >
-        <div className="flex items-center justify-between gap-2 px-4 py-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
-          <Link
+      <div className={overlayClass} onClick={onClose} aria-hidden />
+      <aside className={panelClass} aria-label="Main navigation" aria-hidden={!open}>
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 py-4 dark:border-gray-700">
+          <StoreNavLink
             href="/"
+            previewMode={previewMode}
+            onPreviewNavigate={onPreviewNavigate}
             onClick={onClose}
-            className="flex items-center gap-2 min-w-0 flex-1 rounded-md outline-none focus:outline-none focus-visible:outline-none"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-md outline-none"
             aria-label="Go to home"
-            title="Home"
           >
-            <StoreBrandMark storeName={storeName} logoUrl={logoUrl} size="sm" />
+            <StoreBrandMark
+              storeName={storeName}
+              logoUrl={logoUrl}
+              logoWidth={logoFavicon.logoWidthMobile}
+              size="sm"
+            />
             {hasLogo ? (
               <span
-                className="text-lg font-bold text-primary-600 dark:text-primary-400 tracking-tight shrink-0 hover:text-primary-700 dark:hover:text-primary-300"
+                className="shrink-0 text-lg font-bold tracking-tight text-primary-600 dark:text-primary-400"
                 title={storeName}
               >
                 {storeInitials}
               </span>
             ) : null}
-          </Link>
+          </StoreNavLink>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-md text-gray-600 hover:bg-primary-50 hover:text-primary-600 dark:text-gray-300 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 shrink-0"
+            className="shrink-0 rounded-md p-1.5 text-gray-600 hover:bg-primary-50 hover:text-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:text-gray-300 dark:hover:bg-gray-700"
             aria-label="Close menu"
           >
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <nav className="flex-1 mt-2 min-h-0 overflow-y-auto overflow-x-hidden" aria-label="Sidebar menu">
+        <nav className="mt-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden" aria-label="Sidebar menu">
           <ul className="space-y-0">
-            {MENU_ITEMS.map((item) => {
-              const Icon = item.icon as LucideIcon
-              const isActive = pathname === item.path
-
-              return (
-                <li key={item.path}>
-                  <div
-                    className={`flex items-center justify-between px-6 py-3 text-gray-700 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-600 dark:hover:text-primary-400 transition-colors ${
-                      isActive
-                        ? 'bg-primary-50 dark:bg-gray-700 text-primary-600 dark:text-primary-400 border-r-4 border-primary-600'
-                        : ''
-                    }`}
-                  >
-                    <Link
-                      href={item.path}
-                      prefetch={false}
-                      onClick={onClose}
-                      className="flex flex-1 items-center min-w-0"
-                      aria-current={isActive ? 'page' : undefined}
-                    >
-                      <Icon className="w-5 h-5 shrink-0 mr-3" aria-hidden />
-                      <span className="font-medium truncate">{item.name}</span>
-                    </Link>
-                  </div>
-                </li>
-              )
-            })}
+            {menuItems.map((item) => (
+              <MobileNavItem
+                key={item.id}
+                item={item}
+                pathname={activePath}
+                onClose={onClose}
+                previewMode={previewMode}
+                onPreviewNavigate={onPreviewNavigate}
+              />
+            ))}
           </ul>
         </nav>
       </aside>

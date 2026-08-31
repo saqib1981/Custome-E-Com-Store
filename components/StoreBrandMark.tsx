@@ -5,19 +5,22 @@ import { getStoreNameInitials } from '@/lib/storeProfile'
 type StoreBrandMarkProps = {
   storeName: string
   logoUrl?: string
+  /** Logo width in px — height scales automatically. */
+  logoWidth?: number
   size?: 'sm' | 'md'
   className?: string
 }
 
 const sizeClasses = {
-  sm: { logo: 'w-8 h-8', initials: 'w-8 h-8 text-xs' },
-  md: { logo: 'w-12 h-12', initials: 'w-12 h-12 text-sm' },
+  sm: { initials: 'w-8 h-8 text-xs' },
+  md: { initials: 'w-12 h-12 text-sm' },
 } as const
 
 /** Logo image, or initials circle when no logo is set. */
 export default function StoreBrandMark({
   storeName,
   logoUrl = '',
+  logoWidth,
   size = 'sm',
   className = '',
 }: StoreBrandMarkProps) {
@@ -32,7 +35,8 @@ export default function StoreBrandMark({
         <img
           src={cleanLogo}
           alt={storeName}
-          className={`${s.logo} rounded object-cover border border-gray-200 dark:border-gray-600`}
+          className="max-h-12 w-auto object-contain"
+          style={logoWidth ? { width: logoWidth, maxHeight: 48 } : undefined}
         />
       </div>
     )

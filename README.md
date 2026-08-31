@@ -32,7 +32,28 @@ SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 See [`database/README.md`](database/README.md) for details.
 
-### 3. Run
+### 3. Shopify (logo / favicon uploads)
+
+Add your dev app credentials to `.env.local`:
+
+```env
+SHOPIFY_STORE_URL=your-store.myshopify.com
+SHOPIFY_CLIENT_ID=
+SHOPIFY_CLIENT_SECRET=
+SHOPIFY_API_VERSION=2025-07
+```
+
+Legacy names from `.env.local` also work: `Shopify_Store_URL`, `Shopify_Store_Client_ID`, `Shopify_Store_Client_Secret`, `API_version`.
+
+Optional: set `SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...` instead of client credentials.
+
+The app needs **Files** access (`write_files`) and **Navigation** read access (`read_online_store_navigation`), and must be **installed** on the store.
+
+Main menu is loaded from Shopify handle **`main-menu`** (override with `SHOPIFY_MAIN_MENU_HANDLE`).
+
+Admin uploads (logo, favicon) go to **Shopify Files** (CDN URLs saved in Supabase `store_settings`).
+
+### 4. Run
 
 ```bash
 npm run dev

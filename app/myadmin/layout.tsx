@@ -3,19 +3,36 @@
 import Link from 'next/link'
 import { ExternalLink, LayoutPanelTop } from 'lucide-react'
 import { AdminEditorProvider, useAdminEditor } from '@/context/AdminEditorContext'
-import AdminSectionsNav, { AnnouncementBarSettingsPanel } from '@/components/admin/AdminSidebar'
+import AdminSidebarNav from '@/components/admin/AdminSidebarNav'
+import { AnnouncementBarSettingsPanel } from '@/components/admin/AdminSidebar'
+import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
+import { StoreThemeProvider } from '@/context/StoreThemeContext'
+
+function AdminSidebarPanel() {
+  const { activeSection, activeGlobalSetting } = useAdminEditor()
+
+  if (activeSection === 'announcement') {
+    return <AnnouncementBarSettingsPanel />
+  }
+
+  if (activeGlobalSetting) {
+    return <GlobalSettingPanel settingId={activeGlobalSetting} />
+  }
+
+  return <AdminSidebarNav />
+}
 
 function MyAdminShell({ children }: { children: React.ReactNode }) {
-  const { activeSection } = useAdminEditor()
+  const { isDetailPanelOpen } = useAdminEditor()
 
   return (
     <div className="flex h-screen flex-col bg-gray-100 dark:bg-gray-950">
-      <header className="flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <header className="flex shrink-0 items-center justify-between gap-4 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
+        <div className="flex min-w-0 items-center gap-3">
           <LayoutPanelTop className="h-5 w-5 shrink-0 text-primary-600 dark:text-primary-400" aria-hidden />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Theme editor</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">Custom E-Com Store · Admin</p>
+            <p className="truncate text-xs text-gray-500 dark:text-gray-400">Custom E-Com Store · Admin</p>
           </div>
         </div>
         <Link
@@ -28,15 +45,15 @@ function MyAdminShell({ children }: { children: React.ReactNode }) {
           <ExternalLink className="h-3.5 w-3.5" aria-hidden />
         </Link>
       </header>
-      <div className="flex flex-1 min-h-0">
+      <div className="flex min-h-0 flex-1">
         <aside
-          className={`shrink-0 border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 overflow-y-auto transition-[width] duration-200 ${
-            activeSection ? 'w-[360px]' : 'w-64'
+          className={`shrink-0 overflow-y-auto border-r border-gray-200 bg-white transition-[width] duration-200 dark:border-gray-800 dark:bg-gray-900 ${
+            isDetailPanelOpen ? 'w-[360px]' : 'w-64'
           }`}
         >
-          {activeSection === 'announcement' ? <AnnouncementBarSettingsPanel /> : <AdminSectionsNav />}
+          <AdminSidebarPanel />
         </aside>
-        <main className="flex-1 min-w-0 overflow-hidden">{children}</main>
+        <main className="min-w-0 flex-1 overflow-hidden">{children}</main>
       </div>
     </div>
   )
@@ -45,7 +62,9 @@ function MyAdminShell({ children }: { children: React.ReactNode }) {
 export default function MyAdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminEditorProvider>
-      <MyAdminShell>{children}</MyAdminShell>
+      <StoreThemeProvider>
+        <MyAdminShell>{children}</MyAdminShell>
+      </StoreThemeProvider>
     </AdminEditorProvider>
   )
 }

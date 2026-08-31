@@ -9,14 +9,24 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import type { AdminGlobalSettingId } from '@/lib/admin-global-settings'
 import { DEFAULT_ANNOUNCEMENT, type AnnouncementConfig } from '@/lib/announcement'
+import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 
 export type AdminSectionId = 'announcement'
+export type AdminSidebarTab = 'sections' | 'global'
+export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
 type AdminEditorContextValue = {
+  sidebarTab: AdminSidebarTab
+  setSidebarTab: (tab: AdminSidebarTab) => void
   activeSection: AdminSectionId | null
+  activeGlobalSetting: AdminGlobalSettingId | null
+  isDetailPanelOpen: boolean
   openSection: (id: AdminSectionId) => void
   closeSection: () => void
+  openGlobalSetting: (id: AdminGlobalSettingId) => void
+  closeGlobalSetting: () => void
   announcementLoading: boolean
   announcementSaving: boolean
   announcementSaved: AnnouncementConfig
@@ -25,108 +35,269 @@ type AdminEditorContextValue = {
   announcementStatus: 'idle' | 'saved' | 'error'
   updateAnnouncementDraft: (patch: Partial<AnnouncementConfig>) => void
   saveAnnouncement: () => Promise<boolean>
+  logoFaviconLoading: boolean
+  logoFaviconSaving: boolean
+  logoFaviconSaved: LogoFaviconConfig
+  logoFaviconDraft: LogoFaviconConfig
+  logoFaviconDirty: boolean
+  logoFaviconStatus: 'idle' | 'saved' | 'error'
+  logoFaviconUploading: LogoFaviconUploadFolder | null
+  updateLogoFaviconDraft: (patch: Partial<LogoFaviconConfig>) => void
+  uploadLogoFaviconImage: (folder: LogoFaviconUploadFolder, file: File) => Promise<void>
+  saveLogoFavicon: () => Promise<boolean>
 }
 
 const AdminEditorContext = createContext<AdminEditorContextValue | null>(null)
 
+function configsEqual(a: LogoFaviconConfig, b: LogoFaviconConfig): boolean {
+  return (
+    a.faviconUrl === b.faviconUrl &&
+    a.faviconFileName === b.faviconFileName &&
+    a.logoUrl === b.logoUrl &&
+    a.logoFileName === b.logoFileName &&
+    a.logoTransparentUrl === b.logoTransparentUrl &&
+    a.logoTransparentFileName === b.logoTransparentFileName &&
+    a.logoWidthDesktop === b.logoWidthDesktop &&
+    a.logoWidthMobile === b.logoWidthMobile
+  )
+}
+
 export function AdminEditorProvider({ children }: { children: ReactNode }) {
+  const [sidebarTab, setSidebarTab] = useState<AdminSidebarTab>('sections')
   const [activeSection, setActiveSection] = useState<AdminSectionId | null>(null)
-  const [saved, setSaved] = useState<AnnouncementConfig>(DEFAULT_ANNOUNCEMENT)
-  const [draft, setDraft] = useState<AnnouncementConfig>(DEFAULT_ANNOUNCEMENT)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [status, setStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [activeGlobalSetting, setActiveGlobalSetting] = useState<AdminGlobalSettingId | null>(null)
+
+  const [announcementSaved, setAnnouncementSaved] = useState<AnnouncementConfig>(DEFAULT_ANNOUNCEMENT)
+  const [announcementDraft, setAnnouncementDraft] = useState<AnnouncementConfig>(DEFAULT_ANNOUNCEMENT)
+  const [announcementLoading, setAnnouncementLoading] = useState(true)
+  const [announcementSaving, setAnnouncementSaving] = useState(false)
+  const [announcementStatus, setAnnouncementStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
+  const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
+  const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
+  const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
+  const [logoFaviconSaving, setLogoFaviconSaving] = useState(false)
+  const [logoFaviconStatus, setLogoFaviconStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [logoFaviconUploading, setLogoFaviconUploading] = useState<LogoFaviconUploadFolder | null>(
+    null
+  )
 
   useEffect(() => {
     void fetch('/api/admin/announcement', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_ANNOUNCEMENT))
       .then((data: AnnouncementConfig) => {
-        setSaved(data)
-        setDraft(data)
+        setAnnouncementSaved(data)
+        setAnnouncementDraft(data)
       })
       .catch(() => {
-        setSaved(DEFAULT_ANNOUNCEMENT)
-        setDraft(DEFAULT_ANNOUNCEMENT)
+        setAnnouncementSaved(DEFAULT_ANNOUNCEMENT)
+        setAnnouncementDraft(DEFAULT_ANNOUNCEMENT)
       })
-      .finally(() => setLoading(false))
+      .finally(() => setAnnouncementLoading(false))
+  }, [])
+
+  useEffect(() => {
+    void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
+      .then((data: LogoFaviconConfig) => {
+        setLogoFaviconSaved(data)
+        setLogoFaviconDraft(data)
+      })
+      .catch(() => {
+        setLogoFaviconSaved(DEFAULT_LOGO_FAVICON)
+        setLogoFaviconDraft(DEFAULT_LOGO_FAVICON)
+      })
+      .finally(() => setLogoFaviconLoading(false))
   }, [])
 
   const announcementDirty = useMemo(
     () =>
-      saved.enabled !== draft.enabled ||
-      saved.message !== draft.message ||
-      saved.speed !== draft.speed ||
-      saved.gap !== draft.gap ||
-      saved.backgroundColor !== draft.backgroundColor ||
-      saved.textColor !== draft.textColor ||
-      saved.height !== draft.height,
-    [saved, draft]
+      announcementSaved.enabled !== announcementDraft.enabled ||
+      announcementSaved.message !== announcementDraft.message ||
+      announcementSaved.speed !== announcementDraft.speed ||
+      announcementSaved.gap !== announcementDraft.gap ||
+      announcementSaved.backgroundColor !== announcementDraft.backgroundColor ||
+      announcementSaved.textColor !== announcementDraft.textColor ||
+      announcementSaved.height !== announcementDraft.height,
+    [announcementSaved, announcementDraft]
   )
 
+  const logoFaviconDirty = useMemo(
+    () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
+    [logoFaviconSaved, logoFaviconDraft]
+  )
+
+  const isDetailPanelOpen = activeSection !== null || activeGlobalSetting !== null
+
   const openSection = useCallback((id: AdminSectionId) => {
+    setSidebarTab('sections')
+    setActiveGlobalSetting(null)
     setActiveSection(id)
-    setStatus('idle')
+    setAnnouncementStatus('idle')
   }, [])
 
   const closeSection = useCallback(() => {
     setActiveSection(null)
-    setStatus('idle')
+    setAnnouncementStatus('idle')
+  }, [])
+
+  const openGlobalSetting = useCallback((id: AdminGlobalSettingId) => {
+    setSidebarTab('global')
+    setActiveSection(null)
+    setActiveGlobalSetting(id)
+    setLogoFaviconStatus('idle')
+  }, [])
+
+  const closeGlobalSetting = useCallback(() => {
+    setActiveGlobalSetting(null)
+    setLogoFaviconStatus('idle')
   }, [])
 
   const updateAnnouncementDraft = useCallback((patch: Partial<AnnouncementConfig>) => {
-    setDraft((prev) => ({ ...prev, ...patch }))
-    setStatus('idle')
+    setAnnouncementDraft((prev) => ({ ...prev, ...patch }))
+    setAnnouncementStatus('idle')
   }, [])
 
   const saveAnnouncement = useCallback(async () => {
-    setSaving(true)
-    setStatus('idle')
+    setAnnouncementSaving(true)
+    setAnnouncementStatus('idle')
     try {
       const res = await fetch('/api/admin/announcement', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
+        body: JSON.stringify(announcementDraft),
       })
       if (!res.ok) throw new Error('Save failed')
       const data = (await res.json()) as AnnouncementConfig
-      setSaved(data)
-      setDraft(data)
-      setStatus('saved')
+      setAnnouncementSaved(data)
+      setAnnouncementDraft(data)
+      setAnnouncementStatus('saved')
       return true
     } catch {
-      setStatus('error')
+      setAnnouncementStatus('error')
       return false
     } finally {
-      setSaving(false)
+      setAnnouncementSaving(false)
     }
-  }, [draft])
+  }, [announcementDraft])
+
+  const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
+    setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
+    setLogoFaviconStatus('idle')
+  }, [])
+
+  const uploadLogoFaviconImage = useCallback(
+    async (folder: LogoFaviconUploadFolder, file: File) => {
+      setLogoFaviconUploading(folder)
+      setLogoFaviconStatus('idle')
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        form.append('folder', folder)
+
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
+        if (!res.ok) throw new Error('Upload failed')
+        const data = (await res.json()) as { url: string; fileName: string }
+
+        if (folder === 'favicon') {
+          updateLogoFaviconDraft({ faviconUrl: data.url, faviconFileName: data.fileName })
+        } else if (folder === 'logo') {
+          updateLogoFaviconDraft({ logoUrl: data.url, logoFileName: data.fileName })
+        } else {
+          updateLogoFaviconDraft({
+            logoTransparentUrl: data.url,
+            logoTransparentFileName: data.fileName,
+          })
+        }
+      } catch {
+        setLogoFaviconStatus('error')
+      } finally {
+        setLogoFaviconUploading(null)
+      }
+    },
+    [updateLogoFaviconDraft]
+  )
+
+  const saveLogoFavicon = useCallback(async () => {
+    setLogoFaviconSaving(true)
+    setLogoFaviconStatus('idle')
+    try {
+      const res = await fetch('/api/admin/logo-favicon', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(logoFaviconDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as LogoFaviconConfig
+      setLogoFaviconSaved(data)
+      setLogoFaviconDraft(data)
+      setLogoFaviconStatus('saved')
+      return true
+    } catch {
+      setLogoFaviconStatus('error')
+      return false
+    } finally {
+      setLogoFaviconSaving(false)
+    }
+  }, [logoFaviconDraft])
 
   const value = useMemo<AdminEditorContextValue>(
     () => ({
+      sidebarTab,
+      setSidebarTab,
       activeSection,
+      activeGlobalSetting,
+      isDetailPanelOpen,
       openSection,
       closeSection,
-      announcementLoading: loading,
-      announcementSaving: saving,
-      announcementSaved: saved,
-      announcementDraft: draft,
+      openGlobalSetting,
+      closeGlobalSetting,
+      announcementLoading,
+      announcementSaving,
+      announcementSaved,
+      announcementDraft,
       announcementDirty,
-      announcementStatus: status,
+      announcementStatus,
       updateAnnouncementDraft,
       saveAnnouncement,
+      logoFaviconLoading,
+      logoFaviconSaving,
+      logoFaviconSaved,
+      logoFaviconDraft,
+      logoFaviconDirty,
+      logoFaviconStatus,
+      logoFaviconUploading,
+      updateLogoFaviconDraft,
+      uploadLogoFaviconImage,
+      saveLogoFavicon,
     }),
     [
+      sidebarTab,
       activeSection,
+      activeGlobalSetting,
+      isDetailPanelOpen,
       openSection,
       closeSection,
-      loading,
-      saving,
-      saved,
-      draft,
+      openGlobalSetting,
+      closeGlobalSetting,
+      announcementLoading,
+      announcementSaving,
+      announcementSaved,
+      announcementDraft,
       announcementDirty,
-      status,
+      announcementStatus,
       updateAnnouncementDraft,
       saveAnnouncement,
+      logoFaviconLoading,
+      logoFaviconSaving,
+      logoFaviconSaved,
+      logoFaviconDraft,
+      logoFaviconDirty,
+      logoFaviconStatus,
+      logoFaviconUploading,
+      updateLogoFaviconDraft,
+      uploadLogoFaviconImage,
+      saveLogoFavicon,
     ]
   )
 

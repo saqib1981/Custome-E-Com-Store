@@ -44,6 +44,7 @@ export async function resolveCollectionCards(
         href: shopifyCollectionPath(collection.handle),
         imageUrl: collection.imageUrl ?? '',
         imageAlt: collection.imageAlt ?? collection.title,
+        productCount: collection.productCount,
       }
     })
   )

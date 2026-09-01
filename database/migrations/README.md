@@ -25,6 +25,8 @@ Run these in **Supabase → SQL Editor** in order.
 | 19 | [`020-floating-buttons.sql`](./020-floating-buttons.sql) | Old DB — back to top + WhatsApp floating buttons |
 | 20 | [`021-home-divider-after-trust-banner.sql`](./021-home-divider-after-trust-banner.sql) | Old DB — divider below trust banner |
 | 21 | [`022-store-footer.sql`](./022-store-footer.sql) | Old DB — store footer (info, links, newsletter) |
+| 22 | [`023-collections-list.sql`](./023-collections-list.sql) | Old DB — /collections page (all collection cards) |
+| 23 | [`024-collections-list-pagination.sql`](./024-collections-list-pagination.sql) | Old DB — collections list pagination settings |
 
 ## Fresh install
 
@@ -32,4 +34,4 @@ Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`** (for admin i
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 022).
+Run any migrations you have not applied yet (002 → 024).

@@ -6,6 +6,7 @@ import AnnouncementBarView from '@/components/announcement/AnnouncementBarView'
 import HeroBannerView from '@/components/hero/HeroBannerView'
 import HomeDividerSection from '@/components/home/HomeDividerSection'
 import CollectionCards from '@/components/CollectionCards'
+import CollectionsList from '@/components/CollectionsList'
 import CollectionTabs from '@/components/CollectionTabs'
 import TrustBannerView from '@/components/home/TrustBannerView'
 import StoreFooter from '@/components/StoreFooter'
@@ -77,6 +78,9 @@ export default function AdminStorePreview() {
     storeFooterDraft,
     storeFooterSaved,
     storeFooterLoading,
+    collectionsListDraft,
+    collectionsListSaved,
+    collectionsListLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -99,6 +103,7 @@ export default function AdminStorePreview() {
   const isEditingTrustBanner = activeSection === 'trust-banner'
   const isEditingHomeDividerAfterTrustBanner = activeSection === 'home-divider-after-trust-banner'
   const isEditingStoreFooter = activeSection === 'store-footer'
+  const isEditingCollectionsList = activeSection === 'collections-list'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
@@ -121,6 +126,7 @@ export default function AdminStorePreview() {
     ? homeDividerAfterTrustBannerDraft
     : homeDividerAfterTrustBannerSaved
   const storeFooterPreview = isEditingStoreFooter ? storeFooterDraft : storeFooterSaved
+  const collectionsListPreview = isEditingCollectionsList ? collectionsListDraft : collectionsListSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -140,12 +146,14 @@ export default function AdminStorePreview() {
     trustBannerLoading ||
     homeDividerAfterTrustBannerLoading ||
     storeFooterLoading ||
+    collectionsListLoading ||
     generalSettingsLoading ||
     floatingButtonsLoading
 
   const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
 
   const isHomePreview = previewPath === '/'
+  const isCollectionsListPreview = previewPath === '/collections'
 
   const viewportWidth = PREVIEW_VIEWPORT_WIDTHS[previewViewport]
   const isDesktop = previewViewport === 'desktop'
@@ -262,6 +270,12 @@ export default function AdminStorePreview() {
             <TrustBannerView config={trustBannerPreview} preview previewViewport={previewViewport} />
             <HomeDividerSection config={homeDividerAfterTrustBannerPreview} />
           </>
+        ) : isCollectionsListPreview ? (
+          <CollectionsList
+            preview
+            configOverride={collectionsListPreview}
+            onPreviewNavigate={setPreviewPath}
+          />
         ) : (
           <div className="flex flex-1 flex-col p-8 sm:p-12">
             <>

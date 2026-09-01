@@ -21,6 +21,7 @@ export type ResolvedCollectionCard = {
   href: string
   imageUrl: string
   imageAlt: string
+  productCount?: number
 }
 
 export const COLLECTION_CARDS_SETTING_KEY = 'collection-cards'

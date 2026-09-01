@@ -1,5 +1,6 @@
 export type AdminThemePageId =
   | 'home'
+  | 'collections-list'
   | 'collection'
   | 'product'
   | 'cart'
@@ -15,6 +16,7 @@ export type AdminThemePage = {
 /** Theme editor pages — extend as new templates are added. */
 export const ADMIN_THEME_PAGES: AdminThemePage[] = [
   { id: 'home', name: 'Home page', path: '/' },
+  { id: 'collections-list', name: 'Collection list', path: '/collections' },
   { id: 'collection', name: 'Collection', path: '/collections/all' },
   { id: 'product', name: 'Product', path: '/products/example' },
   { id: 'cart', name: 'Cart', path: '/cart' },
@@ -34,7 +36,11 @@ export function getThemePageByPath(path: string): AdminThemePage | undefined {
   const exact = ADMIN_THEME_PAGES.find((page) => page.path === normalized)
   if (exact) return exact
 
-  if (normalized.startsWith('/collections')) {
+  if (normalized === '/collections') {
+    return ADMIN_THEME_PAGES.find((page) => page.id === 'collections-list')
+  }
+
+  if (normalized.startsWith('/collections/')) {
     return ADMIN_THEME_PAGES.find((page) => page.id === 'collection')
   }
   if (normalized.startsWith('/products')) {

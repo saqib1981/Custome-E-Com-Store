@@ -64,6 +64,11 @@ import {
   DEFAULT_COLLECTION_CARDS,
   type CollectionCardsConfig,
 } from '@/lib/collection-cards'
+import {
+  collectionsListConfigsEqual,
+  DEFAULT_COLLECTIONS_LIST,
+  type CollectionsListConfig,
+} from '@/lib/collections-list'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
@@ -79,6 +84,7 @@ export type AdminSectionId =
   | 'trust-banner'
   | 'home-divider-after-trust-banner'
   | 'store-footer'
+  | 'collections-list'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -176,6 +182,14 @@ type AdminEditorContextValue = {
   updateStoreFooterDraft: (patch: Partial<StoreFooterConfig>) => void
   uploadStoreFooterLogo: (file: File) => Promise<void>
   saveStoreFooter: () => Promise<boolean>
+  collectionsListLoading: boolean
+  collectionsListSaving: boolean
+  collectionsListSaved: CollectionsListConfig
+  collectionsListDraft: CollectionsListConfig
+  collectionsListDirty: boolean
+  collectionsListStatus: 'idle' | 'saved' | 'error'
+  updateCollectionsListDraft: (patch: Partial<CollectionsListConfig>) => void
+  saveCollectionsList: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -252,6 +266,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     const page = getThemePageById(id)
     setActiveThemePageId(page.id)
     setPreviewPathState(page.path)
+    setActiveSection(null)
   }, [])
 
   const setPreviewPath = useCallback((path: string) => {
@@ -340,6 +355,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [storeFooterSaving, setStoreFooterSaving] = useState(false)
   const [storeFooterStatus, setStoreFooterStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [storeFooterLogoUploading, setStoreFooterLogoUploading] = useState(false)
+
+  const [collectionsListSaved, setCollectionsListSaved] =
+    useState<CollectionsListConfig>(DEFAULT_COLLECTIONS_LIST)
+  const [collectionsListDraft, setCollectionsListDraft] =
+    useState<CollectionsListConfig>(DEFAULT_COLLECTIONS_LIST)
+  const [collectionsListLoading, setCollectionsListLoading] = useState(true)
+  const [collectionsListSaving, setCollectionsListSaving] = useState(false)
+  const [collectionsListStatus, setCollectionsListStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
@@ -540,6 +563,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/collections-list', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_COLLECTIONS_LIST))
+      .then((data: CollectionsListConfig) => {
+        setCollectionsListSaved(data)
+        setCollectionsListDraft(data)
+      })
+      .catch(() => {
+        setCollectionsListSaved(DEFAULT_COLLECTIONS_LIST)
+        setCollectionsListDraft(DEFAULT_COLLECTIONS_LIST)
+      })
+      .finally(() => setCollectionsListLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -667,6 +704,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [storeFooterSaved, storeFooterDraft]
   )
 
+  const collectionsListDirty = useMemo(
+    () => !collectionsListConfigsEqual(collectionsListSaved, collectionsListDraft),
+    [collectionsListSaved, collectionsListDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -703,6 +745,27 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setSidebarTab('sections')
     setActiveGlobalSetting(null)
     setActiveSection(id)
+    if (id === 'collections-list') {
+      const page = getThemePageById('collections-list')
+      setActiveThemePageId(page.id)
+      setPreviewPathState(page.path)
+    } else if (
+      id === 'announcement' ||
+      id === 'header' ||
+      id === 'hero-banner' ||
+      id === 'home-divider' ||
+      id === 'collection-cards' ||
+      id === 'home-divider-after-cards' ||
+      id === 'collection-tabs' ||
+      id === 'home-divider-after-tabs' ||
+      id === 'trust-banner' ||
+      id === 'home-divider-after-trust-banner' ||
+      id === 'store-footer'
+    ) {
+      const page = getThemePageById('home')
+      setActiveThemePageId(page.id)
+      setPreviewPathState(page.path)
+    }
     setAnnouncementStatus('idle')
     setHeroBannerStatus('idle')
     setLogoFaviconStatus('idle')
@@ -1048,6 +1111,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [storeFooterDraft])
 
+  const updateCollectionsListDraft = useCallback((patch: Partial<CollectionsListConfig>) => {
+    setCollectionsListDraft((prev) => ({ ...prev, ...patch }))
+    setCollectionsListStatus('idle')
+  }, [])
+
+  const saveCollectionsList = useCallback(async () => {
+    setCollectionsListSaving(true)
+    setCollectionsListStatus('idle')
+    try {
+      const res = await fetch('/api/admin/collections-list', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(collectionsListDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as CollectionsListConfig
+      setCollectionsListSaved(data)
+      setCollectionsListDraft(data)
+      setCollectionsListStatus('saved')
+      return true
+    } catch {
+      setCollectionsListStatus('error')
+      return false
+    } finally {
+      setCollectionsListSaving(false)
+    }
+  }, [collectionsListDraft])
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -1316,6 +1407,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       updateStoreFooterDraft,
       uploadStoreFooterLogo,
       saveStoreFooter,
+      collectionsListLoading,
+      collectionsListSaving,
+      collectionsListSaved,
+      collectionsListDraft,
+      collectionsListDirty,
+      collectionsListStatus,
+      updateCollectionsListDraft,
+      saveCollectionsList,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -1452,6 +1551,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       updateStoreFooterDraft,
       uploadStoreFooterLogo,
       saveStoreFooter,
+      collectionsListLoading,
+      collectionsListSaving,
+      collectionsListSaved,
+      collectionsListDraft,
+      collectionsListDirty,
+      collectionsListStatus,
+      updateCollectionsListDraft,
+      saveCollectionsList,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

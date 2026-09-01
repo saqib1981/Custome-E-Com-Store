@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronDown,
   Home,
+  LayoutGrid,
   Search,
   ShoppingBag,
   Tag,
@@ -20,6 +21,7 @@ import {
 
 const PAGE_ICONS: Record<AdminThemePageId, LucideIcon> = {
   home: Home,
+  'collections-list': LayoutGrid,
   collection: Tags,
   product: Tag,
   cart: ShoppingBag,

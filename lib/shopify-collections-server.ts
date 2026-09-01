@@ -13,12 +13,7 @@ export type ShopifyCollectionsListResult = {
 
 type CollectionsListQueryResponse = {
   collections: {
-    nodes: Array<{
-      id: string
-      title: string
-      handle: string
-      image?: { url?: string | null; altText?: string | null } | null
-    }>
+    nodes: CollectionNodeWithProducts[]
   }
 }
 
@@ -37,8 +32,15 @@ type CollectionNodeWithProducts = {
   title: string
   handle: string
   image?: CollectionImageFields | null
+  productsCount?: { count?: number | null } | null
   products?: { nodes: CollectionProductNode[] }
 }
+
+const COLLECTION_PRODUCT_COUNT_FRAGMENT = `
+  productsCount {
+    count
+  }
+`
 
 type CollectionDetailResponse = {
   collection: CollectionNodeWithProducts | null
@@ -98,6 +100,12 @@ function resolveCollectionImage(node: CollectionNodeWithProducts): {
   return { imageUrl: '', imageAlt: node.title }
 }
 
+function resolveProductCount(node: CollectionNodeWithProducts): number {
+  const count = node.productsCount?.count
+  if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) return 0
+  return count
+}
+
 function mapCollectionNode(node: CollectionNodeWithProducts): ShopifyCollectionSummary {
   const { imageUrl, imageAlt } = resolveCollectionImage(node)
   return {
@@ -106,6 +114,7 @@ function mapCollectionNode(node: CollectionNodeWithProducts): ShopifyCollectionS
     handle: node.handle,
     imageUrl,
     imageAlt,
+    productCount: resolveProductCount(node),
   }
 }
 
@@ -133,6 +142,7 @@ export async function fetchShopifyCollectionDetail(
                 url
                 altText
               }
+              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
               ${COLLECTION_PRODUCTS_FRAGMENT}
             }
           }
@@ -154,6 +164,7 @@ export async function fetchShopifyCollectionDetail(
                 url
                 altText
               }
+              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
               ${COLLECTION_PRODUCTS_FRAGMENT}
             }
           }
@@ -204,6 +215,8 @@ export async function fetchShopifyCollectionsList(): Promise<ShopifyCollectionsL
                 url
                 altText
               }
+              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
+              ${COLLECTION_PRODUCTS_FRAGMENT}
             }
           }
         }
@@ -320,6 +333,7 @@ export async function fetchShopifyCollectionWithProducts(
                 url
                 altText
               }
+              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
               ${COLLECTION_TAB_PRODUCTS_FRAGMENT(limit)}
             }
           }
@@ -343,6 +357,7 @@ export async function fetchShopifyCollectionWithProducts(
                 url
                 altText
               }
+              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
               ${COLLECTION_TAB_PRODUCTS_FRAGMENT(limit)}
             }
           }

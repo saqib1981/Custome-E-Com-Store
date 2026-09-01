@@ -16,6 +16,7 @@ import CollectionCardsSettingsPanel from '@/components/admin/CollectionCardsSett
 import CollectionTabsSettingsPanel from '@/components/admin/CollectionTabsSettingsPanel'
 import TrustBannerSettingsPanel from '@/components/admin/TrustBannerSettingsPanel'
 import StoreFooterSettingsPanel from '@/components/admin/StoreFooterSettingsPanel'
+import CollectionsListSettingsPanel from '@/components/admin/CollectionsListSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -69,6 +70,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'store-footer') {
     return <StoreFooterSettingsPanel />
+  }
+
+  if (activeSection === 'collections-list') {
+    return <CollectionsListSettingsPanel />
   }
 
   if (activeGlobalSetting) {

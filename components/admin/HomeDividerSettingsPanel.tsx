@@ -220,3 +220,32 @@ export function HomeDividerAfterTabsSettingsPanel() {
     />
   )
 }
+
+export function HomeDividerAfterTrustBannerSettingsPanel() {
+  const {
+    closeSection,
+    homeDividerAfterTrustBannerDraft,
+    homeDividerAfterTrustBannerDirty,
+    homeDividerAfterTrustBannerSaving,
+    homeDividerAfterTrustBannerStatus,
+    updateHomeDividerAfterTrustBannerDraft,
+    saveHomeDividerAfterTrustBanner,
+  } = useAdminEditor()
+
+  return (
+    <DividerSettingsPanel
+      title="Divider"
+      subtitle="Line below trust banner (before footer)"
+      idPrefix="home-divider-after-trust-banner"
+      gapTopLabel="Gap above line (after trust banner)"
+      gapBottomLabel="Gap below line (before footer)"
+      draft={homeDividerAfterTrustBannerDraft}
+      dirty={homeDividerAfterTrustBannerDirty}
+      saving={homeDividerAfterTrustBannerSaving}
+      status={homeDividerAfterTrustBannerStatus}
+      onUpdate={updateHomeDividerAfterTrustBannerDraft}
+      onSave={() => void saveHomeDividerAfterTrustBanner()}
+      onBack={closeSection}
+    />
+  )
+}

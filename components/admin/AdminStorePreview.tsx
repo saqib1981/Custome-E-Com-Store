@@ -8,6 +8,7 @@ import HomeDividerSection from '@/components/home/HomeDividerSection'
 import CollectionCards from '@/components/CollectionCards'
 import CollectionTabs from '@/components/CollectionTabs'
 import TrustBannerView from '@/components/home/TrustBannerView'
+import StoreFooter from '@/components/StoreFooter'
 import StoreFloatingButtons from '@/components/StoreFloatingButtons'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
@@ -70,6 +71,12 @@ export default function AdminStorePreview() {
     trustBannerDraft,
     trustBannerSaved,
     trustBannerLoading,
+    homeDividerAfterTrustBannerDraft,
+    homeDividerAfterTrustBannerSaved,
+    homeDividerAfterTrustBannerLoading,
+    storeFooterDraft,
+    storeFooterSaved,
+    storeFooterLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -90,6 +97,8 @@ export default function AdminStorePreview() {
   const isEditingCollectionTabs = activeSection === 'collection-tabs'
   const isEditingHomeDividerAfterTabs = activeSection === 'home-divider-after-tabs'
   const isEditingTrustBanner = activeSection === 'trust-banner'
+  const isEditingHomeDividerAfterTrustBanner = activeSection === 'home-divider-after-trust-banner'
+  const isEditingStoreFooter = activeSection === 'store-footer'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
@@ -108,6 +117,10 @@ export default function AdminStorePreview() {
     ? homeDividerAfterTabsDraft
     : homeDividerAfterTabsSaved
   const trustBannerPreview = isEditingTrustBanner ? trustBannerDraft : trustBannerSaved
+  const homeDividerAfterTrustBannerPreview = isEditingHomeDividerAfterTrustBanner
+    ? homeDividerAfterTrustBannerDraft
+    : homeDividerAfterTrustBannerSaved
+  const storeFooterPreview = isEditingStoreFooter ? storeFooterDraft : storeFooterSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -125,6 +138,8 @@ export default function AdminStorePreview() {
     collectionTabsLoading ||
     homeDividerAfterTabsLoading ||
     trustBannerLoading ||
+    homeDividerAfterTrustBannerLoading ||
+    storeFooterLoading ||
     generalSettingsLoading ||
     floatingButtonsLoading
 
@@ -245,6 +260,7 @@ export default function AdminStorePreview() {
             />
             <HomeDividerSection config={homeDividerAfterTabsPreview} />
             <TrustBannerView config={trustBannerPreview} preview previewViewport={previewViewport} />
+            <HomeDividerSection config={homeDividerAfterTrustBannerPreview} />
           </>
         ) : (
           <div className="flex flex-1 flex-col p-8 sm:p-12">
@@ -261,6 +277,12 @@ export default function AdminStorePreview() {
             </>
           </div>
         )}
+        <StoreFooter
+          preview
+          previewViewport={previewViewport}
+          configOverride={storeFooterPreview}
+          onPreviewNavigate={setPreviewPath}
+        />
         <StoreFloatingButtons
           preview
           configOverride={floatingButtonsPreview}

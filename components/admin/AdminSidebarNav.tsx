@@ -1,6 +1,6 @@
 'use client'
 
-import { Image, LayoutGrid, LayoutList, LayoutPanelTop, Megaphone, Minus, ShieldCheck } from 'lucide-react'
+import { Image, LayoutGrid, LayoutList, LayoutPanelTop, Megaphone, Minus, ShieldCheck, PanelBottom } from 'lucide-react'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { GLOBAL_SETTINGS_ITEMS } from '@/lib/admin-global-settings'
 
@@ -87,6 +87,22 @@ export default function AdminSidebarNav() {
               >
                 <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />
                 Trust banner
+              </button>
+              <button
+                type="button"
+                onClick={() => openSection('home-divider-after-trust-banner')}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <Minus className="h-4 w-4 shrink-0" aria-hidden />
+                Divider
+              </button>
+              <button
+                type="button"
+                onClick={() => openSection('store-footer')}
+                className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+              >
+                <PanelBottom className="h-4 w-4 shrink-0" aria-hidden />
+                Footer
               </button>
             </nav>
           </div>

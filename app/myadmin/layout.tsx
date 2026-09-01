@@ -10,10 +10,12 @@ import HeroBannerSettingsPanel from '@/components/admin/HeroBannerSettingsPanel'
 import HomeDividerSettingsPanel, {
   HomeDividerAfterCardsSettingsPanel,
   HomeDividerAfterTabsSettingsPanel,
+  HomeDividerAfterTrustBannerSettingsPanel,
 } from '@/components/admin/HomeDividerSettingsPanel'
 import CollectionCardsSettingsPanel from '@/components/admin/CollectionCardsSettingsPanel'
 import CollectionTabsSettingsPanel from '@/components/admin/CollectionTabsSettingsPanel'
 import TrustBannerSettingsPanel from '@/components/admin/TrustBannerSettingsPanel'
+import StoreFooterSettingsPanel from '@/components/admin/StoreFooterSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -59,6 +61,14 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'trust-banner') {
     return <TrustBannerSettingsPanel />
+  }
+
+  if (activeSection === 'home-divider-after-trust-banner') {
+    return <HomeDividerAfterTrustBannerSettingsPanel />
+  }
+
+  if (activeSection === 'store-footer') {
+    return <StoreFooterSettingsPanel />
   }
 
   if (activeGlobalSetting) {

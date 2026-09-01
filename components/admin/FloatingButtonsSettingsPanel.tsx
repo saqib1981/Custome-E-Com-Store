@@ -27,10 +27,10 @@ export default function FloatingButtonsSettingsPanel() {
   return (
     <AdminPanelShell
       title="Floating buttons"
-      subtitle="Back to top and WhatsApp in the bottom-right corner"
+      subtitle="Changes save automatically · preview updates instantly"
       onBack={closeGlobalSetting}
       onSave={() => void saveFloatingButtons()}
-      saveDisabled={!floatingButtonsDirty}
+      saveDisabled={!floatingButtonsDirty || floatingButtonsSaving}
       saving={floatingButtonsSaving}
       status={floatingButtonsStatus}
     >

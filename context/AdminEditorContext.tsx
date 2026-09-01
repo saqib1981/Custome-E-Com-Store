@@ -25,6 +25,11 @@ import {
   type FloatingButtonsConfig,
 } from '@/lib/floating-buttons'
 import {
+  FLOATING_BUTTONS_AUTOSAVE_MS,
+  fetchFloatingButtons,
+  persistFloatingButtons,
+} from '@/lib/floating-buttons-client'
+import {
   DEFAULT_HEADER_NAV_SETTINGS,
   menuHighlightsEqual,
   type HeaderNavSettingsConfig,
@@ -50,6 +55,11 @@ import {
   type TrustBannerConfig,
 } from '@/lib/trust-banner'
 import {
+  DEFAULT_STORE_FOOTER,
+  storeFooterConfigsEqual,
+  type StoreFooterConfig,
+} from '@/lib/store-footer'
+import {
   collectionCardsConfigsEqual,
   DEFAULT_COLLECTION_CARDS,
   type CollectionCardsConfig,
@@ -67,6 +77,8 @@ export type AdminSectionId =
   | 'collection-tabs'
   | 'home-divider-after-tabs'
   | 'trust-banner'
+  | 'home-divider-after-trust-banner'
+  | 'store-footer'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -146,6 +158,24 @@ type AdminEditorContextValue = {
   trustBannerStatus: 'idle' | 'saved' | 'error'
   updateTrustBannerDraft: (patch: Partial<TrustBannerConfig>) => void
   saveTrustBanner: () => Promise<boolean>
+  homeDividerAfterTrustBannerLoading: boolean
+  homeDividerAfterTrustBannerSaving: boolean
+  homeDividerAfterTrustBannerSaved: HomeDividerConfig
+  homeDividerAfterTrustBannerDraft: HomeDividerConfig
+  homeDividerAfterTrustBannerDirty: boolean
+  homeDividerAfterTrustBannerStatus: 'idle' | 'saved' | 'error'
+  updateHomeDividerAfterTrustBannerDraft: (patch: Partial<HomeDividerConfig>) => void
+  saveHomeDividerAfterTrustBanner: () => Promise<boolean>
+  storeFooterLoading: boolean
+  storeFooterSaving: boolean
+  storeFooterSaved: StoreFooterConfig
+  storeFooterDraft: StoreFooterConfig
+  storeFooterDirty: boolean
+  storeFooterStatus: 'idle' | 'saved' | 'error'
+  storeFooterLogoUploading: boolean
+  updateStoreFooterDraft: (patch: Partial<StoreFooterConfig>) => void
+  uploadStoreFooterLogo: (file: File) => Promise<void>
+  saveStoreFooter: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -294,6 +324,23 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [trustBannerSaving, setTrustBannerSaving] = useState(false)
   const [trustBannerStatus, setTrustBannerStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
+  const [homeDividerAfterTrustBannerSaved, setHomeDividerAfterTrustBannerSaved] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterTrustBannerDraft, setHomeDividerAfterTrustBannerDraft] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterTrustBannerLoading, setHomeDividerAfterTrustBannerLoading] = useState(true)
+  const [homeDividerAfterTrustBannerSaving, setHomeDividerAfterTrustBannerSaving] = useState(false)
+  const [homeDividerAfterTrustBannerStatus, setHomeDividerAfterTrustBannerStatus] = useState<
+    'idle' | 'saved' | 'error'
+  >('idle')
+
+  const [storeFooterSaved, setStoreFooterSaved] = useState<StoreFooterConfig>(DEFAULT_STORE_FOOTER)
+  const [storeFooterDraft, setStoreFooterDraft] = useState<StoreFooterConfig>(DEFAULT_STORE_FOOTER)
+  const [storeFooterLoading, setStoreFooterLoading] = useState(true)
+  const [storeFooterSaving, setStoreFooterSaving] = useState(false)
+  const [storeFooterStatus, setStoreFooterStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [storeFooterLogoUploading, setStoreFooterLogoUploading] = useState(false)
+
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
@@ -322,6 +369,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [floatingButtonsStatus, setFloatingButtonsStatus] = useState<'idle' | 'saved' | 'error'>(
     'idle'
   )
+  const floatingButtonsDraftRef = useRef(floatingButtonsDraft)
+  floatingButtonsDraftRef.current = floatingButtonsDraft
+  const floatingButtonsSavedRef = useRef(floatingButtonsSaved)
+  floatingButtonsSavedRef.current = floatingButtonsSaved
+  const saveFloatingButtonsRef = useRef<() => Promise<boolean>>(async () => false)
 
   const [headerNavSaved, setHeaderNavSaved] =
     useState<HeaderNavSettingsConfig>(DEFAULT_HEADER_NAV_SETTINGS)
@@ -460,6 +512,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/home-divider-after-trust-banner', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
+      .then((data: HomeDividerConfig) => {
+        setHomeDividerAfterTrustBannerSaved(data)
+        setHomeDividerAfterTrustBannerDraft(data)
+      })
+      .catch(() => {
+        setHomeDividerAfterTrustBannerSaved(DEFAULT_HOME_DIVIDER)
+        setHomeDividerAfterTrustBannerDraft(DEFAULT_HOME_DIVIDER)
+      })
+      .finally(() => setHomeDividerAfterTrustBannerLoading(false))
+  }, [])
+
+  useEffect(() => {
+    void fetch('/api/admin/store-footer', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_STORE_FOOTER))
+      .then((data: StoreFooterConfig) => {
+        setStoreFooterSaved(data)
+        setStoreFooterDraft(data)
+      })
+      .catch(() => {
+        setStoreFooterSaved(DEFAULT_STORE_FOOTER)
+        setStoreFooterDraft(DEFAULT_STORE_FOOTER)
+      })
+      .finally(() => setStoreFooterLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -488,17 +568,32 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    void fetch('/api/admin/floating-buttons', { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : DEFAULT_FLOATING_BUTTONS))
-      .then((data: FloatingButtonsConfig) => {
+    let cancelled = false
+
+    void fetchFloatingButtons()
+      .then((data) => {
+        if (cancelled) return
         setFloatingButtonsSaved(data)
-        setFloatingButtonsDraft(data)
+        setFloatingButtonsDraft((prev) =>
+          floatingButtonsConfigsEqual(prev, floatingButtonsSavedRef.current) ? data : prev
+        )
       })
       .catch(() => {
+        if (cancelled) return
         setFloatingButtonsSaved(DEFAULT_FLOATING_BUTTONS)
-        setFloatingButtonsDraft(DEFAULT_FLOATING_BUTTONS)
+        setFloatingButtonsDraft((prev) =>
+          floatingButtonsConfigsEqual(prev, floatingButtonsSavedRef.current)
+            ? DEFAULT_FLOATING_BUTTONS
+            : prev
+        )
       })
-      .finally(() => setFloatingButtonsLoading(false))
+      .finally(() => {
+        if (!cancelled) setFloatingButtonsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -562,6 +657,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [trustBannerSaved, trustBannerDraft]
   )
 
+  const homeDividerAfterTrustBannerDirty = useMemo(
+    () => !homeDividerConfigsEqual(homeDividerAfterTrustBannerSaved, homeDividerAfterTrustBannerDraft),
+    [homeDividerAfterTrustBannerSaved, homeDividerAfterTrustBannerDraft]
+  )
+
+  const storeFooterDirty = useMemo(
+    () => !storeFooterConfigsEqual(storeFooterSaved, storeFooterDraft),
+    [storeFooterSaved, storeFooterDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -623,10 +728,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const closeGlobalSetting = useCallback(() => {
+    if (
+      activeGlobalSetting === 'floating-buttons' &&
+      !floatingButtonsConfigsEqual(floatingButtonsSavedRef.current, floatingButtonsDraftRef.current)
+    ) {
+      void saveFloatingButtonsRef.current()
+    }
     setActiveGlobalSetting(null)
     setLogoFaviconStatus('idle')
     setGeneralSettingsStatus('idle')
-  }, [])
+  }, [activeGlobalSetting])
 
   const updateAnnouncementDraft = useCallback((patch: Partial<AnnouncementConfig>) => {
     setAnnouncementDraft((prev) => ({ ...prev, ...patch }))
@@ -859,6 +970,84 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [trustBannerDraft])
 
+  const updateHomeDividerAfterTrustBannerDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
+    setHomeDividerAfterTrustBannerDraft((prev) => ({ ...prev, ...patch }))
+    setHomeDividerAfterTrustBannerStatus('idle')
+  }, [])
+
+  const saveHomeDividerAfterTrustBanner = useCallback(async () => {
+    setHomeDividerAfterTrustBannerSaving(true)
+    setHomeDividerAfterTrustBannerStatus('idle')
+    try {
+      const res = await fetch('/api/admin/home-divider-after-trust-banner', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(homeDividerAfterTrustBannerDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HomeDividerConfig
+      setHomeDividerAfterTrustBannerSaved(data)
+      setHomeDividerAfterTrustBannerDraft(data)
+      setHomeDividerAfterTrustBannerStatus('saved')
+      return true
+    } catch {
+      setHomeDividerAfterTrustBannerStatus('error')
+      return false
+    } finally {
+      setHomeDividerAfterTrustBannerSaving(false)
+    }
+  }, [homeDividerAfterTrustBannerDraft])
+
+  const updateStoreFooterDraft = useCallback((patch: Partial<StoreFooterConfig>) => {
+    setStoreFooterDraft((prev) => ({ ...prev, ...patch }))
+    setStoreFooterStatus('idle')
+  }, [])
+
+  const uploadStoreFooterLogo = useCallback(
+    async (file: File) => {
+      setStoreFooterLogoUploading(true)
+      setStoreFooterStatus('idle')
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        form.append('folder', 'logo')
+
+        const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
+        if (!res.ok) throw new Error('Upload failed')
+        const data = (await res.json()) as { url: string; fileName: string }
+        updateStoreFooterDraft({ logoUrl: data.url, logoFileName: data.fileName })
+      } catch {
+        setStoreFooterStatus('error')
+      } finally {
+        setStoreFooterLogoUploading(false)
+      }
+    },
+    [updateStoreFooterDraft]
+  )
+
+  const saveStoreFooter = useCallback(async () => {
+    setStoreFooterSaving(true)
+    setStoreFooterStatus('idle')
+    try {
+      const res = await fetch('/api/admin/store-footer', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(storeFooterDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as StoreFooterConfig
+      setStoreFooterSaved(data)
+      setStoreFooterDraft(data)
+      setStoreFooterStatus('saved')
+      return true
+    } catch {
+      setStoreFooterStatus('error')
+      return false
+    } finally {
+      setStoreFooterSaving(false)
+    }
+  }, [storeFooterDraft])
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -956,13 +1145,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setFloatingButtonsSaving(true)
     setFloatingButtonsStatus('idle')
     try {
-      const res = await fetch('/api/admin/floating-buttons', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(floatingButtonsDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as FloatingButtonsConfig
+      const data = await persistFloatingButtons(floatingButtonsDraftRef.current)
       setFloatingButtonsSaved(data)
       setFloatingButtonsDraft(data)
       setFloatingButtonsStatus('saved')
@@ -973,7 +1156,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     } finally {
       setFloatingButtonsSaving(false)
     }
-  }, [floatingButtonsDraft])
+  }, [])
+
+  saveFloatingButtonsRef.current = saveFloatingButtons
+
+  useEffect(() => {
+    if (activeGlobalSetting !== 'floating-buttons') return
+    if (!floatingButtonsDirty) return
+
+    const timer = window.setTimeout(() => {
+      void saveFloatingButtonsRef.current()
+    }, FLOATING_BUTTONS_AUTOSAVE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [activeGlobalSetting, floatingButtonsDraft, floatingButtonsDirty])
 
   const updateHeaderNavDraft = useCallback((patch: Partial<HeaderNavSettingsConfig>) => {
     setHeaderNavDraft((prev) => ({ ...prev, ...patch }))
@@ -1102,6 +1298,24 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       trustBannerStatus,
       updateTrustBannerDraft,
       saveTrustBanner,
+      homeDividerAfterTrustBannerLoading,
+      homeDividerAfterTrustBannerSaving,
+      homeDividerAfterTrustBannerSaved,
+      homeDividerAfterTrustBannerDraft,
+      homeDividerAfterTrustBannerDirty,
+      homeDividerAfterTrustBannerStatus,
+      updateHomeDividerAfterTrustBannerDraft,
+      saveHomeDividerAfterTrustBanner,
+      storeFooterLoading,
+      storeFooterSaving,
+      storeFooterSaved,
+      storeFooterDraft,
+      storeFooterDirty,
+      storeFooterStatus,
+      storeFooterLogoUploading,
+      updateStoreFooterDraft,
+      uploadStoreFooterLogo,
+      saveStoreFooter,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -1220,6 +1434,24 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       trustBannerStatus,
       updateTrustBannerDraft,
       saveTrustBanner,
+      homeDividerAfterTrustBannerLoading,
+      homeDividerAfterTrustBannerSaving,
+      homeDividerAfterTrustBannerSaved,
+      homeDividerAfterTrustBannerDraft,
+      homeDividerAfterTrustBannerDirty,
+      homeDividerAfterTrustBannerStatus,
+      updateHomeDividerAfterTrustBannerDraft,
+      saveHomeDividerAfterTrustBanner,
+      storeFooterLoading,
+      storeFooterSaving,
+      storeFooterSaved,
+      storeFooterDraft,
+      storeFooterDirty,
+      storeFooterStatus,
+      storeFooterLogoUploading,
+      updateStoreFooterDraft,
+      uploadStoreFooterLogo,
+      saveStoreFooter,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

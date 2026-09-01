@@ -23,6 +23,8 @@ Run these in **Supabase → SQL Editor** in order.
 | 17 | [`018-home-divider-after-tabs.sql`](./018-home-divider-after-tabs.sql) | Old DB — divider below collection tabs |
 | 18 | [`019-trust-banner.sql`](./019-trust-banner.sql) | Old DB — trust banner (shipping / returns / support) |
 | 19 | [`020-floating-buttons.sql`](./020-floating-buttons.sql) | Old DB — back to top + WhatsApp floating buttons |
+| 20 | [`021-home-divider-after-trust-banner.sql`](./021-home-divider-after-trust-banner.sql) | Old DB — divider below trust banner |
+| 21 | [`022-store-footer.sql`](./022-store-footer.sql) | Old DB — store footer (info, links, newsletter) |
 
 ## Fresh install
 
@@ -30,4 +32,4 @@ Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`** (for admin i
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 020).
+Run any migrations you have not applied yet (002 → 022).

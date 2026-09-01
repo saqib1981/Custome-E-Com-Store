@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import ScrollToTopButton from '@/components/ScrollToTopButton'
 import WhatsAppFloatingButton from '@/components/WhatsAppFloatingButton'
 import {
@@ -8,6 +8,12 @@ import {
   DEFAULT_FLOATING_BUTTONS,
   type FloatingButtonsConfig,
 } from '@/lib/floating-buttons'
+import {
+  FLOATING_BUTTONS_CACHE_KEY,
+  FLOATING_BUTTONS_UPDATED_EVENT,
+  fetchFloatingButtons,
+  readCachedFloatingButtons,
+} from '@/lib/floating-buttons-client'
 
 type StoreFloatingButtonsProps = {
   pathname?: string
@@ -27,27 +33,45 @@ export default function StoreFloatingButtons({
 
   const config = configOverride ?? fetchedConfig
 
+  useLayoutEffect(() => {
+    if (configOverride) return
+    setFetchedConfig(readCachedFloatingButtons())
+  }, [configOverride])
+
   useEffect(() => {
     if (configOverride) return
 
     let cancelled = false
 
-    const load = () => {
-      void fetch('/api/store/floating-buttons', { cache: 'no-store' })
-        .then((res) => (res.ok ? res.json() : DEFAULT_FLOATING_BUTTONS))
-        .then((data: FloatingButtonsConfig) => {
-          if (!cancelled) setFetchedConfig(data)
-        })
-        .catch(() => {
-          if (!cancelled) setFetchedConfig(DEFAULT_FLOATING_BUTTONS)
-        })
+    const apply = (data: FloatingButtonsConfig) => {
+      if (!cancelled) setFetchedConfig(data)
     }
 
-    load()
-    window.addEventListener('focus', load)
+    const onUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<FloatingButtonsConfig>).detail
+      if (detail) {
+        apply(detail)
+        return
+      }
+      void fetchFloatingButtons().then(apply).catch(() => {})
+    }
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== FLOATING_BUTTONS_CACHE_KEY) return
+      apply(readCachedFloatingButtons())
+    }
+
+    void fetchFloatingButtons().then(apply).catch(() => {
+      if (!cancelled) setFetchedConfig(readCachedFloatingButtons())
+    })
+
+    window.addEventListener(FLOATING_BUTTONS_UPDATED_EVENT, onUpdated)
+    window.addEventListener('storage', onStorage)
+
     return () => {
       cancelled = true
-      window.removeEventListener('focus', load)
+      window.removeEventListener(FLOATING_BUTTONS_UPDATED_EVENT, onUpdated)
+      window.removeEventListener('storage', onStorage)
     }
   }, [configOverride])
 

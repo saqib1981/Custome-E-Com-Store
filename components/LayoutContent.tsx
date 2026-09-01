@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import Sidebar from './Sidebar'
 import StoreNavbar from './nav/StoreNavbar'
 import StoreFloatingButtons from './StoreFloatingButtons'
+import StoreFooter from './StoreFooter'
 import AnnouncementBar from './AnnouncementBar'
 import StoreFavicon from './StoreFavicon'
 import { StoreThemeProvider, useStoreTheme } from '@/context/StoreThemeContext'
@@ -28,6 +29,7 @@ function StoreShell({ children }: { children: React.ReactNode }) {
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
       <StoreNavbar onOpenMenu={() => setNavOpen(true)} />
       <main className="flex-1">{children}</main>
+      <StoreFooter />
       <StoreFloatingButtons pathname={pathname} />
     </div>
   )

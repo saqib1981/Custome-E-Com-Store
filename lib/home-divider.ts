@@ -10,6 +10,7 @@ export type HomeDividerConfig = {
 export const HOME_DIVIDER_SETTING_KEY = 'home-divider'
 export const HOME_DIVIDER_AFTER_CARDS_SETTING_KEY = 'home-divider-after-cards'
 export const HOME_DIVIDER_AFTER_TABS_SETTING_KEY = 'home-divider-after-tabs'
+export const HOME_DIVIDER_AFTER_TRUST_BANNER_SETTING_KEY = 'home-divider-after-trust-banner'
 
 export const DEFAULT_HOME_DIVIDER: HomeDividerConfig = {
   enabled: true,

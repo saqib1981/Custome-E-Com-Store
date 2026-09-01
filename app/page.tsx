@@ -5,6 +5,7 @@ import HomeDividerAfterTabs from '@/components/HomeDividerAfterTabs'
 import CollectionCards from '@/components/CollectionCards'
 import CollectionTabs from '@/components/CollectionTabs'
 import TrustBanner from '@/components/TrustBanner'
+import HomeDividerAfterTrustBanner from '@/components/HomeDividerAfterTrustBanner'
 
 export default function HomePage() {
   return (
@@ -17,6 +18,7 @@ export default function HomePage() {
       <CollectionTabs />
       <HomeDividerAfterTabs />
       <TrustBanner />
+      <HomeDividerAfterTrustBanner />
     </>
   )
 }

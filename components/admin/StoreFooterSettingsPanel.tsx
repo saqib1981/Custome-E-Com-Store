@@ -304,8 +304,8 @@ export default function StoreFooterSettingsPanel() {
           className={`${inputClass} mb-2`}
         />
         <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
-          Storefront uses a real email field (<code className="rounded bg-gray-100 px-1 dark:bg-gray-800">type="email"</code>
-          ).
+          Storefront uses a real email field (
+          <code className="rounded bg-gray-100 px-1 dark:bg-gray-800">type=&quot;email&quot;</code>).
         </p>
         <input
           type="email"

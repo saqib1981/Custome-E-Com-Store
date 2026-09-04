@@ -9,6 +9,7 @@ import {
   type FooterSocialPlatform,
   type StoreFooterConfig,
 } from '@/lib/store-footer'
+import { STORE_SECTION_EDGE_X_CLASS } from '@/lib/breakpoints'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
 type StoreFooterViewProps = {
@@ -24,15 +25,13 @@ function isPreviewMobile(preview: boolean, previewViewport?: PreviewViewport): b
 }
 
 function resolveFooterContainerClass(preview: boolean, previewViewport?: PreviewViewport): string {
-  const padding = 'px-4 md:px-6 lg:px-10 xl:px-16'
-
   if (preview && previewViewport) {
     return previewViewport === 'mobile'
-      ? `flex w-full max-w-none flex-col gap-0 py-8 ${padding}`
-      : `grid w-full max-w-none grid-cols-3 gap-8 py-10 ${padding}`
+      ? `flex w-full max-w-none flex-col gap-0 py-8 ${STORE_SECTION_EDGE_X_CLASS}`
+      : `grid w-full max-w-none grid-cols-3 gap-8 py-10 ${STORE_SECTION_EDGE_X_CLASS}`
   }
 
-  return `flex w-full max-w-none flex-col gap-0 py-8 md:grid md:grid-cols-3 md:gap-8 md:py-10 ${padding}`
+  return `flex w-full max-w-none flex-col gap-0 py-8 md:grid md:grid-cols-3 md:gap-8 md:py-10 ${STORE_SECTION_EDGE_X_CLASS}`
 }
 
 function resolveSectionClass(
@@ -41,10 +40,10 @@ function resolveSectionClass(
   isLast = false
 ): string {
   if (isPreviewMobile(preview, previewViewport)) {
-    return `w-full min-w-0 border-b px-5 py-8 text-center ${isLast ? 'border-b-0' : ''}`
+    return `w-full min-w-0 border-b py-8 text-center ${isLast ? 'border-b-0' : ''}`
   }
 
-  return `min-w-0 w-full border-b px-5 py-8 text-center max-md:py-8 md:border-b-0 md:px-0 md:py-0 md:pb-0 md:text-left ${
+  return `min-w-0 w-full border-b py-8 text-center max-md:py-8 md:border-b-0 md:py-0 md:pb-0 md:text-left ${
     isLast ? 'max-md:border-b-0' : ''
   }`
 }
@@ -58,12 +57,11 @@ function resolveNewsletterFormClass(preview: boolean, previewViewport?: PreviewV
 }
 
 function resolveCopyrightClass(preview: boolean, previewViewport?: PreviewViewport): string {
-  const padding = 'px-4 md:px-6 lg:px-10 xl:px-16'
   if (isPreviewMobile(preview, previewViewport)) {
-    return `w-full max-w-none py-4 text-center text-sm ${padding}`
+    return `w-full max-w-none py-4 text-center text-sm ${STORE_SECTION_EDGE_X_CLASS}`
   }
 
-  return `w-full max-w-none py-4 text-center text-sm md:text-left ${padding}`
+  return `w-full max-w-none py-4 text-center text-sm md:text-left ${STORE_SECTION_EDGE_X_CLASS}`
 }
 
 function resolveMobileToggleClass(preview: boolean, previewViewport?: PreviewViewport): string {

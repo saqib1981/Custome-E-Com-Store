@@ -2,11 +2,14 @@
 
 import Link from 'next/link'
 import type { CollectionCardsConfig, ResolvedCollectionCard } from '@/lib/collection-cards'
+import { STORE_SECTION_EDGE_CLASS, STORE_SECTION_EDGE_X_CLASS } from '@/lib/breakpoints'
+import type { PreviewViewport } from '@/lib/preview-viewport'
 
 type CollectionCardsViewProps = {
   config: Pick<CollectionCardsConfig, 'enabled' | 'titlePosition'>
   cards: ResolvedCollectionCard[]
   preview?: boolean
+  previewViewport?: PreviewViewport
   onPreviewNavigate?: (path: string) => void
   pageTitle?: string
   gridClassName?: string
@@ -49,17 +52,22 @@ function CollectionCardMedia({
   card,
   titlePosition,
   showProductCountBadge,
+  previewViewport,
 }: {
   card: ResolvedCollectionCard
   titlePosition: CollectionCardsConfig['titlePosition']
   showProductCountBadge: boolean
+  previewViewport?: PreviewViewport
 }) {
   const hasCollection = Boolean(card.href && card.title)
   const showOverlayTitle = titlePosition === 'overlay' && hasCollection
   const showCountBadge = showProductCountBadge && typeof card.productCount === 'number'
 
   return (
-    <div className="relative aspect-[3/4] overflow-hidden bg-gray-100 ring-1 ring-gray-200 transition group-hover:ring-primary-400 dark:bg-gray-800 dark:ring-gray-700">
+    <div
+      className="collection-card-media relative aspect-[3/4] overflow-hidden bg-gray-100 ring-1 ring-gray-200 transition group-hover:ring-primary-400 dark:bg-gray-800 dark:ring-gray-700"
+      data-preview-viewport={previewViewport || undefined}
+    >
       {showCountBadge ? (
         <span
           className="collection-card-product-count absolute"
@@ -94,6 +102,7 @@ function CollectionCardItem({
   card,
   titlePosition,
   preview,
+  previewViewport,
   onPreviewNavigate,
   showProductCountBadge = false,
   useBootstrapLayout = false,
@@ -101,6 +110,7 @@ function CollectionCardItem({
   card: ResolvedCollectionCard
   titlePosition: CollectionCardsConfig['titlePosition']
   preview?: boolean
+  previewViewport?: PreviewViewport
   onPreviewNavigate?: (path: string) => void
   showProductCountBadge?: boolean
   useBootstrapLayout?: boolean
@@ -114,6 +124,7 @@ function CollectionCardItem({
         card={card}
         titlePosition={titlePosition}
         showProductCountBadge={showProductCountBadge}
+        previewViewport={previewViewport}
       />
       {showBelowTitle ? (
         <p className="mt-2.5 text-center text-sm font-medium text-gray-900 group-hover:text-primary-600 dark:text-gray-100">
@@ -146,6 +157,7 @@ export default function CollectionCardsView({
   config,
   cards,
   preview = false,
+  previewViewport,
   onPreviewNavigate,
   pageTitle,
   gridClassName = 'grid-cols-2 sm:grid-cols-4',
@@ -159,10 +171,14 @@ export default function CollectionCardsView({
   if (!preview && !hasAnyCard) return null
 
   const useBootstrapLayout = Boolean(bootstrapRowClassName)
-  const sectionPadding = sectionClassName ?? (pageTitle ? 'p-[10px]' : 'px-[5px]')
+  const sectionPadding =
+    sectionClassName ?? (pageTitle ? STORE_SECTION_EDGE_CLASS : STORE_SECTION_EDGE_X_CLASS)
 
   return (
-    <section className={`w-full max-w-none ${sectionPadding}`} aria-label={pageTitle || 'Collection cards'}>
+    <section
+      className={`w-full max-w-full overflow-x-clip ${sectionPadding}`}
+      aria-label={pageTitle || 'Collection cards'}
+    >
       {pageTitle ? (
         <h1 className="mb-4 text-center text-xl font-semibold text-gray-900 dark:text-gray-100 sm:text-2xl">
           {pageTitle}
@@ -179,6 +195,7 @@ export default function CollectionCardsView({
             card={card}
             titlePosition={config.titlePosition}
             preview={preview}
+            previewViewport={previewViewport}
             onPreviewNavigate={onPreviewNavigate}
             showProductCountBadge={showProductCountBadge}
             useBootstrapLayout={useBootstrapLayout}

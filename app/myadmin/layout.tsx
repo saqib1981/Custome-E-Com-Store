@@ -17,6 +17,8 @@ import CollectionTabsSettingsPanel from '@/components/admin/CollectionTabsSettin
 import TrustBannerSettingsPanel from '@/components/admin/TrustBannerSettingsPanel'
 import StoreFooterSettingsPanel from '@/components/admin/StoreFooterSettingsPanel'
 import CollectionsListSettingsPanel from '@/components/admin/CollectionsListSettingsPanel'
+import CollectionProductsSettingsPanel from '@/components/admin/CollectionProductsSettingsPanel'
+import ProductPageSettingsPanel from '@/components/admin/ProductPageSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -76,6 +78,14 @@ function AdminSidebarPanel() {
     return <CollectionsListSettingsPanel />
   }
 
+  if (activeSection === 'collection-products') {
+    return <CollectionProductsSettingsPanel />
+  }
+
+  if (activeSection === 'product-page') {
+    return <ProductPageSettingsPanel />
+  }
+
   if (activeGlobalSetting) {
     return <GlobalSettingPanel settingId={activeGlobalSetting} />
   }
@@ -89,22 +99,24 @@ function MyAdminShell({ children }: { children: React.ReactNode }) {
   const adminStoreLabel = storeName.trim() || 'Store'
 
   return (
-    <div className="flex h-screen flex-col bg-gray-100 text-gray-900">
+    <div className="flex h-screen max-w-[100vw] flex-col overflow-x-clip bg-gray-100 text-gray-900">
       <AdminLightMode />
       <AdminStoreFavicon />
-      <header className="grid shrink-0 grid-cols-3 items-center gap-4 border-b border-gray-800 bg-gray-950 px-4 py-3">
-        <div className="flex items-center">
+      <header className="grid shrink-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 overflow-x-clip border-b border-gray-800 bg-gray-950 px-4 py-3 sm:gap-4">
+        <div className="flex min-w-0 items-center">
           <AdminEditorTabs />
         </div>
-        <div className="flex min-w-0 items-center justify-start gap-3">
+        <div className="flex min-w-0 items-center justify-start gap-2 sm:gap-3">
           <LayoutPanelTop className="h-5 w-5 shrink-0 text-primary-400" aria-hidden />
           <div className="min-w-0 text-left">
             <p className="text-sm font-semibold text-gray-100">Theme editor</p>
             <p className="truncate text-xs text-gray-400">{adminStoreLabel} · Admin</p>
           </div>
-          <AdminThemePageSelect />
+          <div className="min-w-0">
+            <AdminThemePageSelect />
+          </div>
         </div>
-        <div className="flex shrink-0 items-center justify-end gap-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 sm:gap-3">
           <PreviewViewportSwitcher viewport={previewViewport} onChange={setPreviewViewport} />
           <Link
             href="/"
@@ -118,15 +130,15 @@ function MyAdminShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
       </header>
-      <div className="flex min-h-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 overflow-x-clip">
         <aside
-          className={`shrink-0 overflow-y-auto border-r border-gray-200 bg-white transition-[width] duration-200 ${
+          className={`shrink-0 overflow-y-auto overflow-x-clip border-r border-gray-200 bg-white transition-[width] duration-200 ${
             isDetailPanelOpen ? 'w-[360px]' : 'w-64'
           }`}
         >
           <AdminSidebarPanel />
         </aside>
-        <main className="min-w-0 flex-1 overflow-hidden bg-white">{children}</main>
+        <main className="min-w-0 flex-1 overflow-hidden overflow-x-clip bg-white">{children}</main>
       </div>
     </div>
   )

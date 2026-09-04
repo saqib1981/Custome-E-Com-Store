@@ -101,13 +101,13 @@ export default function StoreNavbar({
     : 'border-b border-gray-200 lg:border-b-0 dark:border-gray-800'
 
   return (
-    <header className={`sticky top-0 z-30 shrink-0 bg-white shadow-sm dark:bg-gray-900 ${headerBottomBorderClass}`}>
+    <header className={`sticky top-0 z-30 max-w-full shrink-0 overflow-x-clip bg-white shadow-sm dark:bg-gray-900 ${headerBottomBorderClass}`}>
       <div className={`mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 sm:px-6 ${topRowClass}`}>
         <div className={`flex min-w-0 flex-1 items-center gap-2 ${inPreview ? (previewDesktop ? 'lg:flex-none' : '') : 'lg:flex-none'}`}>
           <button
             type="button"
             onClick={onOpenMenu}
-            className={`${iconButtonClass} -ml-2 ${menuButtonClass}`}
+            className={`${iconButtonClass} ${inPreview ? '' : '-ml-2'} ${menuButtonClass}`}
             aria-label="Open menu"
           >
             <Menu className="h-[22px] w-[22px]" strokeWidth={1.75} />

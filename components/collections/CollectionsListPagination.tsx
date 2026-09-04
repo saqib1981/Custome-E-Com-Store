@@ -1,5 +1,7 @@
 'use client'
 
+import { STORE_SECTION_EDGE_X_CLASS } from '@/lib/breakpoints'
+
 type CollectionsListPaginationProps = {
   mode: 'pagination' | 'load-more'
   page: number
@@ -34,7 +36,7 @@ export default function CollectionsListPagination({
     if (!hasMore) return null
 
     return (
-      <div className="mt-8 flex justify-center px-[10px] pb-[10px]">
+      <div className={`mt-8 flex justify-center pb-2.5 ${STORE_SECTION_EDGE_X_CLASS}`}>
         <button
           type="button"
           onClick={onLoadMore}
@@ -53,7 +55,7 @@ export default function CollectionsListPagination({
 
   return (
     <nav
-      className="mt-8 flex flex-wrap items-center justify-center gap-1.5 px-[10px] pb-[10px]"
+      className={`mt-8 flex flex-wrap items-center justify-center gap-1.5 pb-2.5 ${STORE_SECTION_EDGE_X_CLASS}`}
       aria-label="Collections pagination"
     >
       <button

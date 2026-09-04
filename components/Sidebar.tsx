@@ -117,21 +117,13 @@ export default function Sidebar({
   const menuItems = menuOverride ?? mainMenu
   const logoUrl = logoFavicon.logoUrl
 
-  const overlayClass = contained
-    ? `absolute inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
-        open ? 'opacity-100' : 'pointer-events-none opacity-0'
-      }`
-    : `fixed inset-0 z-40 bg-black/50 transition-opacity duration-200 ${
-        open ? 'opacity-100' : 'pointer-events-none opacity-0'
-      }`
-
   const panelClass = contained
-    ? `absolute inset-y-0 left-0 z-50 flex w-[min(18rem,85%)] transform flex-col bg-white shadow-xl transition-transform duration-200 ease-out dark:bg-gray-800 ${
-        open ? 'translate-x-0' : '-translate-x-full'
-      }`
-    : `fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] transform flex-col bg-white shadow-xl transition-transform duration-200 ease-out dark:bg-gray-800 ${
-        open ? 'translate-x-0' : '-translate-x-full'
-      }`
+    ? 'absolute inset-y-0 left-0 z-50 flex w-[min(18rem,85%)] flex-col bg-white shadow-xl dark:bg-gray-800'
+    : 'fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col bg-white shadow-xl dark:bg-gray-800'
+
+  const overlayClass = contained
+    ? 'absolute inset-0 z-40 bg-black/50'
+    : 'fixed inset-0 z-40 bg-black/50'
 
   useEffect(() => {
     if (!open) return
@@ -150,10 +142,14 @@ export default function Sidebar({
     }
   }, [open, onClose, contained])
 
+  // Closed drawer must not stay mounted in admin preview — `-translate-x-full`
+  // slides it into the editor chrome beside the device frame and looks "stuck open".
+  if (!open) return null
+
   return (
     <>
       <div className={overlayClass} onClick={onClose} aria-hidden />
-      <aside className={panelClass} aria-label="Main navigation" aria-hidden={!open}>
+      <aside className={panelClass} aria-label="Main navigation">
         <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 py-4 dark:border-gray-700">
           <StoreNavLink
             href="/"

@@ -4,7 +4,10 @@ import {
   getShopifyConnectionStatus,
   isShopifyAccessDeniedError,
 } from '@/lib/shopify-connection-server'
-import type { ShopifyCollectionSummary } from '@/lib/shopify-collections'
+import {
+  mapShopifyCollectionSortOrder,
+  type ShopifyCollectionSummary,
+} from '@/lib/shopify-collections'
 
 export type ShopifyCollectionsListResult = {
   collections: ShopifyCollectionSummary[]
@@ -32,6 +35,7 @@ type CollectionNodeWithProducts = {
   title: string
   handle: string
   image?: CollectionImageFields | null
+  sortOrder?: string | null
   productsCount?: { count?: number | null } | null
   products?: { nodes: CollectionProductNode[] }
 }
@@ -115,6 +119,7 @@ function mapCollectionNode(node: CollectionNodeWithProducts): ShopifyCollectionS
     imageUrl,
     imageAlt,
     productCount: resolveProductCount(node),
+    sortOrder: String(node.sortOrder ?? '').trim() || undefined,
   }
 }
 
@@ -255,23 +260,40 @@ export type ShopifyCollectionProduct = {
   imageAlt: string
   priceAmount: string
   priceCurrency: string
+  compareAtAmount: string
+  compareAtCurrency: string
+  available: boolean
+  createdAt: string
+  tags: string[]
+}
+
+type ShopifyProductCardNode = {
+  id: string
+  title: string
+  handle: string
+  createdAt?: string | null
+  tags?: string[] | null
+  totalInventory?: number | null
+  featuredImage?: CollectionImageFields | null
+  priceRangeV2?: {
+    minVariantPrice?: { amount?: string | null; currencyCode?: string | null } | null
+  } | null
+  compareAtPriceRange?: {
+    minVariantCompareAtPrice?: { amount?: string | null; currencyCode?: string | null } | null
+  } | null
+}
+
+type CollectionProductsConnection = {
+  pageInfo?: { hasNextPage?: boolean; endCursor?: string | null } | null
+  nodes: ShopifyProductCardNode[]
 }
 
 type CollectionProductsQueryNode = CollectionNodeWithProducts & {
-  products?: {
-    nodes: Array<{
-      id: string
-      title: string
-      handle: string
-      featuredImage?: CollectionImageFields | null
-      priceRangeV2?: {
-        minVariantPrice?: { amount?: string | null; currencyCode?: string | null } | null
-      } | null
-    }>
-  }
+  products?: CollectionProductsConnection
 }
 
-function mapCollectionProduct(node: NonNullable<CollectionProductsQueryNode['products']>['nodes'][number]): ShopifyCollectionProduct {
+function mapCollectionProduct(node: ShopifyProductCardNode): ShopifyCollectionProduct {
+  const inventory = typeof node.totalInventory === 'number' ? node.totalInventory : null
   return {
     id: node.id,
     title: node.title,
@@ -280,98 +302,320 @@ function mapCollectionProduct(node: NonNullable<CollectionProductsQueryNode['pro
     imageAlt: node.featuredImage?.altText?.trim() || node.title,
     priceAmount: node.priceRangeV2?.minVariantPrice?.amount ?? '',
     priceCurrency: node.priceRangeV2?.minVariantPrice?.currencyCode ?? 'USD',
+    compareAtAmount: node.compareAtPriceRange?.minVariantCompareAtPrice?.amount ?? '',
+    compareAtCurrency:
+      node.compareAtPriceRange?.minVariantCompareAtPrice?.currencyCode ??
+      node.priceRangeV2?.minVariantPrice?.currencyCode ??
+      'USD',
+    available: inventory === null ? true : inventory > 0,
+    createdAt: String(node.createdAt ?? '').trim(),
+    tags: Array.isArray(node.tags)
+      ? node.tags.map((tag) => String(tag ?? '').trim()).filter(Boolean)
+      : [],
   }
 }
 
-const COLLECTION_TAB_PRODUCTS_FRAGMENT = (count: number) => `
-  products(first: ${count}) {
-    nodes {
-      id
-      title
-      handle
-      featuredImage {
-        url
-        altText
-      }
-      priceRangeV2 {
-        minVariantPrice {
-          amount
-          currencyCode
-        }
-      }
+const PRODUCT_CARD_FIELDS = `
+  id
+  title
+  handle
+  createdAt
+  tags
+  totalInventory
+  featuredImage {
+    url
+    altText
+  }
+  priceRangeV2 {
+    minVariantPrice {
+      amount
+      currencyCode
+    }
+  }
+  compareAtPriceRange {
+    minVariantCompareAtPrice {
+      amount
+      currencyCode
     }
   }
 `
+
+export type ShopifyCollectionProductsPageResult = {
+  collection: ShopifyCollectionSummary | null
+  products: ShopifyCollectionProduct[]
+  pageInfo: { hasNextPage: boolean; endCursor: string | null }
+  /** Sort value for the Sort by dropdown (from request or Shopify collection). */
+  appliedSort: string
+  /** Merchant-configured collection sort mapped to storefront sort ids. */
+  collectionSort: string
+  error?: string
+}
+
+type CollectionSortGraphql = {
+  sortKey: string
+  reverse: boolean
+}
+
+/** Map storefront sort ids to Admin API ProductCollectionSortKeys / ProductSortKeys. */
+export function resolveShopifyCollectionSort(sort: string): CollectionSortGraphql {
+  switch (sort) {
+    case 'shopify':
+    case 'collection-default':
+      return { sortKey: 'COLLECTION_DEFAULT', reverse: false }
+    case 'best-selling':
+      return { sortKey: 'BEST_SELLING', reverse: false }
+    case 'title-asc':
+      return { sortKey: 'TITLE', reverse: false }
+    case 'title-desc':
+      return { sortKey: 'TITLE', reverse: true }
+    case 'price-asc':
+      return { sortKey: 'PRICE', reverse: false }
+    case 'price-desc':
+      return { sortKey: 'PRICE', reverse: true }
+    case 'created-asc':
+      return { sortKey: 'CREATED', reverse: false }
+    case 'created-desc':
+      return { sortKey: 'CREATED', reverse: true }
+    case 'manual':
+    default:
+      return { sortKey: 'MANUAL', reverse: false }
+  }
+}
+
+/**
+ * Admin API `ProductSortKeys` (Shop.products) — no BEST_SELLING / PRICE / MANUAL.
+ * @see https://shopify.dev/docs/api/admin-graphql/latest/enums/ProductSortKeys
+ */
+function resolveAllProductsSort(sort: string): CollectionSortGraphql {
+  switch (sort) {
+    case 'title-asc':
+      return { sortKey: 'TITLE', reverse: false }
+    case 'title-desc':
+      return { sortKey: 'TITLE', reverse: true }
+    case 'created-asc':
+      return { sortKey: 'CREATED_AT', reverse: false }
+    case 'created-desc':
+    case 'best-selling':
+    case 'manual':
+    case 'price-asc':
+    case 'price-desc':
+    case 'shopify':
+    case 'collection-default':
+    default:
+      // Closest safe defaults when Admin ProductSortKeys has no price/best-selling.
+      return { sortKey: 'CREATED_AT', reverse: true }
+  }
+}
+
+export async function fetchShopifyCollectionProductsPage(options: {
+  collectionId?: string
+  collectionHandle?: string
+  first?: number
+  after?: string | null
+  /** Storefront sort id, or `shopify` / omit to use the collection's Shopify sortOrder. */
+  sort?: string | null
+}): Promise<ShopifyCollectionProductsPageResult> {
+  const empty: ShopifyCollectionProductsPageResult = {
+    collection: null,
+    products: [],
+    pageInfo: { hasNextPage: false, endCursor: null },
+    appliedSort: 'manual',
+    collectionSort: 'manual',
+  }
+
+  if (!isShopifyConfigured()) {
+    return { ...empty, error: 'Shopify is not configured' }
+  }
+
+  const access = await ensureProductsReadAccess()
+  if (!access.ok) {
+    return {
+      ...empty,
+      error:
+        access.message ??
+        'Shopify denied collection access. Enable read_products on this store app.',
+    }
+  }
+
+  const first = Math.min(Math.max(options.first ?? 24, 1), 50)
+  const after = String(options.after ?? '').trim() || null
+  const id = String(options.collectionId ?? '').trim()
+  const handle = String(options.collectionHandle ?? '').trim()
+  const isAll = handle.toLowerCase() === 'all' && !id
+  const rawSort = String(options.sort ?? '').trim()
+  const useShopifyCollectionSort =
+    !rawSort || rawSort === 'shopify' || rawSort === 'collection-default'
+
+  try {
+    if (isAll) {
+      const appliedSort = useShopifyCollectionSort ? 'created-desc' : rawSort
+      const { sortKey, reverse } = resolveAllProductsSort(appliedSort)
+      const data = await shopifyAdminGraphql<{
+        products: CollectionProductsConnection | null
+      }>(
+        `
+          query ShopifyAllProductsPage($first: Int!, $after: String, $sortKey: ProductSortKeys!, $reverse: Boolean!) {
+            products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
+              pageInfo {
+                hasNextPage
+                endCursor
+              }
+              nodes {
+                ${PRODUCT_CARD_FIELDS}
+              }
+            }
+          }
+        `,
+        { first, after, sortKey, reverse }
+      )
+
+      const products = data.products?.nodes?.map(mapCollectionProduct) ?? []
+      const hasNextPage = Boolean(data.products?.pageInfo?.hasNextPage)
+      return {
+        collection: {
+          id: 'all',
+          title: 'All products',
+          handle: 'all',
+          productCount: 0,
+        },
+        products,
+        pageInfo: {
+          hasNextPage,
+          endCursor: data.products?.pageInfo?.endCursor ?? null,
+        },
+        appliedSort,
+        collectionSort: 'created-desc',
+      }
+    }
+
+    const { sortKey, reverse } = useShopifyCollectionSort
+      ? resolveShopifyCollectionSort('shopify')
+      : resolveShopifyCollectionSort(rawSort)
+
+    if (id) {
+      const data = await shopifyAdminGraphql<{ collection: CollectionProductsQueryNode | null }>(
+        `
+          query ShopifyCollectionProductsPageById(
+            $id: ID!
+            $first: Int!
+            $after: String
+            $sortKey: ProductCollectionSortKeys!
+            $reverse: Boolean!
+          ) {
+            collection(id: $id) {
+              id
+              title
+              handle
+              sortOrder
+              image {
+                url
+                altText
+              }
+              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
+              products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  ${PRODUCT_CARD_FIELDS}
+                }
+              }
+            }
+          }
+        `,
+        { id, first, after, sortKey, reverse }
+      )
+
+      const collection = data.collection ? mapCollectionNode(data.collection) : null
+      const collectionSort = mapShopifyCollectionSortOrder(data.collection?.sortOrder)
+      const products = data.collection?.products?.nodes?.map(mapCollectionProduct) ?? []
+      return {
+        collection,
+        products,
+        pageInfo: {
+          hasNextPage: Boolean(data.collection?.products?.pageInfo?.hasNextPage),
+          endCursor: data.collection?.products?.pageInfo?.endCursor ?? null,
+        },
+        appliedSort: useShopifyCollectionSort ? collectionSort : rawSort,
+        collectionSort,
+      }
+    }
+
+    if (handle) {
+      const data = await shopifyAdminGraphql<{
+        collectionByHandle: CollectionProductsQueryNode | null
+      }>(
+        `
+          query ShopifyCollectionProductsPageByHandle(
+            $handle: String!
+            $first: Int!
+            $after: String
+            $sortKey: ProductCollectionSortKeys!
+            $reverse: Boolean!
+          ) {
+            collectionByHandle(handle: $handle) {
+              id
+              title
+              handle
+              sortOrder
+              image {
+                url
+                altText
+              }
+              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
+              products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
+                pageInfo {
+                  hasNextPage
+                  endCursor
+                }
+                nodes {
+                  ${PRODUCT_CARD_FIELDS}
+                }
+              }
+            }
+          }
+        `,
+        { handle, first, after, sortKey, reverse }
+      )
+
+      const collection = data.collectionByHandle
+        ? mapCollectionNode(data.collectionByHandle)
+        : null
+      const collectionSort = mapShopifyCollectionSortOrder(data.collectionByHandle?.sortOrder)
+      const products = data.collectionByHandle?.products?.nodes?.map(mapCollectionProduct) ?? []
+      return {
+        collection,
+        products,
+        pageInfo: {
+          hasNextPage: Boolean(data.collectionByHandle?.products?.pageInfo?.hasNextPage),
+          endCursor: data.collectionByHandle?.products?.pageInfo?.endCursor ?? null,
+        },
+        appliedSort: useShopifyCollectionSort ? collectionSort : rawSort,
+        collectionSort,
+      }
+    }
+
+    return empty
+  } catch (e) {
+    console.error('fetchShopifyCollectionProductsPage error:', e)
+    return {
+      ...empty,
+      error: e instanceof Error ? e.message : 'Failed to load collection products',
+    }
+  }
+}
 
 export async function fetchShopifyCollectionWithProducts(
   selection: { collectionId?: string; collectionHandle?: string },
   productCount = 8
 ): Promise<{ collection: ShopifyCollectionSummary | null; products: ShopifyCollectionProduct[] }> {
-  if (!isShopifyConfigured()) {
-    return { collection: null, products: [] }
-  }
-
-  const access = await ensureProductsReadAccess()
-  if (!access.ok) {
-    return { collection: null, products: [] }
-  }
-
   const limit = Math.min(Math.max(productCount, 1), 12)
-  const id = String(selection.collectionId ?? '').trim()
-  const handle = String(selection.collectionHandle ?? '').trim()
-
-  try {
-    if (id) {
-      const data = await shopifyAdminGraphql<{ collection: CollectionProductsQueryNode | null }>(
-        `
-          query ShopifyCollectionProductsById($id: ID!) {
-            collection(id: $id) {
-              id
-              title
-              handle
-              image {
-                url
-                altText
-              }
-              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
-              ${COLLECTION_TAB_PRODUCTS_FRAGMENT(limit)}
-            }
-          }
-        `,
-        { id }
-      )
-      const collection = data.collection ? mapCollectionNode(data.collection) : null
-      const products = data.collection?.products?.nodes?.map(mapCollectionProduct) ?? []
-      return { collection, products }
-    }
-
-    if (handle) {
-      const data = await shopifyAdminGraphql<{ collectionByHandle: CollectionProductsQueryNode | null }>(
-        `
-          query ShopifyCollectionProductsByHandle($handle: String!) {
-            collectionByHandle(handle: $handle) {
-              id
-              title
-              handle
-              image {
-                url
-                altText
-              }
-              ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
-              ${COLLECTION_TAB_PRODUCTS_FRAGMENT(limit)}
-            }
-          }
-        `,
-        { handle }
-      )
-      const collection = data.collectionByHandle ? mapCollectionNode(data.collectionByHandle) : null
-      const products = data.collectionByHandle?.products?.nodes?.map(mapCollectionProduct) ?? []
-      return { collection, products }
-    }
-
-    return { collection: null, products: [] }
-  } catch (e) {
-    console.error('fetchShopifyCollectionWithProducts error:', e)
-    return { collection: null, products: [] }
-  }
+  const page = await fetchShopifyCollectionProductsPage({
+    collectionId: selection.collectionId,
+    collectionHandle: selection.collectionHandle,
+    first: limit,
+    sort: 'shopify',
+  })
+  return { collection: page.collection, products: page.products }
 }

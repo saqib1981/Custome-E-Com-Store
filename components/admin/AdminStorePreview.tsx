@@ -7,6 +7,8 @@ import HeroBannerView from '@/components/hero/HeroBannerView'
 import HomeDividerSection from '@/components/home/HomeDividerSection'
 import CollectionCards from '@/components/CollectionCards'
 import CollectionsList from '@/components/CollectionsList'
+import CollectionProducts from '@/components/CollectionProducts'
+import ProductPage from '@/components/ProductPage'
 import CollectionTabs from '@/components/CollectionTabs'
 import TrustBannerView from '@/components/home/TrustBannerView'
 import StoreFooter from '@/components/StoreFooter'
@@ -19,6 +21,8 @@ import {
   isPreviewDesktopLayout,
 } from '@/lib/preview-viewport'
 import { resolveThemePageLabel } from '@/lib/admin-theme-pages'
+import { parseCollectionHandleFromPath } from '@/lib/collection-products'
+import { parseProductHandleFromPath } from '@/lib/product-page'
 import { FALLBACK_MAIN_MENU, type StoreNavItem } from '@/lib/shopify-menu'
 import { MENU_ADMIN_PREVIEW_REFRESH_MS } from '@/lib/store-menu-client'
 
@@ -81,6 +85,12 @@ export default function AdminStorePreview() {
     collectionsListDraft,
     collectionsListSaved,
     collectionsListLoading,
+    collectionProductsDraft,
+    collectionProductsSaved,
+    collectionProductsLoading,
+    productPageDraft,
+    productPageSaved,
+    productPageLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -104,6 +114,8 @@ export default function AdminStorePreview() {
   const isEditingHomeDividerAfterTrustBanner = activeSection === 'home-divider-after-trust-banner'
   const isEditingStoreFooter = activeSection === 'store-footer'
   const isEditingCollectionsList = activeSection === 'collections-list'
+  const isEditingCollectionProducts = activeSection === 'collection-products'
+  const isEditingProductPage = activeSection === 'product-page'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
@@ -127,6 +139,10 @@ export default function AdminStorePreview() {
     : homeDividerAfterTrustBannerSaved
   const storeFooterPreview = isEditingStoreFooter ? storeFooterDraft : storeFooterSaved
   const collectionsListPreview = isEditingCollectionsList ? collectionsListDraft : collectionsListSaved
+  const collectionProductsPreview = isEditingCollectionProducts
+    ? collectionProductsDraft
+    : collectionProductsSaved
+  const productPagePreview = isEditingProductPage ? productPageDraft : productPageSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -147,6 +163,8 @@ export default function AdminStorePreview() {
     homeDividerAfterTrustBannerLoading ||
     storeFooterLoading ||
     collectionsListLoading ||
+    collectionProductsLoading ||
+    productPageLoading ||
     generalSettingsLoading ||
     floatingButtonsLoading
 
@@ -154,6 +172,8 @@ export default function AdminStorePreview() {
 
   const isHomePreview = previewPath === '/'
   const isCollectionsListPreview = previewPath === '/collections'
+  const collectionPreviewHandle = parseCollectionHandleFromPath(previewPath)
+  const productPreviewHandle = parseProductHandleFromPath(previewPath)
 
   const viewportWidth = PREVIEW_VIEWPORT_WIDTHS[previewViewport]
   const isDesktop = previewViewport === 'desktop'
@@ -207,7 +227,7 @@ export default function AdminStorePreview() {
   const previewPageUrl = `https://yourstore.com${previewPath === '/' ? '/' : previewPath}`
 
   return (
-    <div className="relative flex h-full min-h-0 flex-1 justify-center overflow-y-auto bg-white p-4 sm:p-6">
+    <div className="relative flex h-full min-h-0 min-w-0 flex-1 justify-center overflow-y-auto overflow-x-clip bg-white p-4 sm:p-6">
       {isLoading || (previewMenuLoading && !previewMenu) ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
           <Loader2 className="mr-2 h-6 w-6 animate-spin text-gray-500" aria-hidden />
@@ -216,7 +236,7 @@ export default function AdminStorePreview() {
       ) : null}
 
       <div
-        className={`relative flex min-h-full flex-col shadow-lg transition-[width,max-width] duration-300 ease-out ${
+        className={`relative flex min-h-full min-w-0 max-w-full flex-col overflow-x-clip shadow-lg transition-[width,max-width] duration-300 ease-out ${
           isDesktop
             ? 'w-full rounded-xl border border-gray-300'
             : 'rounded-[1.25rem] border-[3px] border-gray-800'
@@ -241,71 +261,89 @@ export default function AdminStorePreview() {
           menuOverride={menuForPreview}
           logoFaviconOverride={logoFaviconPreview}
         />
-        <AnnouncementBarView config={announcementPreview} repeats={6} />
-        <StoreNavbar
-          previewViewport={previewViewport}
-          previewPath={previewPath}
-          onPreviewNavigate={setPreviewPath}
-          logoFaviconOverride={logoFaviconPreview}
-          headerNavOverride={headerNavPreview}
-          menuOverride={menuForPreview}
-          onOpenMenu={() => setNavOpen(true)}
-        />
-        <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden">
-          {isHomePreview ? (
-            <>
-              <HeroBannerView
-                config={heroBannerPreview}
+        <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
+          <AnnouncementBarView config={announcementPreview} repeats={6} />
+          <StoreNavbar
+            previewViewport={previewViewport}
+            previewPath={previewPath}
+            onPreviewNavigate={setPreviewPath}
+            logoFaviconOverride={logoFaviconPreview}
+            headerNavOverride={headerNavPreview}
+            menuOverride={menuForPreview}
+            onOpenMenu={() => setNavOpen(true)}
+          />
+          <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
+            {isHomePreview ? (
+              <>
+                <HeroBannerView
+                  config={heroBannerPreview}
+                  preview
+                  previewViewport={previewViewport}
+                  onPreviewNavigate={setPreviewPath}
+                />
+                <HomeDividerSection config={homeDividerPreview} />
+                <CollectionCards
+                  preview
+                  previewViewport={previewViewport}
+                  configOverride={collectionCardsPreview}
+                  onPreviewNavigate={setPreviewPath}
+                />
+                <HomeDividerSection config={homeDividerAfterCardsPreview} />
+                <CollectionTabs
+                  preview
+                  previewViewport={previewViewport}
+                  configOverride={collectionTabsPreview}
+                  onPreviewNavigate={setPreviewPath}
+                />
+                <HomeDividerSection config={homeDividerAfterTabsPreview} />
+                <TrustBannerView config={trustBannerPreview} preview previewViewport={previewViewport} />
+                <HomeDividerSection config={homeDividerAfterTrustBannerPreview} />
+              </>
+            ) : isCollectionsListPreview ? (
+              <CollectionsList
                 preview
                 previewViewport={previewViewport}
+                configOverride={collectionsListPreview}
                 onPreviewNavigate={setPreviewPath}
               />
-              <HomeDividerSection config={homeDividerPreview} />
-              <CollectionCards
+            ) : collectionPreviewHandle ? (
+              <CollectionProducts
+                handle={collectionPreviewHandle}
                 preview
                 previewViewport={previewViewport}
-                configOverride={collectionCardsPreview}
+                configOverride={collectionProductsPreview}
                 onPreviewNavigate={setPreviewPath}
               />
-              <HomeDividerSection config={homeDividerAfterCardsPreview} />
-              <CollectionTabs
+            ) : productPreviewHandle ? (
+              <ProductPage
+                handle={productPreviewHandle}
                 preview
                 previewViewport={previewViewport}
-                configOverride={collectionTabsPreview}
+                configOverride={productPagePreview}
                 onPreviewNavigate={setPreviewPath}
               />
-              <HomeDividerSection config={homeDividerAfterTabsPreview} />
-              <TrustBannerView config={trustBannerPreview} preview previewViewport={previewViewport} />
-              <HomeDividerSection config={homeDividerAfterTrustBannerPreview} />
-            </>
-          ) : isCollectionsListPreview ? (
-            <CollectionsList
+            ) : (
+              <div className="flex flex-1 flex-col p-8 sm:p-12">
+                <>
+                  <p className="mb-4 text-xs font-medium uppercase tracking-wide text-gray-400">
+                    Preview · {resolveThemePageLabel(previewPath)}
+                  </p>
+                  <div className="mb-4 h-6 w-32 rounded bg-gray-200" aria-hidden />
+                  <div className="space-y-2">
+                    <div className="h-3 w-full max-w-md rounded bg-gray-200" aria-hidden />
+                    <div className="h-3 w-full max-w-sm rounded bg-gray-200" aria-hidden />
+                    <div className="h-3 w-full max-w-lg rounded bg-gray-200" aria-hidden />
+                  </div>
+                </>
+              </div>
+            )}
+            <StoreFooter
               preview
               previewViewport={previewViewport}
-              configOverride={collectionsListPreview}
+              configOverride={storeFooterPreview}
               onPreviewNavigate={setPreviewPath}
             />
-          ) : (
-            <div className="flex flex-1 flex-col p-8 sm:p-12">
-              <>
-                <p className="mb-4 text-xs font-medium uppercase tracking-wide text-gray-400">
-                  Preview · {resolveThemePageLabel(previewPath)}
-                </p>
-                <div className="mb-4 h-6 w-32 rounded bg-gray-200" aria-hidden />
-                <div className="space-y-2">
-                  <div className="h-3 w-full max-w-md rounded bg-gray-200" aria-hidden />
-                  <div className="h-3 w-full max-w-sm rounded bg-gray-200" aria-hidden />
-                  <div className="h-3 w-full max-w-lg rounded bg-gray-200" aria-hidden />
-                </div>
-              </>
-            </div>
-          )}
-          <StoreFooter
-            preview
-            previewViewport={previewViewport}
-            configOverride={storeFooterPreview}
-            onPreviewNavigate={setPreviewPath}
-          />
+          </div>
         </div>
         <StoreFloatingButtons
           preview

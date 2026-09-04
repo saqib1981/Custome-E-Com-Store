@@ -1,9 +1,11 @@
+import { PREVIEW_FRAME_WIDTH } from '@/lib/breakpoints'
+
 export type PreviewViewport = 'mobile' | 'tablet' | 'desktop'
 
 export const PREVIEW_VIEWPORT_WIDTHS: Record<PreviewViewport, number | null> = {
-  mobile: 390,
-  tablet: 768,
-  desktop: null,
+  mobile: PREVIEW_FRAME_WIDTH.mobile,
+  tablet: PREVIEW_FRAME_WIDTH.tablet,
+  desktop: PREVIEW_FRAME_WIDTH.desktop,
 }
 
 /** True when preview should mimic desktop header (horizontal nav, no hamburger). */

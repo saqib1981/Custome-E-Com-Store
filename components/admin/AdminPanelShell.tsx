@@ -11,6 +11,8 @@ type AdminPanelShellProps = {
   saveDisabled?: boolean
   saving?: boolean
   status?: 'idle' | 'saved' | 'error'
+  /** Optional detail under the generic error banner */
+  errorMessage?: string | null
   children: ReactNode
 }
 
@@ -23,6 +25,7 @@ export default function AdminPanelShell({
   saveDisabled = true,
   saving = false,
   status = 'idle',
+  errorMessage = null,
   children,
 }: AdminPanelShellProps) {
   return (
@@ -71,7 +74,7 @@ export default function AdminPanelShell({
         )}
         {status === 'error' && (
           <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/30 dark:text-red-400">
-            Could not save. Please try again.
+            {errorMessage?.trim() || 'Could not save. Please try again.'}
           </p>
         )}
         {children}

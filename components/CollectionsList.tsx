@@ -205,6 +205,7 @@ export default function CollectionsList({
         config={config}
         cards={displayedCards}
         preview={preview}
+        previewViewport={previewViewport}
         onPreviewNavigate={onPreviewNavigate}
         pageTitle={config.pageTitle}
         bootstrapRowClassName={

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { STORE_SECTION_EDGE_X_CLASS } from '@/lib/breakpoints'
 import type { CollectionTabsConfig, ResolvedCollectionTab } from '@/lib/collection-tabs'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
@@ -115,7 +116,7 @@ export default function CollectionTabsView({
   const activeTab = visibleTabs.find((tab) => tab.id === activeTabId) ?? visibleTabs[0]
 
   return (
-    <section className="w-full px-[5px] py-2" aria-label="Collection tabs">
+    <section className={`w-full max-w-full overflow-x-clip ${STORE_SECTION_EDGE_X_CLASS} py-2`} aria-label="Collection tabs">
       {visibleTabs.length ? (
         <>
           <div className="mb-4 w-full border-b border-gray-200 dark:border-gray-700">

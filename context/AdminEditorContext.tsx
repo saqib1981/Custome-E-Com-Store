@@ -69,6 +69,27 @@ import {
   DEFAULT_COLLECTIONS_LIST,
   type CollectionsListConfig,
 } from '@/lib/collections-list'
+import {
+  collectionProductsConfigsEqual,
+  DEFAULT_COLLECTION_PRODUCTS,
+  parseCollectionHandleFromPath,
+  type CollectionProductsConfig,
+} from '@/lib/collection-products'
+import {
+  fetchCollectionProductsSettings,
+  persistCollectionProductsSettings,
+} from '@/lib/collection-products-client'
+import {
+  DEFAULT_PRODUCT_PAGE,
+  parseProductHandleFromPath,
+  productPageConfigsEqual,
+  type ProductPageConfig,
+} from '@/lib/product-page'
+import {
+  fetchProductPageSettings,
+  persistProductPageSettings,
+} from '@/lib/product-page-client'
+import { clearStoreSettingsBrowserCaches } from '@/lib/store-settings-cache'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import { uploadAdminStoreAsset } from '@/lib/admin-store-upload'
 import { dispatchStoreThemeRefresh } from '@/lib/store-theme-client'
@@ -87,6 +108,8 @@ export type AdminSectionId =
   | 'home-divider-after-trust-banner'
   | 'store-footer'
   | 'collections-list'
+  | 'collection-products'
+  | 'product-page'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -192,6 +215,23 @@ type AdminEditorContextValue = {
   collectionsListStatus: 'idle' | 'saved' | 'error'
   updateCollectionsListDraft: (patch: Partial<CollectionsListConfig>) => void
   saveCollectionsList: () => Promise<boolean>
+  collectionProductsLoading: boolean
+  collectionProductsSaving: boolean
+  collectionProductsSaved: CollectionProductsConfig
+  collectionProductsDraft: CollectionProductsConfig
+  collectionProductsDirty: boolean
+  collectionProductsStatus: 'idle' | 'saved' | 'error'
+  collectionProductsErrorMessage: string | null
+  updateCollectionProductsDraft: (patch: Partial<CollectionProductsConfig>) => void
+  saveCollectionProducts: () => Promise<boolean>
+  productPageLoading: boolean
+  productPageSaving: boolean
+  productPageSaved: ProductPageConfig
+  productPageDraft: ProductPageConfig
+  productPageDirty: boolean
+  productPageStatus: 'idle' | 'saved' | 'error'
+  updateProductPageDraft: (patch: Partial<ProductPageConfig>) => void
+  saveProductPage: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -366,6 +406,38 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [collectionsListSaving, setCollectionsListSaving] = useState(false)
   const [collectionsListStatus, setCollectionsListStatus] = useState<'idle' | 'saved' | 'error'>('idle')
 
+  const [collectionProductsSaved, setCollectionProductsSaved] =
+    useState<CollectionProductsConfig>(DEFAULT_COLLECTION_PRODUCTS)
+  const [collectionProductsDraft, setCollectionProductsDraft] =
+    useState<CollectionProductsConfig>(DEFAULT_COLLECTION_PRODUCTS)
+  const [collectionProductsLoading, setCollectionProductsLoading] = useState(true)
+  const [collectionProductsSaving, setCollectionProductsSaving] = useState(false)
+  const [collectionProductsStatus, setCollectionProductsStatus] = useState<
+    'idle' | 'saved' | 'error'
+  >('idle')
+  const [collectionProductsErrorMessage, setCollectionProductsErrorMessage] = useState<string | null>(
+    null
+  )
+  const collectionProductsDraftRef = useRef(collectionProductsDraft)
+  collectionProductsDraftRef.current = collectionProductsDraft
+  const collectionProductsSavedRef = useRef(collectionProductsSaved)
+  collectionProductsSavedRef.current = collectionProductsSaved
+  const saveCollectionProductsRef = useRef<() => Promise<boolean>>(async () => false)
+  /** After a successful save, ignore late initial GETs that would flip toggles back. */
+  const collectionProductsLocalAuthorityRef = useRef(false)
+
+  const [productPageSaved, setProductPageSaved] = useState<ProductPageConfig>(DEFAULT_PRODUCT_PAGE)
+  const [productPageDraft, setProductPageDraft] = useState<ProductPageConfig>(DEFAULT_PRODUCT_PAGE)
+  const [productPageLoading, setProductPageLoading] = useState(true)
+  const [productPageSaving, setProductPageSaving] = useState(false)
+  const [productPageStatus, setProductPageStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const productPageDraftRef = useRef(productPageDraft)
+  productPageDraftRef.current = productPageDraft
+  const productPageSavedRef = useRef(productPageSaved)
+  productPageSavedRef.current = productPageSaved
+  const saveProductPageRef = useRef<() => Promise<boolean>>(async () => false)
+  const productPageLocalAuthorityRef = useRef(false)
+
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconLoading, setLogoFaviconLoading] = useState(true)
@@ -409,6 +481,10 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [headerNavStatus, setHeaderNavStatus] = useState<'idle' | 'saved' | 'error'>('idle')
   const [headerSectionSaving, setHeaderSectionSaving] = useState(false)
   const [headerSectionStatus, setHeaderSectionStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+
+  useEffect(() => {
+    clearStoreSettingsBrowserCaches()
+  }, [])
 
   useEffect(() => {
     void fetch('/api/admin/announcement', { cache: 'no-store' })
@@ -579,6 +655,76 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    void fetchCollectionProductsSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (collectionProductsLocalAuthorityRef.current) return
+        const dirty = !collectionProductsConfigsEqual(
+          collectionProductsDraftRef.current,
+          collectionProductsSavedRef.current
+        )
+        if (dirty) return
+        setCollectionProductsSaved(data)
+        setCollectionProductsDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (collectionProductsLocalAuthorityRef.current) return
+        const dirty = !collectionProductsConfigsEqual(
+          collectionProductsDraftRef.current,
+          collectionProductsSavedRef.current
+        )
+        if (dirty) return
+        setCollectionProductsSaved(DEFAULT_COLLECTION_PRODUCTS)
+        setCollectionProductsDraft(DEFAULT_COLLECTION_PRODUCTS)
+      })
+      .finally(() => {
+        if (!cancelled) setCollectionProductsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void fetchProductPageSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (productPageLocalAuthorityRef.current) return
+        const dirty = !productPageConfigsEqual(
+          productPageDraftRef.current,
+          productPageSavedRef.current
+        )
+        if (dirty) return
+        setProductPageSaved(data)
+        setProductPageDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (productPageLocalAuthorityRef.current) return
+        const dirty = !productPageConfigsEqual(
+          productPageDraftRef.current,
+          productPageSavedRef.current
+        )
+        if (dirty) return
+        setProductPageSaved(DEFAULT_PRODUCT_PAGE)
+        setProductPageDraft(DEFAULT_PRODUCT_PAGE)
+      })
+      .finally(() => {
+        if (!cancelled) setProductPageLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -711,6 +857,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [collectionsListSaved, collectionsListDraft]
   )
 
+  const collectionProductsDirty = useMemo(
+    () => !collectionProductsConfigsEqual(collectionProductsSaved, collectionProductsDraft),
+    [collectionProductsSaved, collectionProductsDraft]
+  )
+
+  const productPageDirty = useMemo(
+    () => !productPageConfigsEqual(productPageSaved, productPageDraft),
+    [productPageSaved, productPageDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -747,42 +903,76 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setSidebarTab('sections')
     setActiveGlobalSetting(null)
     setActiveSection(id)
+
+    const homepageOnlySections: AdminSectionId[] = [
+      'hero-banner',
+      'home-divider',
+      'collection-cards',
+      'home-divider-after-cards',
+      'collection-tabs',
+      'home-divider-after-tabs',
+      'trust-banner',
+      'home-divider-after-trust-banner',
+    ]
+
     if (id === 'collections-list') {
       const page = getThemePageById('collections-list')
       setActiveThemePageId(page.id)
       setPreviewPathState(page.path)
-    } else if (
-      id === 'announcement' ||
-      id === 'header' ||
-      id === 'hero-banner' ||
-      id === 'home-divider' ||
-      id === 'collection-cards' ||
-      id === 'home-divider-after-cards' ||
-      id === 'collection-tabs' ||
-      id === 'home-divider-after-tabs' ||
-      id === 'trust-banner' ||
-      id === 'home-divider-after-trust-banner' ||
-      id === 'store-footer'
-    ) {
+    } else if (id === 'collection-products') {
+      const page = getThemePageById('collection')
+      setActiveThemePageId(page.id)
+      setPreviewPathState((current) => {
+        const handle = parseCollectionHandleFromPath(current)
+        return handle ? `/collections/${handle}` : page.path
+      })
+    } else if (id === 'product-page') {
+      const page = getThemePageById('product')
+      setActiveThemePageId(page.id)
+      setPreviewPathState((current) => {
+        const handle = parseProductHandleFromPath(current)
+        return handle ? `/products/${handle}` : page.path
+      })
+    } else if (homepageOnlySections.includes(id)) {
       const page = getThemePageById('home')
       setActiveThemePageId(page.id)
       setPreviewPathState(page.path)
     }
+    // Shared chrome (announcement / header / footer): keep current preview page
+
     setAnnouncementStatus('idle')
     setHeroBannerStatus('idle')
     setLogoFaviconStatus('idle')
     setHeaderNavStatus('idle')
     setHeaderSectionStatus('idle')
+    setCollectionProductsStatus('idle')
   }, [])
 
   const closeSection = useCallback(() => {
+    if (
+      activeSection === 'collection-products' &&
+      !collectionProductsConfigsEqual(
+        collectionProductsSavedRef.current,
+        collectionProductsDraftRef.current
+      )
+    ) {
+      void saveCollectionProductsRef.current()
+    }
+    if (
+      activeSection === 'product-page' &&
+      !productPageConfigsEqual(productPageSavedRef.current, productPageDraftRef.current)
+    ) {
+      void saveProductPageRef.current()
+    }
     setActiveSection(null)
     setAnnouncementStatus('idle')
     setHeroBannerStatus('idle')
     setLogoFaviconStatus('idle')
     setHeaderNavStatus('idle')
     setHeaderSectionStatus('idle')
-  }, [])
+    setCollectionProductsStatus('idle')
+    setProductPageStatus('idle')
+  }, [activeSection])
 
   const openGlobalSetting = useCallback((id: AdminGlobalSettingId) => {
     setSidebarTab('global')
@@ -1135,6 +1325,67 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [collectionsListDraft])
 
+  const updateCollectionProductsDraft = useCallback((patch: Partial<CollectionProductsConfig>) => {
+    setCollectionProductsDraft((prev) => {
+      const next = { ...prev, ...patch }
+      collectionProductsDraftRef.current = next
+      return next
+    })
+    setCollectionProductsStatus('idle')
+    setCollectionProductsErrorMessage(null)
+  }, [])
+
+  const saveCollectionProducts = useCallback(async () => {
+    setCollectionProductsSaving(true)
+    setCollectionProductsStatus('idle')
+    setCollectionProductsErrorMessage(null)
+    try {
+      const data = await persistCollectionProductsSettings(collectionProductsDraftRef.current)
+      collectionProductsLocalAuthorityRef.current = true
+      collectionProductsSavedRef.current = data
+      collectionProductsDraftRef.current = data
+      setCollectionProductsSaved(data)
+      setCollectionProductsDraft(data)
+      setCollectionProductsStatus('saved')
+      return true
+    } catch (e) {
+      setCollectionProductsStatus('error')
+      setCollectionProductsErrorMessage(e instanceof Error ? e.message : 'Could not save.')
+      return false
+    } finally {
+      setCollectionProductsSaving(false)
+    }
+  }, [])
+
+  saveCollectionProductsRef.current = saveCollectionProducts
+
+  const updateProductPageDraft = useCallback((patch: Partial<ProductPageConfig>) => {
+    setProductPageDraft((prev) => ({ ...prev, ...patch }))
+    setProductPageStatus('idle')
+  }, [])
+
+  const saveProductPage = useCallback(async () => {
+    setProductPageSaving(true)
+    setProductPageStatus('idle')
+    try {
+      const data = await persistProductPageSettings(productPageDraftRef.current)
+      productPageLocalAuthorityRef.current = true
+      productPageSavedRef.current = data
+      productPageDraftRef.current = data
+      setProductPageSaved(data)
+      setProductPageDraft(data)
+      setProductPageStatus('saved')
+      return true
+    } catch {
+      setProductPageStatus('error')
+      return false
+    } finally {
+      setProductPageSaving(false)
+    }
+  }, [])
+
+  saveProductPageRef.current = saveProductPage
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -1418,6 +1669,23 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       collectionsListStatus,
       updateCollectionsListDraft,
       saveCollectionsList,
+      collectionProductsLoading,
+      collectionProductsSaving,
+      collectionProductsSaved,
+      collectionProductsDraft,
+      collectionProductsDirty,
+      collectionProductsStatus,
+      collectionProductsErrorMessage,
+      updateCollectionProductsDraft,
+      saveCollectionProducts,
+      productPageLoading,
+      productPageSaving,
+      productPageSaved,
+      productPageDraft,
+      productPageDirty,
+      productPageStatus,
+      updateProductPageDraft,
+      saveProductPage,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -1562,6 +1830,23 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       collectionsListStatus,
       updateCollectionsListDraft,
       saveCollectionsList,
+      collectionProductsLoading,
+      collectionProductsSaving,
+      collectionProductsSaved,
+      collectionProductsDraft,
+      collectionProductsDirty,
+      collectionProductsStatus,
+      collectionProductsErrorMessage,
+      updateCollectionProductsDraft,
+      saveCollectionProducts,
+      productPageLoading,
+      productPageSaving,
+      productPageSaved,
+      productPageDraft,
+      productPageDirty,
+      productPageStatus,
+      updateProductPageDraft,
+      saveProductPage,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

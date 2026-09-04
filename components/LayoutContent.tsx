@@ -21,7 +21,7 @@ function StoreShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="flex min-h-screen flex-col"
+      className="flex min-h-screen max-w-full flex-col overflow-x-clip"
       style={{ backgroundColor: generalSettings.backgroundColor }}
     >
       <StoreFavicon faviconUrl={logoFavicon.faviconUrl} />

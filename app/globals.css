@@ -2,8 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
 body {
   @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 @keyframes announcement-ticker {
@@ -240,7 +247,13 @@ body {
   display: none;
 }
 
-/* Collections list — product count badge scales on narrow viewports. */
+/* Collections list — product count badge (Bootstrap breakpoints; no vw).
+   Admin preview uses [data-preview-viewport] so size follows the frame, not the browser. */
+.collection-card-media {
+  container-type: inline-size;
+  container-name: collection-card;
+}
+
 .collection-card-product-count {
   top: 3px;
   right: 3px;
@@ -252,16 +265,84 @@ body {
   background-color: rgba(0, 0, 0, 0.8);
   color: #fff;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.15;
   letter-spacing: 0.025em;
   text-align: center;
-  min-width: clamp(2.5rem, 16vw, 3.75rem);
-  padding: clamp(0.125rem, 1vw, 0.375rem) clamp(0.5rem, 3.5vw, 1.25rem);
-  font-size: clamp(0.75rem, 2.8vw, 1.25rem);
+  white-space: nowrap;
+  /* xs — portrait phones (default) */
+  min-width: 2.25rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
 }
 
-/* Desktop nav dropdowns — avoid Bootstrap/Tailwind `.invisible` collisions. */
+/* sm — ≥576px */
+@media (min-width: 576px) {
+  .collection-card-product-count {
+    min-width: 2.5rem;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.8125rem;
+  }
+}
+
+/* md — ≥768px */
+@media (min-width: 768px) {
+  .collection-card-product-count {
+    min-width: 2.75rem;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+/* lg — ≥992px */
+@media (min-width: 992px) {
+  .collection-card-product-count {
+    min-width: 3.25rem;
+    padding: 0.3rem 0.9rem;
+    font-size: 1rem;
+  }
+}
+
+/* xl — ≥1200px */
+@media (min-width: 1200px) {
+  .collection-card-product-count {
+    min-width: 3.5rem;
+    padding: 0.35rem 1rem;
+    font-size: 1.125rem;
+  }
+}
+
+/* xxl — ≥1400px */
+@media (min-width: 1400px) {
+  .collection-card-product-count {
+    min-width: 3.75rem;
+    padding: 0.375rem 1.125rem;
+    font-size: 1.25rem;
+  }
+}
+
+/* Admin preview frame overrides (beat browser media queries) */
+.collection-card-media[data-preview-viewport='mobile'] .collection-card-product-count {
+  min-width: 2.25rem;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.collection-card-media[data-preview-viewport='tablet'] .collection-card-product-count {
+  min-width: 2.75rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.collection-card-media[data-preview-viewport='desktop'] .collection-card-product-count {
+  min-width: 3.5rem;
+  padding: 0.35rem 1rem;
+  font-size: 1.125rem;
+}
+
+/* Desktop nav dropdowns — display:none when closed so off-screen flyouts
+   do not widen the document and cause a horizontal scrollbar. */
 .store-nav-flyout {
+  display: none;
   visibility: hidden;
   opacity: 0;
   pointer-events: none;
@@ -272,7 +353,33 @@ body {
 .group\/menu:focus-within > .store-nav-flyout,
 .group\/sub:hover > .store-nav-flyout,
 .group\/sub:focus-within > .store-nav-flyout {
+  display: block;
   visibility: visible;
   opacity: 1;
   pointer-events: auto;
+}
+
+/* Bootstrap .row uses negative horizontal margins for gutters — keep them
+   from spilling past the viewport on full-width sections. */
+.row {
+  max-width: 100%;
+}
+
+.product-description ul {
+  margin: 0.5rem 0 0;
+  list-style: disc;
+  padding-left: 1.25rem;
+}
+
+.product-description li {
+  margin: 0.25rem 0;
+}
+
+.product-description p {
+  margin: 0.5rem 0;
+}
+
+.product-description strong {
+  font-weight: 600;
+  color: #111827;
 }

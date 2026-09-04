@@ -1,10 +1,12 @@
 import type { CollectionCardTitlePosition } from '@/lib/collection-cards'
+import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
 
 export type CollectionsListColumnsDesktop = 2 | 3 | 4
 export type CollectionsListPaginationMode = 'pagination' | 'load-more'
 
 export const COLLECTIONS_LIST_PAGE_SIZE = 24
-export const COLLECTIONS_LIST_EDGE_PADDING_CLASS = 'p-[10px]'
+/** Equal L/R (and matched vertical) edge inset — see `STORE_SECTION_EDGE_CLASS`. */
+export const COLLECTIONS_LIST_EDGE_PADDING_CLASS = STORE_SECTION_EDGE_CLASS
 
 export type CollectionsListConfig = {
   enabled: boolean

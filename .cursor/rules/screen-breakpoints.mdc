@@ -1,0 +1,80 @@
+---
+description: Bootstrap 5 breakpoints, equal L/R professional fit, containers, and admin preview
+alwaysApply: true
+---
+
+# Screen display breakpoints
+
+Use **Bootstrap 5** mobile-first breakpoints for storefront CSS, Tailwind screens, admin preview, and any new responsive UI.
+
+Source of truth: `lib/breakpoints.ts` + Tailwind `theme.screens` in `tailwind.config.js` (must stay in sync with this rule).
+
+## Breakpoints + container max-width
+
+| Name | Devices | Min width | Container max-width |
+|------|---------|-----------|---------------------|
+| `xs` | portrait phones | &lt;576px (default) | none (auto / 100%) |
+| `sm` | landscape phones | ≥576px | 540px |
+| `md` | tablets | ≥768px | 720px |
+| `lg` | desktops | ≥992px | 960px |
+| `xl` | large desktops | ≥1200px | 1140px |
+| `xxl` | larger desktops | ≥1400px | 1320px |
+
+## Media queries (mobile-first)
+
+```css
+/* X-Small — portrait phones, less than 576px
+   No media query for xs — this is the default */
+
+/* Small — landscape phones, 576px and up */
+@media (min-width: 576px) { ... }
+
+/* Medium — tablets, 768px and up */
+@media (min-width: 768px) { ... }
+
+/* Large — desktops, 992px and up */
+@media (min-width: 992px) { ... }
+
+/* X-Large — large desktops, 1200px and up */
+@media (min-width: 1200px) { ... }
+
+/* XX-Large — larger desktops, 1400px and up */
+@media (min-width: 1400px) { ... }
+```
+
+In Tailwind use: `sm:` `md:` `lg:` `xl:` `xxl:` / `2xl:` (both map to 1400px). Do **not** use Tailwind’s default 640/1024/1280/1536 scale.
+
+## Admin preview mapping
+
+| Preview switcher | Breakpoint | Frame width |
+|------------------|------------|-------------|
+| Mobile | `xs` | 390px |
+| Tablet | `md` | 768px |
+| Desktop | `lg`+ | full preview pane |
+
+Inside admin preview frames, use `previewViewport` helpers (`lib/preview-viewport.ts`) — browser media queries still follow the **window**, not the frame.
+
+## Equal left / right fit (required)
+
+Every storefront screen and admin preview frame must look **professionally balanced**: left and right gaps match, content sits centered in the available width, and no side looks tighter or looser than the other.
+
+**Mandatory checks** (storefront + admin preview: mobile / tablet / desktop):
+
+1. Measure or visually confirm **left inset = right inset** for each content section.
+2. Sections on the same page share the same horizontal rhythm (do not mix `px-[5px]`, `p-[10px]`, asymmetric `pl-*` / `pr-*`, or one-sided margins).
+3. Grids/rows must not push content off one edge (watch Bootstrap negative gutters, `w-max`, absolute children, closed flyouts).
+4. Full-bleed bands (hero, trust banner) stay edge-to-edge; their **inner** text/media still uses equal L/R if inset.
+
+**Implementation**
+
+- Use `STORE_SECTION_EDGE_X_CLASS` (`px-4 sm:px-6`) or `STORE_SECTION_EDGE_CLASS` (same X + vertical) from `lib/breakpoints.ts` for cards, tabs, collections list, pagination, footer, and any new content section.
+- Match header / announcement / desktop nav horizontal padding (`px-4 sm:px-6`).
+- Never pad or margin only one side for section layout. Never invent one-off edge px values that break alignment across sections.
+
+## Layout rules
+
+- Mobile-first: base = `xs`; enhance from `sm` → `xxl`.
+- Contained content: use container max-widths above (or Bootstrap `container` / `bootstrap-grid`).
+- Full-bleed (hero, trust banner bands, dividers): `width: 100%`; inner content may use the same edge class when needed.
+- Never invent custom breakpoint px values that conflict with this table.
+- Collection product-count badge (`.collection-card-product-count`) sizes with these breakpoints; in admin preview use `data-preview-viewport` so size follows the frame (never `vw`).

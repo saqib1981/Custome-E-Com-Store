@@ -49,7 +49,7 @@ export default function AnnouncementBarView({ config, repeats = 8 }: Announcemen
 
   return (
     <div
-      className="relative flex shrink-0 items-center overflow-hidden border-b border-black/10 dark:border-white/10"
+      className="relative w-full max-w-full shrink-0 overflow-hidden border-b border-black/10 dark:border-white/10"
       style={barStyle}
       aria-label="Announcement"
     >
@@ -59,23 +59,25 @@ export default function AnnouncementBarView({ config, repeats = 8 }: Announcemen
       >
         {message}
       </p>
+      {/* Absolute so the wide marquee track never expands page/preview width. */}
       <div
-        className="flex h-full w-max items-center announcement-marquee motion-reduce:hidden"
-        style={{ ['--announcement-speed' as string]: speed }}
+        className="absolute inset-y-0 left-0 flex items-center motion-reduce:hidden"
+        aria-hidden={false}
       >
-        <div className="flex h-full shrink-0 items-center px-4 sm:px-6" style={{ gap }}>
-          {Array.from({ length: repeats }, (_, i) => (
-            <AnnouncementMessage key={`a-${i}`} message={message} gap={gap} />
-          ))}
-        </div>
         <div
-          className="flex h-full shrink-0 items-center px-4 sm:px-6 motion-reduce:hidden"
-          style={{ gap }}
-          aria-hidden
+          className="flex h-full w-max items-center announcement-marquee"
+          style={{ ['--announcement-speed' as string]: speed }}
         >
-          {Array.from({ length: repeats }, (_, i) => (
-            <AnnouncementMessage key={`b-${i}`} message={message} gap={gap} />
-          ))}
+          <div className="flex h-full shrink-0 items-center px-4 sm:px-6" style={{ gap }}>
+            {Array.from({ length: repeats }, (_, i) => (
+              <AnnouncementMessage key={`a-${i}`} message={message} gap={gap} />
+            ))}
+          </div>
+          <div className="flex h-full shrink-0 items-center px-4 sm:px-6" style={{ gap }} aria-hidden>
+            {Array.from({ length: repeats }, (_, i) => (
+              <AnnouncementMessage key={`b-${i}`} message={message} gap={gap} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

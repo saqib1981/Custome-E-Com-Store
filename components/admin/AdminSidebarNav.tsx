@@ -1,6 +1,16 @@
 'use client'
 
-import { Image as ImageIcon, LayoutGrid, LayoutList, LayoutPanelTop, Megaphone, Minus, ShieldCheck, PanelBottom } from 'lucide-react'
+import {
+  LayoutGrid,
+  LayoutPanelTop,
+  Megaphone,
+  Minus,
+  Package,
+  PanelBottom,
+  ShieldCheck,
+  Image as ImageIcon,
+  LayoutList,
+} from 'lucide-react'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { GLOBAL_SETTINGS_ITEMS } from '@/lib/admin-global-settings'
 
@@ -108,11 +118,117 @@ function CollectionsListSectionsNav() {
     <nav className="mt-2 space-y-1" aria-label="Collection list sections">
       <button
         type="button"
+        onClick={() => openSection('announcement')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Megaphone className="h-4 w-4 shrink-0" aria-hidden />
+        Announcement bar
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('header')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <LayoutPanelTop className="h-4 w-4 shrink-0" aria-hidden />
+        Header
+      </button>
+      <button
+        type="button"
         onClick={() => openSection('collections-list')}
         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
       >
         <LayoutGrid className="h-4 w-4 shrink-0" aria-hidden />
         Collection cards
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('store-footer')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <PanelBottom className="h-4 w-4 shrink-0" aria-hidden />
+        Footer
+      </button>
+    </nav>
+  )
+}
+
+function CollectionPageSectionsNav() {
+  const { openSection } = useAdminEditor()
+
+  return (
+    <nav className="mt-2 space-y-1" aria-label="Collection page sections">
+      <button
+        type="button"
+        onClick={() => openSection('announcement')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Megaphone className="h-4 w-4 shrink-0" aria-hidden />
+        Announcement bar
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('header')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <LayoutPanelTop className="h-4 w-4 shrink-0" aria-hidden />
+        Header
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('collection-products')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Package className="h-4 w-4 shrink-0" aria-hidden />
+        Products
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('store-footer')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <PanelBottom className="h-4 w-4 shrink-0" aria-hidden />
+        Footer
+      </button>
+    </nav>
+  )
+}
+
+function ProductPageSectionsNav() {
+  const { openSection } = useAdminEditor()
+
+  return (
+    <nav className="mt-2 space-y-1" aria-label="Product page sections">
+      <button
+        type="button"
+        onClick={() => openSection('announcement')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Megaphone className="h-4 w-4 shrink-0" aria-hidden />
+        Announcement bar
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('header')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <LayoutPanelTop className="h-4 w-4 shrink-0" aria-hidden />
+        Header
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('product-page')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Package className="h-4 w-4 shrink-0" aria-hidden />
+        Product
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('store-footer')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <PanelBottom className="h-4 w-4 shrink-0" aria-hidden />
+        Footer
       </button>
     </nav>
   )
@@ -121,6 +237,16 @@ function CollectionsListSectionsNav() {
 export default function AdminSidebarNav() {
   const { sidebarTab, openGlobalSetting, activeThemePageId } = useAdminEditor()
   const isCollectionsListPage = activeThemePageId === 'collections-list'
+  const isCollectionPage = activeThemePageId === 'collection'
+  const isProductPage = activeThemePageId === 'product'
+
+  const sectionsLabel = isProductPage
+    ? 'Product'
+    : isCollectionPage
+      ? 'Collection'
+      : isCollectionsListPage
+        ? 'Collection list'
+        : 'Homepage'
 
   return (
     <div className="flex h-full flex-col">
@@ -128,9 +254,17 @@ export default function AdminSidebarNav() {
         {sidebarTab === 'sections' ? (
           <div>
             <p className="px-2 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
-              {isCollectionsListPage ? 'Collection list' : 'Homepage'}
+              {sectionsLabel}
             </p>
-            {isCollectionsListPage ? <CollectionsListSectionsNav /> : <HomepageSectionsNav />}
+            {isProductPage ? (
+              <ProductPageSectionsNav />
+            ) : isCollectionPage ? (
+              <CollectionPageSectionsNav />
+            ) : isCollectionsListPage ? (
+              <CollectionsListSectionsNav />
+            ) : (
+              <HomepageSectionsNav />
+            )}
           </div>
         ) : (
           <div>

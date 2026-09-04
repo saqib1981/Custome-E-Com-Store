@@ -27,11 +27,17 @@ Run these in **Supabase → SQL Editor** in order.
 | 21 | [`022-store-footer.sql`](./022-store-footer.sql) | Old DB — store footer (info, links, newsletter) |
 | 22 | [`023-collections-list.sql`](./023-collections-list.sql) | Old DB — /collections page (all collection cards) |
 | 23 | [`024-collections-list-pagination.sql`](./024-collections-list-pagination.sql) | Old DB — collections list pagination settings |
+| 24 | [`025-collection-products.sql`](./025-collection-products.sql) | Old DB — collection page product grid settings |
+| 25 | [`026-collection-products-card-aspect.sql`](./026-collection-products-card-aspect.sql) | Old DB — uniform product card image aspect |
+| 26 | [`027-collection-products-new-badge.sql`](./027-collection-products-new-badge.sql) | Old DB — New badge on product cards |
+| 27 | [`028-product-page.sql`](./028-product-page.sql) | Old DB — product detail page settings |
+| 28 | [`029-store-settings-rpc.sql`](./029-store-settings-rpc.sql) | **Required** — `get_store_setting` / `upsert_store_setting` RPCs |
+| 29 | [`030-store-settings-write-fix.sql`](./030-store-settings-write-fix.sql) | **Required NOW** — disable RLS no-op writes + repair collection-products |
 
 ## Fresh install
 
-Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`** (for admin image uploads).
+Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**.
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 024).
+Run any migrations you have not applied yet (002 → 030). **030 is required** if saves show “saved” but reload restores old toggles.

@@ -10,20 +10,11 @@ import {
   normalizeCollectionTabsConfig,
   shopifyProductPath,
 } from '@/lib/collection-tabs'
+import { formatMoney } from '@/lib/format-money'
 import { shopifyCollectionPath } from '@/lib/shopify-collections'
 import { fetchShopifyCollectionWithProducts } from '@/lib/shopify-collections-server'
 import { isSupabaseConfigured } from '@/lib/supabase-server'
 import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
-
-function formatProductPrice(amount: string, currencyCode: string): string {
-  const value = Number(amount)
-  if (!Number.isFinite(value)) return ''
-  try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode }).format(value)
-  } catch {
-    return `${currencyCode} ${amount}`
-  }
-}
 
 function mapProduct(
   product: Awaited<ReturnType<typeof fetchShopifyCollectionWithProducts>>['products'][number]
@@ -34,7 +25,7 @@ function mapProduct(
     href: shopifyProductPath(product.handle),
     imageUrl: product.imageUrl,
     imageAlt: product.imageAlt,
-    price: formatProductPrice(product.priceAmount, product.priceCurrency),
+    price: formatMoney(product.priceAmount, product.priceCurrency),
   }
 }
 

@@ -7,7 +7,8 @@ import {
   HOME_DIVIDER_SETTING_KEY,
   normalizeHomeDividerConfig,
 } from '@/lib/home-divider'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 async function readDividerConfigByKey(
   settingKey: string,
@@ -19,20 +20,9 @@ async function readDividerConfigByKey(
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('value')
-      .eq('key', settingKey)
-      .maybeSingle()
-
-    if (error) {
-      console.error(`Supabase read divider error (${settingKey}):`, error.message)
-      return defaultConfig
-    }
-
-    if (!data?.value) return defaultConfig
-
-    return normalizeHomeDividerConfig(data.value as Partial<HomeDividerConfig>)
+    const value = await readStoreSettingValue(settingKey)
+    if (!value) return defaultConfig
+    return normalizeHomeDividerConfig(value as Partial<HomeDividerConfig>)
   } catch (e) {
     console.error(`readDividerConfigByKey error (${settingKey}):`, e)
     return defaultConfig
@@ -43,32 +33,12 @@ async function writeDividerConfigByKey(
   settingKey: string,
   config: Partial<HomeDividerConfig> | HomeDividerConfig
 ): Promise<HomeDividerConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
   const normalized = normalizeHomeDividerConfig(config)
-
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: settingKey,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('value')
-    .single()
-
-  if (error) {
-    console.error(`Supabase write divider error (${settingKey}):`, error.message)
-    throw new Error('Failed to save divider settings to Supabase')
-  }
-
-  return normalizeHomeDividerConfig(data.value as Partial<HomeDividerConfig>)
+  const saved = await writeStoreSettingValue(
+    settingKey,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeHomeDividerConfig(saved as Partial<HomeDividerConfig>)
 }
 
 export async function readHomeDividerConfig(): Promise<HomeDividerConfig> {

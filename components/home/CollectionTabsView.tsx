@@ -82,6 +82,7 @@ function ProductCard({
 function resolveProductGridClass(preview: boolean, previewViewport?: PreviewViewport): string {
   if (preview && previewViewport) {
     if (previewViewport === 'mobile') return 'grid grid-cols-2 gap-2'
+    if (previewViewport === 'tablet') return 'grid grid-cols-3 gap-2'
     return 'grid grid-cols-4 gap-3'
   }
   return 'grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3'

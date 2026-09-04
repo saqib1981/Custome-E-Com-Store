@@ -12,7 +12,8 @@ import {
 } from '@/lib/collection-tabs'
 import { shopifyCollectionPath } from '@/lib/shopify-collections'
 import { fetchShopifyCollectionWithProducts } from '@/lib/shopify-collections-server'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 function formatProductPrice(amount: string, currencyCode: string): string {
   const value = Number(amount)
@@ -88,20 +89,9 @@ export async function readCollectionTabsConfig(): Promise<CollectionTabsConfig> 
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('value')
-      .eq('key', COLLECTION_TABS_SETTING_KEY)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Supabase read collection tabs error:', error.message)
-      return normalizeCollectionTabsConfig(DEFAULT_COLLECTION_TABS)
-    }
-
-    if (!data?.value) return normalizeCollectionTabsConfig(DEFAULT_COLLECTION_TABS)
-
-    return normalizeCollectionTabsConfig(data.value as Partial<CollectionTabsConfig>)
+    const value = await readStoreSettingValue(COLLECTION_TABS_SETTING_KEY)
+    if (!value) return normalizeCollectionTabsConfig(DEFAULT_COLLECTION_TABS)
+    return normalizeCollectionTabsConfig(value as Partial<CollectionTabsConfig>)
   } catch (e) {
     console.error('readCollectionTabsConfig error:', e)
     return normalizeCollectionTabsConfig(DEFAULT_COLLECTION_TABS)
@@ -111,32 +101,12 @@ export async function readCollectionTabsConfig(): Promise<CollectionTabsConfig> 
 export async function writeCollectionTabsConfig(
   config: Partial<CollectionTabsConfig> | CollectionTabsConfig
 ): Promise<CollectionTabsConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
   const normalized = normalizeCollectionTabsConfig(config)
-
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: COLLECTION_TABS_SETTING_KEY,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('value')
-    .single()
-
-  if (error) {
-    console.error('Supabase write collection tabs error:', error.message)
-    throw new Error('Failed to save collection tabs settings to Supabase')
-  }
-
-  return normalizeCollectionTabsConfig(data.value as Partial<CollectionTabsConfig>)
+  const saved = await writeStoreSettingValue(
+    COLLECTION_TABS_SETTING_KEY,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeCollectionTabsConfig(saved as Partial<CollectionTabsConfig>)
 }
 
 export async function readResolvedCollectionTabs(): Promise<{

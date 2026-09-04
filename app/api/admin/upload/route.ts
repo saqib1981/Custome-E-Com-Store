@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { uploadStoreAsset } from '@/lib/store-assets-server'
-import type { StoreAssetFolder } from '@/lib/shopify-files-server'
+import { requireShopifyCdnUploadUrl, type StoreAssetFolder } from '@/lib/store-media'
 
 const ALLOWED_FOLDERS = new Set<StoreAssetFolder>(['favicon', 'logo', 'logo-transparent', 'hero'])
 
@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await uploadStoreAsset(file, folder)
+    const url = requireShopifyCdnUploadUrl(result.url, 'Shopify Files')
 
-    return NextResponse.json(result)
+    return NextResponse.json({ url, fileName: result.fileName })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Upload failed'
     console.error('Upload POST error:', e)

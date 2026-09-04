@@ -9,6 +9,7 @@ import {
   type HeroSlide,
 } from '@/lib/hero-banner'
 import type { PreviewViewport } from '@/lib/preview-viewport'
+import { isPreviewMobileLayout, isPreviewWideLayout } from '@/lib/preview-viewport'
 
 type HeroBannerViewProps = {
   config: HeroBannerConfig
@@ -119,7 +120,7 @@ function SlideLink({
 
 function resolveImageLayout(preview: boolean, previewViewport?: PreviewViewport): ImageLayout {
   if (!preview || !previewViewport) return 'responsive'
-  if (previewViewport === 'mobile') return 'mobile'
+  if (isPreviewMobileLayout(previewViewport)) return 'mobile'
   return 'desktop'
 }
 
@@ -163,10 +164,11 @@ export default function HeroBannerView({
   if (!enabled || !slides.length) return null
 
   const usePreviewLayout = preview && Boolean(previewViewport)
-  const isPreviewMobile = usePreviewLayout && previewViewport === 'mobile'
-  const isPreviewDesktop = usePreviewLayout && previewViewport === 'desktop'
+  const isPreviewMobile = usePreviewLayout && isPreviewMobileLayout(previewViewport)
+  // Tablet + desktop must force wide layout — never fall back to browser media queries.
+  const isPreviewWide = usePreviewLayout && isPreviewWideLayout(previewViewport)
 
-  const sectionStyle: React.CSSProperties = isPreviewDesktop
+  const sectionStyle: React.CSSProperties = isPreviewWide
     ? { aspectRatio: desktopAspect }
     : isPreviewMobile
       ? {}
@@ -177,7 +179,7 @@ export default function HeroBannerView({
   const sectionClass = [
     'hero-banner relative block w-full shrink-0 overflow-hidden leading-none bg-gray-100',
     isPreviewMobile ? 'hero-banner--preview-mobile' : '',
-    isPreviewDesktop ? 'hero-banner--preview-desktop' : '',
+    isPreviewWide ? 'hero-banner--preview-desktop' : '',
   ]
     .filter(Boolean)
     .join(' ')

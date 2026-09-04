@@ -1,4 +1,5 @@
 import { normalizeHexColor } from '@/lib/announcement'
+import { sanitizeShopifyFilesUrl } from '@/lib/store-media'
 
 export type FooterSocialPlatform = 'facebook' | 'instagram' | 'tiktok' | 'youtube' | 'whatsapp'
 
@@ -231,7 +232,7 @@ export function normalizeStoreFooterConfig(
     headingColor: normalizeHexColor(input?.headingColor, DEFAULT_STORE_FOOTER.headingColor),
     borderColor: normalizeHexColor(input?.borderColor, DEFAULT_STORE_FOOTER.borderColor),
     infoHeading: String(input?.infoHeading ?? DEFAULT_STORE_FOOTER.infoHeading).trim(),
-    logoUrl: String(input?.logoUrl ?? DEFAULT_STORE_FOOTER.logoUrl).trim(),
+    logoUrl: sanitizeShopifyFilesUrl(input?.logoUrl ?? DEFAULT_STORE_FOOTER.logoUrl),
     logoFileName: String(input?.logoFileName ?? DEFAULT_STORE_FOOTER.logoFileName).trim(),
     description: String(input?.description ?? DEFAULT_STORE_FOOTER.description).trim(),
     city: String(input?.city ?? DEFAULT_STORE_FOOTER.city).trim(),

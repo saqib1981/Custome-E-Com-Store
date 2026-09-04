@@ -1,7 +1,8 @@
 'use client'
 
 import { ChevronDown, ChevronUp, Database, Loader2 } from 'lucide-react'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { isShopifyFilesUrl } from '@/lib/store-media'
 
 function truncateFileName(name: string, max = 18): string {
   if (name.length <= max) return name
@@ -37,7 +38,13 @@ export function ImageUploadField({
   onUpload,
 }: ImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const hasImage = Boolean(imageUrl.trim())
+  const safeUrl = isShopifyFilesUrl(imageUrl) ? imageUrl.trim() : ''
+  const [previewFailed, setPreviewFailed] = useState(false)
+  const hasImage = Boolean(safeUrl) && !previewFailed
+
+  useEffect(() => {
+    setPreviewFailed(false)
+  }, [safeUrl])
 
   return (
     <div className="flex items-start justify-between gap-4 py-3">
@@ -80,7 +87,12 @@ export function ImageUploadField({
           ) : hasImage ? (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={imageUrl} alt="" className="h-full w-full object-contain p-2" />
+              <img
+                src={safeUrl}
+                alt=""
+                className="h-full w-full object-contain p-2"
+                onError={() => setPreviewFailed(true)}
+              />
               {fileName ? (
                 <span className="absolute inset-x-0 bottom-0 truncate bg-black/60 px-2 py-1 text-[10px] text-white">
                   {truncateFileName(fileName)}

@@ -6,7 +6,8 @@ import {
 } from '@/lib/collection-cards'
 import { shopifyCollectionPath } from '@/lib/shopify-collections'
 import { fetchShopifyCollectionDetail } from '@/lib/shopify-collections-server'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 export async function resolveCollectionCards(
   slots: CollectionCardSlot[]
@@ -59,20 +60,9 @@ export async function readCollectionCardsConfig(): Promise<CollectionCardsConfig
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('value')
-      .eq('key', COLLECTION_CARDS_SETTING_KEY)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Supabase read collection cards error:', error.message)
-      return normalizeCollectionCardsConfig(DEFAULT_COLLECTION_CARDS)
-    }
-
-    if (!data?.value) return normalizeCollectionCardsConfig(DEFAULT_COLLECTION_CARDS)
-
-    return normalizeCollectionCardsConfig(data.value as Partial<CollectionCardsConfig>)
+    const value = await readStoreSettingValue(COLLECTION_CARDS_SETTING_KEY)
+    if (!value) return normalizeCollectionCardsConfig(DEFAULT_COLLECTION_CARDS)
+    return normalizeCollectionCardsConfig(value as Partial<CollectionCardsConfig>)
   } catch (e) {
     console.error('readCollectionCardsConfig error:', e)
     return normalizeCollectionCardsConfig(DEFAULT_COLLECTION_CARDS)
@@ -82,32 +72,12 @@ export async function readCollectionCardsConfig(): Promise<CollectionCardsConfig
 export async function writeCollectionCardsConfig(
   config: Partial<CollectionCardsConfig> | CollectionCardsConfig
 ): Promise<CollectionCardsConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
   const normalized = normalizeCollectionCardsConfig(config)
-
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: COLLECTION_CARDS_SETTING_KEY,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('value')
-    .single()
-
-  if (error) {
-    console.error('Supabase write collection cards error:', error.message)
-    throw new Error('Failed to save collection cards settings to Supabase')
-  }
-
-  return normalizeCollectionCardsConfig(data.value as Partial<CollectionCardsConfig>)
+  const saved = await writeStoreSettingValue(
+    COLLECTION_CARDS_SETTING_KEY,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeCollectionCardsConfig(saved as Partial<CollectionCardsConfig>)
 }
 
 export async function readResolvedCollectionCards(): Promise<{

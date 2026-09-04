@@ -1,25 +1,48 @@
 ---
-description: All theme images and videos must be stored in Shopify Files (CDN)
+description: Admin uploads go to Shopify Files CDN; Supabase stores only CDN URLs; broken media shows alt text
 alwaysApply: true
 ---
 
-# Shopify Files only for theme media
+# Admin media: Shopify upload → CDN URL in Supabase
 
-All storefront theme media — hero slider images, logo, favicon, banners, and videos — **must be uploaded to Shopify Files** via `uploadStoreAsset` / `uploadBufferToShopify` (`lib/shopify-files-server.ts`).
+Any file set or uploaded from **admin** (`/myadmin`) — logo, favicon, transparent logo, hero/slider images or videos, footer logo, and any future theme media — follows this pipeline. Do not invent alternate storage.
 
-## Required
+## Pipeline (required)
 
-- Use `/api/admin/upload` with allowed folders (`hero`, `logo`, `favicon`, `logo-transparent`).
-- Persist only Shopify CDN URLs (`cdn.shopify.com`, `shopifycdn.com`) in Supabase `store_settings`.
-- Validate saved URLs with `assertShopifyFilesUrl` from `lib/store-media.ts`.
+1. **Upload** via `/api/admin/upload` → `uploadAdminStoreAsset` (client) / `uploadStoreAsset` / `uploadBufferToShopify` (`lib/shopify-files-server.ts`).
+2. File is staged then **registered in Shopify Files**; wait until a **permanent CDN URL** exists.
+3. Persist **only that CDN URL** (plus optional fileName/alt metadata) in Supabase `store_settings`.
+4. Storefront/admin preview **render from that saved URL** — never re-host, never use staged/tmp links.
+
+Allowed permanent hosts: `cdn.shopify.com`, `shopifycdn.com`, and `*.myshopify.com/cdn/shop/...` (not staged uploads).
+
+Folders: `hero`, `logo`, `favicon`, `logo-transparent` (extend only with the same Shopify Files path).
+
+## Validation helpers (`lib/store-media.ts`)
+
+- Read/normalize: `sanitizeShopifyFilesUrl` — drop invalid/expired URLs to empty.
+- Save: `assertShopifyFilesUrl` — reject non-CDN.
+- Upload response: `requireShopifyCdnUploadUrl` — never accept staged/tmp/`resourceUrl`.
+- Settings I/O: `readStoreSettingValue` / `writeStoreSettingValue` (`lib/store-settings-server.ts`) with `select('*')`.
 
 ## Forbidden
 
-- Supabase Storage buckets for theme assets.
-- External URLs (Imgur, Cloudinary, raw GitHub, `/public/` static paths for admin-managed theme media).
-- Saving arbitrary pasted image/video URLs without Shopify upload.
+- Supabase Storage (or any non-Shopify bucket) for theme media.
+- External hosts (Imgur, Cloudinary, GitHub raw, `/public/` for admin-managed theme media).
+- Saving staged URLs (`shopify-staged-uploads`, `storage.googleapis.com/.../tmp/...`).
+- Pasting arbitrary URLs without going through Shopify upload.
+- Full Bootstrap CSS (use `bootstrap-grid` only if needed) — utilities like `.invisible` break nav hover.
+
+## Broken / deleted file → alt text
+
+If the CDN file is missing, deleted in Shopify, or the image fails to load (`onError`):
+
+- **Do not** leave a broken image icon.
+- Show meaningful **alt text** (or brand/store name / placeholder copy derived from alt).
+- Pattern: track `imageFailed` (or equivalent) and fall back to text — see `StoreBrandMark`.
+- New media UI must include `alt` (or slide/title text) at save time and use it on failure.
 
 ## Hero slider
 
-- Each slide has separate desktop (1920×800) and mobile (600×480) images in Shopify Files.
-- Hero folder also accepts `video/*` for future video slides — still via Shopify staged upload.
+- Separate desktop (1920×800) and mobile (600×480) images, both via Shopify Files.
+- `video/*` allowed for hero folder — still Shopify Files CDN before save.

@@ -137,7 +137,7 @@ function NestedDropdownItem({
         />
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-400" aria-hidden />
       </div>
-      <ul className="invisible absolute left-full top-0 z-10 min-w-[13rem] border border-gray-200 bg-white py-1 opacity-0 shadow-lg transition-all group-hover/sub:visible group-hover/sub:opacity-100 group-focus-within/sub:visible group-focus-within/sub:opacity-100">
+      <ul className="store-nav-flyout absolute left-full top-0 z-10 min-w-[13rem] border border-gray-200 bg-white py-1 shadow-lg">
         {item.items.map((child) => (
           <NestedDropdownItem
             key={child.id}
@@ -183,7 +183,7 @@ function DesktopNavDropdown({
         />
       </div>
 
-      <ul className="invisible absolute left-0 top-full z-50 min-w-[13rem] border border-gray-200 bg-white py-1 opacity-0 shadow-lg transition-all group-hover/menu:visible group-hover/menu:opacity-100 group-focus-within/menu:visible group-focus-within/menu:opacity-100">
+      <ul className="store-nav-flyout absolute left-0 top-full z-50 min-w-[13rem] border border-gray-200 bg-white py-1 shadow-lg">
         {item.items.map((child) => (
           <NestedDropdownItem
             key={child.id}

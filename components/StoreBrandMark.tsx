@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+
 type StoreBrandMarkProps = {
   storeName: string
   logoUrl?: string
@@ -19,8 +21,13 @@ export default function StoreBrandMark({
 }: StoreBrandMarkProps) {
   const cleanLogo = logoUrl.trim()
   const name = storeName.trim()
+  const [imageFailed, setImageFailed] = useState(false)
 
-  if (cleanLogo) {
+  useEffect(() => {
+    setImageFailed(false)
+  }, [cleanLogo])
+
+  if (cleanLogo && !imageFailed) {
     return (
       <div className={`shrink-0 ${className}`} data-brand-logo>
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -29,6 +36,7 @@ export default function StoreBrandMark({
           alt={name || 'Store logo'}
           className="max-h-12 w-auto object-contain"
           style={logoWidth ? { width: logoWidth, maxHeight: 48 } : undefined}
+          onError={() => setImageFailed(true)}
         />
       </div>
     )

@@ -4,7 +4,9 @@ import {
   STORE_FOOTER_SETTING_KEY,
   normalizeStoreFooterConfig,
 } from '@/lib/store-footer'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { assertShopifyFilesUrl } from '@/lib/store-media'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 export async function readStoreFooterConfig(): Promise<StoreFooterConfig> {
   if (!isSupabaseConfigured()) {
@@ -13,20 +15,9 @@ export async function readStoreFooterConfig(): Promise<StoreFooterConfig> {
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('*')
-      .eq('key', STORE_FOOTER_SETTING_KEY)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Supabase read store footer error:', error.message)
-      return normalizeStoreFooterConfig(DEFAULT_STORE_FOOTER)
-    }
-
-    if (!data?.value) return normalizeStoreFooterConfig(DEFAULT_STORE_FOOTER)
-
-    return normalizeStoreFooterConfig(data.value as Partial<StoreFooterConfig>)
+    const value = await readStoreSettingValue(STORE_FOOTER_SETTING_KEY)
+    if (!value) return normalizeStoreFooterConfig(DEFAULT_STORE_FOOTER)
+    return normalizeStoreFooterConfig(value as Partial<StoreFooterConfig>)
   } catch (e) {
     console.error('readStoreFooterConfig error:', e)
     return normalizeStoreFooterConfig(DEFAULT_STORE_FOOTER)
@@ -36,34 +27,12 @@ export async function readStoreFooterConfig(): Promise<StoreFooterConfig> {
 export async function writeStoreFooterConfig(
   config: Partial<StoreFooterConfig> | StoreFooterConfig
 ): Promise<StoreFooterConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
   const normalized = normalizeStoreFooterConfig(config)
+  assertShopifyFilesUrl(normalized.logoUrl, 'Footer logo')
 
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: STORE_FOOTER_SETTING_KEY,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('*')
-    .single()
-
-  if (error) {
-    console.error('Supabase write store footer error:', error.message)
-    throw new Error('Failed to save store footer settings to Supabase')
-  }
-
-  if (!data?.value) {
-    throw new Error('Failed to save store footer settings to Supabase')
-  }
-
-  return normalizeStoreFooterConfig(data.value as Partial<StoreFooterConfig>)
+  const saved = await writeStoreSettingValue(
+    STORE_FOOTER_SETTING_KEY,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeStoreFooterConfig(saved as Partial<StoreFooterConfig>)
 }

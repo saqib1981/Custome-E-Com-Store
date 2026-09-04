@@ -216,14 +216,20 @@ export default function AdminStorePreview() {
       ) : null}
 
       <div
-        className={`relative flex min-h-full flex-col overflow-x-hidden shadow-lg transition-[width,max-width] duration-300 ease-out ${
+        className={`relative flex min-h-full flex-col shadow-lg transition-[width,max-width] duration-300 ease-out ${
           isDesktop
             ? 'w-full rounded-xl border border-gray-300'
-            : 'w-full rounded-[1.25rem] border-[3px] border-gray-800'
+            : 'rounded-[1.25rem] border-[3px] border-gray-800'
         }`}
+        data-preview-viewport={previewViewport}
         style={{
           backgroundColor: generalSettingsPreview.backgroundColor,
-          ...(isDesktop ? {} : { maxWidth: viewportWidth ?? undefined, width: '100%' }),
+          ...(isDesktop
+            ? { width: '100%' }
+            : {
+                width: viewportWidth ?? undefined,
+                maxWidth: '100%',
+              }),
         }}
       >
         <Sidebar
@@ -245,58 +251,62 @@ export default function AdminStorePreview() {
           menuOverride={menuForPreview}
           onOpenMenu={() => setNavOpen(true)}
         />
-        {isHomePreview ? (
-          <>
-            <HeroBannerView
-              config={heroBannerPreview}
+        <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden">
+          {isHomePreview ? (
+            <>
+              <HeroBannerView
+                config={heroBannerPreview}
+                preview
+                previewViewport={previewViewport}
+                onPreviewNavigate={setPreviewPath}
+              />
+              <HomeDividerSection config={homeDividerPreview} />
+              <CollectionCards
+                preview
+                previewViewport={previewViewport}
+                configOverride={collectionCardsPreview}
+                onPreviewNavigate={setPreviewPath}
+              />
+              <HomeDividerSection config={homeDividerAfterCardsPreview} />
+              <CollectionTabs
+                preview
+                previewViewport={previewViewport}
+                configOverride={collectionTabsPreview}
+                onPreviewNavigate={setPreviewPath}
+              />
+              <HomeDividerSection config={homeDividerAfterTabsPreview} />
+              <TrustBannerView config={trustBannerPreview} preview previewViewport={previewViewport} />
+              <HomeDividerSection config={homeDividerAfterTrustBannerPreview} />
+            </>
+          ) : isCollectionsListPreview ? (
+            <CollectionsList
               preview
               previewViewport={previewViewport}
+              configOverride={collectionsListPreview}
               onPreviewNavigate={setPreviewPath}
             />
-            <HomeDividerSection config={homeDividerPreview} />
-            <CollectionCards
-              preview
-              configOverride={collectionCardsPreview}
-              onPreviewNavigate={setPreviewPath}
-            />
-            <HomeDividerSection config={homeDividerAfterCardsPreview} />
-            <CollectionTabs
-              preview
-              previewViewport={previewViewport}
-              configOverride={collectionTabsPreview}
-              onPreviewNavigate={setPreviewPath}
-            />
-            <HomeDividerSection config={homeDividerAfterTabsPreview} />
-            <TrustBannerView config={trustBannerPreview} preview previewViewport={previewViewport} />
-            <HomeDividerSection config={homeDividerAfterTrustBannerPreview} />
-          </>
-        ) : isCollectionsListPreview ? (
-          <CollectionsList
+          ) : (
+            <div className="flex flex-1 flex-col p-8 sm:p-12">
+              <>
+                <p className="mb-4 text-xs font-medium uppercase tracking-wide text-gray-400">
+                  Preview · {resolveThemePageLabel(previewPath)}
+                </p>
+                <div className="mb-4 h-6 w-32 rounded bg-gray-200" aria-hidden />
+                <div className="space-y-2">
+                  <div className="h-3 w-full max-w-md rounded bg-gray-200" aria-hidden />
+                  <div className="h-3 w-full max-w-sm rounded bg-gray-200" aria-hidden />
+                  <div className="h-3 w-full max-w-lg rounded bg-gray-200" aria-hidden />
+                </div>
+              </>
+            </div>
+          )}
+          <StoreFooter
             preview
-            configOverride={collectionsListPreview}
+            previewViewport={previewViewport}
+            configOverride={storeFooterPreview}
             onPreviewNavigate={setPreviewPath}
           />
-        ) : (
-          <div className="flex flex-1 flex-col p-8 sm:p-12">
-            <>
-              <p className="mb-4 text-xs font-medium uppercase tracking-wide text-gray-400">
-                Preview · {resolveThemePageLabel(previewPath)}
-              </p>
-              <div className="mb-4 h-6 w-32 rounded bg-gray-200" aria-hidden />
-              <div className="space-y-2">
-                <div className="h-3 w-full max-w-md rounded bg-gray-200" aria-hidden />
-                <div className="h-3 w-full max-w-sm rounded bg-gray-200" aria-hidden />
-                <div className="h-3 w-full max-w-lg rounded bg-gray-200" aria-hidden />
-              </div>
-            </>
-          </div>
-        )}
-        <StoreFooter
-          preview
-          previewViewport={previewViewport}
-          configOverride={storeFooterPreview}
-          onPreviewNavigate={setPreviewPath}
-        />
+        </div>
         <StoreFloatingButtons
           preview
           configOverride={floatingButtonsPreview}

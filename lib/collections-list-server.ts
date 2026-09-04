@@ -7,7 +7,8 @@ import {
 } from '@/lib/collections-list'
 import { shopifyCollectionPath } from '@/lib/shopify-collections'
 import { fetchShopifyCollectionsList } from '@/lib/shopify-collections-server'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 export async function resolveAllCollectionsListCards(): Promise<ResolvedCollectionCard[]> {
   const { collections } = await fetchShopifyCollectionsList()
@@ -29,20 +30,9 @@ export async function readCollectionsListConfig(): Promise<CollectionsListConfig
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('*')
-      .eq('key', COLLECTIONS_LIST_SETTING_KEY)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Supabase read collections list error:', error.message)
-      return normalizeCollectionsListConfig(DEFAULT_COLLECTIONS_LIST)
-    }
-
-    if (!data?.value) return normalizeCollectionsListConfig(DEFAULT_COLLECTIONS_LIST)
-
-    return normalizeCollectionsListConfig(data.value as Partial<CollectionsListConfig>)
+    const value = await readStoreSettingValue(COLLECTIONS_LIST_SETTING_KEY)
+    if (!value) return normalizeCollectionsListConfig(DEFAULT_COLLECTIONS_LIST)
+    return normalizeCollectionsListConfig(value as Partial<CollectionsListConfig>)
   } catch (e) {
     console.error('readCollectionsListConfig error:', e)
     return normalizeCollectionsListConfig(DEFAULT_COLLECTIONS_LIST)
@@ -52,32 +42,12 @@ export async function readCollectionsListConfig(): Promise<CollectionsListConfig
 export async function writeCollectionsListConfig(
   config: Partial<CollectionsListConfig> | CollectionsListConfig
 ): Promise<CollectionsListConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
   const normalized = normalizeCollectionsListConfig(config)
-
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: COLLECTIONS_LIST_SETTING_KEY,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('*')
-    .single()
-
-  if (error) {
-    console.error('Supabase write collections list error:', error.message)
-    throw new Error('Failed to save collections list settings to Supabase')
-  }
-
-  return normalizeCollectionsListConfig(data.value as Partial<CollectionsListConfig>)
+  const saved = await writeStoreSettingValue(
+    COLLECTIONS_LIST_SETTING_KEY,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeCollectionsListConfig(saved as Partial<CollectionsListConfig>)
 }
 
 export async function readResolvedCollectionsList(): Promise<{

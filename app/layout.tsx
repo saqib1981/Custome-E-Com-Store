@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
-import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap/dist/css/bootstrap-grid.min.css'
 import './globals.css'
 import ThemeInit from '@/components/ThemeInit'
 import LayoutContent from '@/components/LayoutContent'

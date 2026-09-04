@@ -25,6 +25,10 @@ import {
   STORE_MENU_REFRESH_EVENT,
   writeCachedMainMenu,
 } from '@/lib/store-menu-client'
+import {
+  STORE_THEME_REFRESH_EVENT,
+  type StoreThemeRefreshDetail,
+} from '@/lib/store-theme-client'
 import { FALLBACK_MAIN_MENU, type StoreNavItem } from '@/lib/shopify-menu'
 
 type StoreThemeContextValue = {
@@ -169,6 +173,46 @@ export function StoreThemeProvider({ children }: { children: ReactNode }) {
       window.clearInterval(intervalId)
     }
   }, [refreshMenu])
+
+  useEffect(() => {
+    const onThemeRefresh = (event: Event) => {
+      const detail = (event as CustomEvent<StoreThemeRefreshDetail>).detail ?? {}
+      const keys = detail.keys
+      const refreshLogo = !keys || keys.includes('logo-favicon')
+      const refreshGeneral = !keys || keys.includes('general')
+      const refreshHeader = !keys || keys.includes('header-nav')
+
+      if (refreshLogo) {
+        void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: LogoFaviconConfig | null) => {
+            if (data) setLogoFavicon(data)
+          })
+          .catch(() => {})
+      }
+
+      if (refreshGeneral) {
+        void fetch('/api/admin/general-settings', { cache: 'no-store' })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: GeneralSettingsConfig | null) => {
+            if (data) setGeneralSettings(data)
+          })
+          .catch(() => {})
+      }
+
+      if (refreshHeader) {
+        void fetch('/api/admin/header-settings', { cache: 'no-store' })
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: HeaderNavSettingsConfig | null) => {
+            if (data) setHeaderNav(data)
+          })
+          .catch(() => {})
+      }
+    }
+
+    window.addEventListener(STORE_THEME_REFRESH_EVENT, onThemeRefresh)
+    return () => window.removeEventListener(STORE_THEME_REFRESH_EVENT, onThemeRefresh)
+  }, [])
 
   useEffect(() => {
     const refreshFromShopify = () => {

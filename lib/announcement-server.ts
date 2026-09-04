@@ -5,7 +5,8 @@ import {
   normalizeHexColor,
   normalizeHeight,
 } from '@/lib/announcement'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 export function normalizeAnnouncementConfig(input: Partial<AnnouncementConfig> | null | undefined): AnnouncementConfig {
   const enabled = input?.enabled ?? DEFAULT_ANNOUNCEMENT.enabled
@@ -34,20 +35,9 @@ export async function readAnnouncementConfig(): Promise<AnnouncementConfig> {
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('value')
-      .eq('key', ANNOUNCEMENT_SETTING_KEY)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Supabase read announcement error:', error.message)
-      return DEFAULT_ANNOUNCEMENT
-    }
-
-    if (!data?.value) return DEFAULT_ANNOUNCEMENT
-
-    return normalizeAnnouncementConfig(data.value as Partial<AnnouncementConfig>)
+    const value = await readStoreSettingValue(ANNOUNCEMENT_SETTING_KEY)
+    if (!value) return DEFAULT_ANNOUNCEMENT
+    return normalizeAnnouncementConfig(value as Partial<AnnouncementConfig>)
   } catch (e) {
     console.error('readAnnouncementConfig error:', e)
     return DEFAULT_ANNOUNCEMENT
@@ -57,30 +47,10 @@ export async function readAnnouncementConfig(): Promise<AnnouncementConfig> {
 export async function writeAnnouncementConfig(
   config: Partial<AnnouncementConfig> | AnnouncementConfig
 ): Promise<AnnouncementConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
   const normalized = normalizeAnnouncementConfig(config)
-
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: ANNOUNCEMENT_SETTING_KEY,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('value')
-    .single()
-
-  if (error) {
-    console.error('Supabase write announcement error:', error.message)
-    throw new Error('Failed to save announcement settings to Supabase')
-  }
-
-  return normalizeAnnouncementConfig(data.value as Partial<AnnouncementConfig>)
+  const saved = await writeStoreSettingValue(
+    ANNOUNCEMENT_SETTING_KEY,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeAnnouncementConfig(saved as Partial<AnnouncementConfig>)
 }

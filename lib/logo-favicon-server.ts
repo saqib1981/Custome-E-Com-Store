@@ -1,10 +1,12 @@
 import {
+  assertLogoFaviconMediaUrls,
   DEFAULT_LOGO_FAVICON,
   LOGO_FAVICON_SETTING_KEY,
   normalizeLogoFaviconConfig,
   type LogoFaviconConfig,
 } from '@/lib/logo-favicon'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 export async function readLogoFaviconConfig(): Promise<LogoFaviconConfig> {
   if (!isSupabaseConfigured()) {
@@ -13,20 +15,9 @@ export async function readLogoFaviconConfig(): Promise<LogoFaviconConfig> {
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('value')
-      .eq('key', LOGO_FAVICON_SETTING_KEY)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Supabase read logo-favicon error:', error.message)
-      return DEFAULT_LOGO_FAVICON
-    }
-
-    if (!data?.value) return DEFAULT_LOGO_FAVICON
-
-    return normalizeLogoFaviconConfig(data.value as Partial<LogoFaviconConfig>)
+    const value = await readStoreSettingValue(LOGO_FAVICON_SETTING_KEY)
+    if (!value) return DEFAULT_LOGO_FAVICON
+    return normalizeLogoFaviconConfig(value as Partial<LogoFaviconConfig>)
   } catch (e) {
     console.error('readLogoFaviconConfig error:', e)
     return DEFAULT_LOGO_FAVICON
@@ -36,30 +27,10 @@ export async function readLogoFaviconConfig(): Promise<LogoFaviconConfig> {
 export async function writeLogoFaviconConfig(
   config: Partial<LogoFaviconConfig> | LogoFaviconConfig
 ): Promise<LogoFaviconConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
-  const normalized = normalizeLogoFaviconConfig(config)
-
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: LOGO_FAVICON_SETTING_KEY,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('value')
-    .single()
-
-  if (error) {
-    console.error('Supabase write logo-favicon error:', error.message)
-    throw new Error('Failed to save logo and favicon settings to Supabase')
-  }
-
-  return normalizeLogoFaviconConfig(data.value as Partial<LogoFaviconConfig>)
+  const normalized = assertLogoFaviconMediaUrls(normalizeLogoFaviconConfig(config))
+  const saved = await writeStoreSettingValue(
+    LOGO_FAVICON_SETTING_KEY,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeLogoFaviconConfig(saved as Partial<LogoFaviconConfig>)
 }

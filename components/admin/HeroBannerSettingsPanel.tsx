@@ -19,7 +19,7 @@ import {
   shopifyCollectionPath,
   type ShopifyCollectionSummary,
 } from '@/lib/shopify-collections'
-import { isShopifyFilesUrl } from '@/lib/store-media'
+import { uploadAdminStoreAsset } from '@/lib/admin-store-upload'
 
 const inputClass =
   'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'
@@ -269,29 +269,14 @@ export default function HeroBannerSettingsPanel() {
     setUploadingKey(key)
     setUploadError(null)
     try {
-      const form = new FormData()
-      form.append('file', file)
-      form.append('folder', 'hero')
-
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
-      const data = (await res.json()) as { url?: string; fileName?: string; error?: string }
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Upload failed')
-      }
-      if (!data.url?.trim() || !data.fileName?.trim()) {
-        throw new Error('Upload did not return a file URL')
-      }
-      if (!isShopifyFilesUrl(data.url)) {
-        throw new Error('Upload must return a Shopify CDN URL — try again in a moment')
-      }
+      const data = await uploadAdminStoreAsset(file, 'hero')
 
       updateHeroBannerDraft((prev) => ({
         slides: prev.slides.map((slide) =>
           slide.id === slideId
             ? target === 'desktop'
-              ? { ...slide, imageUrl: data.url!, imageFileName: data.fileName! }
-              : { ...slide, imageUrlMobile: data.url!, imageFileNameMobile: data.fileName! }
+              ? { ...slide, imageUrl: data.url, imageFileName: data.fileName }
+              : { ...slide, imageUrlMobile: data.url, imageFileNameMobile: data.fileName }
             : slide
         ),
       }))

@@ -7,6 +7,8 @@ import {
   type CollectionCardsConfig,
   type ResolvedCollectionCard,
 } from '@/lib/collection-cards'
+import type { PreviewViewport } from '@/lib/preview-viewport'
+import { previewCollectionColsClass } from '@/lib/preview-viewport'
 import {
   PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS,
   STORE_SECTION_FOCUS_REFRESH_MS,
@@ -14,12 +16,14 @@ import {
 
 type CollectionCardsProps = {
   preview?: boolean
+  previewViewport?: PreviewViewport
   configOverride?: CollectionCardsConfig
   onPreviewNavigate?: (path: string) => void
 }
 
 export default function CollectionCards({
   preview = false,
+  previewViewport,
   configOverride,
   onPreviewNavigate,
 }: CollectionCardsProps) {
@@ -130,6 +134,9 @@ export default function CollectionCards({
       cards={cards}
       preview={preview}
       onPreviewNavigate={onPreviewNavigate}
+      gridClassName={
+        preview && previewViewport ? previewCollectionColsClass(previewViewport, 4) : undefined
+      }
     />
   )
 }

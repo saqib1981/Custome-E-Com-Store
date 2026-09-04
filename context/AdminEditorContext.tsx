@@ -70,6 +70,8 @@ import {
   type CollectionsListConfig,
 } from '@/lib/collections-list'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
+import { uploadAdminStoreAsset } from '@/lib/admin-store-upload'
+import { dispatchStoreThemeRefresh } from '@/lib/store-theme-client'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
 export type AdminSectionId =
@@ -1071,13 +1073,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setStoreFooterLogoUploading(true)
       setStoreFooterStatus('idle')
       try {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('folder', 'logo')
-
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
-        if (!res.ok) throw new Error('Upload failed')
-        const data = (await res.json()) as { url: string; fileName: string }
+        const data = await uploadAdminStoreAsset(file, 'logo')
         updateStoreFooterDraft({ logoUrl: data.url, logoFileName: data.fileName })
       } catch {
         setStoreFooterStatus('error')
@@ -1149,13 +1145,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setLogoFaviconUploading(folder)
       setLogoFaviconStatus('idle')
       try {
-        const form = new FormData()
-        form.append('file', file)
-        form.append('folder', folder)
-
-        const res = await fetch('/api/admin/upload', { method: 'POST', body: form })
-        if (!res.ok) throw new Error('Upload failed')
-        const data = (await res.json()) as { url: string; fileName: string }
+        const data = await uploadAdminStoreAsset(file, folder)
 
         if (folder === 'favicon') {
           updateLogoFaviconDraft({ faviconUrl: data.url, faviconFileName: data.fileName })
@@ -1185,11 +1175,24 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(logoFaviconDraft),
       })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as LogoFaviconConfig
+      const payload = (await res.json().catch(() => null)) as
+        | (LogoFaviconConfig & { error?: string })
+        | { error?: string }
+        | null
+
+      if (!res.ok) {
+        throw new Error(
+          payload && typeof payload === 'object' && 'error' in payload && payload.error
+            ? String(payload.error)
+            : 'Save failed'
+        )
+      }
+
+      const data = payload as LogoFaviconConfig
       setLogoFaviconSaved(data)
       setLogoFaviconDraft(data)
       setLogoFaviconStatus('saved')
+      dispatchStoreThemeRefresh({ keys: ['logo-favicon'] })
       return true
     } catch {
       setLogoFaviconStatus('error')

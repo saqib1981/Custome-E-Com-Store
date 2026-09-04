@@ -13,6 +13,8 @@ import {
   type CollectionsListConfig,
 } from '@/lib/collections-list'
 import type { ResolvedCollectionCard } from '@/lib/collection-cards'
+import type { PreviewViewport } from '@/lib/preview-viewport'
+import { previewCollectionsBootstrapRowClass } from '@/lib/preview-viewport'
 import {
   PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS,
   STORE_SECTION_FOCUS_REFRESH_MS,
@@ -20,6 +22,7 @@ import {
 
 type CollectionsListProps = {
   preview?: boolean
+  previewViewport?: PreviewViewport
   configOverride?: CollectionsListConfig
   onPreviewNavigate?: (path: string) => void
 }
@@ -44,6 +47,7 @@ function mergeConfigFromApi(
 
 export default function CollectionsList({
   preview = false,
+  previewViewport,
   configOverride,
   onPreviewNavigate,
 }: CollectionsListProps) {
@@ -203,7 +207,11 @@ export default function CollectionsList({
         preview={preview}
         onPreviewNavigate={onPreviewNavigate}
         pageTitle={config.pageTitle}
-        bootstrapRowClassName={collectionsListBootstrapRowClass(config.columnsDesktop)}
+        bootstrapRowClassName={
+          preview && previewViewport
+            ? previewCollectionsBootstrapRowClass(previewViewport, config.columnsDesktop)
+            : collectionsListBootstrapRowClass(config.columnsDesktop)
+        }
         sectionClassName={COLLECTIONS_LIST_EDGE_PADDING_CLASS}
         showProductCountBadge
       />

@@ -240,13 +240,16 @@ body {
   display: none;
 }
 
-/* Collections list — Bootstrap badge scales down on narrow viewports. */
+/* Collections list — product count badge scales on narrow viewports. */
 .collection-card-product-count {
-  top: 3px !important;
-  right: 3px !important;
+  top: 3px;
+  right: 3px;
   z-index: 10;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 10px;
-  background-color: rgba(0, 0, 0, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8);
   color: #fff;
   font-weight: 600;
   line-height: 1.2;
@@ -255,4 +258,21 @@ body {
   min-width: clamp(2.5rem, 16vw, 3.75rem);
   padding: clamp(0.125rem, 1vw, 0.375rem) clamp(0.5rem, 3.5vw, 1.25rem);
   font-size: clamp(0.75rem, 2.8vw, 1.25rem);
+}
+
+/* Desktop nav dropdowns — avoid Bootstrap/Tailwind `.invisible` collisions. */
+.store-nav-flyout {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.group\/menu:hover > .store-nav-flyout,
+.group\/menu:focus-within > .store-nav-flyout,
+.group\/sub:hover > .store-nav-flyout,
+.group\/sub:focus-within > .store-nav-flyout {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }

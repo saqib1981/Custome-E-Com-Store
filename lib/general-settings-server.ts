@@ -4,7 +4,8 @@ import {
   normalizeGeneralSettingsConfig,
   type GeneralSettingsConfig,
 } from '@/lib/general-settings'
-import { getSupabaseAdmin, isSupabaseConfigured } from '@/lib/supabase-server'
+import { isSupabaseConfigured } from '@/lib/supabase-server'
+import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
 export async function readGeneralSettingsConfig(): Promise<GeneralSettingsConfig> {
   if (!isSupabaseConfigured()) {
@@ -13,20 +14,9 @@ export async function readGeneralSettingsConfig(): Promise<GeneralSettingsConfig
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin()
-      .from('store_settings')
-      .select('value')
-      .eq('key', GENERAL_SETTINGS_KEY)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Supabase read general settings error:', error.message)
-      return DEFAULT_GENERAL_SETTINGS
-    }
-
-    if (!data?.value) return DEFAULT_GENERAL_SETTINGS
-
-    return normalizeGeneralSettingsConfig(data.value as Partial<GeneralSettingsConfig>)
+    const value = await readStoreSettingValue(GENERAL_SETTINGS_KEY)
+    if (!value) return DEFAULT_GENERAL_SETTINGS
+    return normalizeGeneralSettingsConfig(value as Partial<GeneralSettingsConfig>)
   } catch (e) {
     console.error('readGeneralSettingsConfig error:', e)
     return DEFAULT_GENERAL_SETTINGS
@@ -36,30 +26,10 @@ export async function readGeneralSettingsConfig(): Promise<GeneralSettingsConfig
 export async function writeGeneralSettingsConfig(
   config: Partial<GeneralSettingsConfig> | GeneralSettingsConfig
 ): Promise<GeneralSettingsConfig> {
-  if (!isSupabaseConfigured()) {
-    throw new Error(
-      'Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env.local'
-    )
-  }
-
   const normalized = normalizeGeneralSettingsConfig(config)
-
-  const { data, error } = await getSupabaseAdmin()
-    .from('store_settings')
-    .upsert(
-      {
-        key: GENERAL_SETTINGS_KEY,
-        value: normalized,
-      },
-      { onConflict: 'key' }
-    )
-    .select('value')
-    .single()
-
-  if (error) {
-    console.error('Supabase write general settings error:', error.message)
-    throw new Error('Failed to save general settings to Supabase')
-  }
-
-  return normalizeGeneralSettingsConfig(data.value as Partial<GeneralSettingsConfig>)
+  const saved = await writeStoreSettingValue(
+    GENERAL_SETTINGS_KEY,
+    normalized as unknown as Record<string, unknown>
+  )
+  return normalizeGeneralSettingsConfig(saved as Partial<GeneralSettingsConfig>)
 }

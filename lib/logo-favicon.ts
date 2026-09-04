@@ -1,3 +1,5 @@
+import { assertShopifyFilesUrl, sanitizeShopifyFilesUrl } from '@/lib/store-media'
+
 export type LogoFaviconConfig = {
   faviconUrl: string
   faviconFileName: string
@@ -31,11 +33,11 @@ export function normalizeLogoFaviconConfig(
   input: Partial<LogoFaviconConfig> | null | undefined
 ): LogoFaviconConfig {
   return {
-    faviconUrl: String(input?.faviconUrl ?? '').trim(),
+    faviconUrl: sanitizeShopifyFilesUrl(input?.faviconUrl),
     faviconFileName: String(input?.faviconFileName ?? '').trim(),
-    logoUrl: String(input?.logoUrl ?? '').trim(),
+    logoUrl: sanitizeShopifyFilesUrl(input?.logoUrl),
     logoFileName: String(input?.logoFileName ?? '').trim(),
-    logoTransparentUrl: String(input?.logoTransparentUrl ?? '').trim(),
+    logoTransparentUrl: sanitizeShopifyFilesUrl(input?.logoTransparentUrl),
     logoTransparentFileName: String(input?.logoTransparentFileName ?? '').trim(),
     logoWidthDesktop: clampLogoWidth(
       Number(input?.logoWidthDesktop),
@@ -45,5 +47,15 @@ export function normalizeLogoFaviconConfig(
       Number(input?.logoWidthMobile),
       DEFAULT_LOGO_FAVICON.logoWidthMobile
     ),
+  }
+}
+
+/** Strict save-time check — rejects staged/tmp/external URLs. */
+export function assertLogoFaviconMediaUrls(config: LogoFaviconConfig): LogoFaviconConfig {
+  return {
+    ...config,
+    faviconUrl: assertShopifyFilesUrl(config.faviconUrl, 'Favicon'),
+    logoUrl: assertShopifyFilesUrl(config.logoUrl, 'Logo'),
+    logoTransparentUrl: assertShopifyFilesUrl(config.logoTransparentUrl, 'Transparent logo'),
   }
 }

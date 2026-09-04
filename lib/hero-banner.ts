@@ -1,5 +1,5 @@
 import { normalizeHeight } from '@/lib/announcement'
-import { assertShopifyFilesUrl } from '@/lib/store-media'
+import { assertShopifyFilesUrl, sanitizeShopifyFilesUrl } from '@/lib/store-media'
 
 export type HeroSlide = {
   id: string
@@ -69,9 +69,9 @@ function createSlideId(): string {
 export function createHeroSlide(patch: Partial<HeroSlide> = {}): HeroSlide {
   return {
     id: String(patch.id ?? createSlideId()),
-    imageUrl: String(patch.imageUrl ?? '').trim(),
+    imageUrl: sanitizeShopifyFilesUrl(patch.imageUrl),
     imageFileName: String(patch.imageFileName ?? '').trim(),
-    imageUrlMobile: String(patch.imageUrlMobile ?? '').trim(),
+    imageUrlMobile: sanitizeShopifyFilesUrl(patch.imageUrlMobile),
     imageFileNameMobile: String(patch.imageFileNameMobile ?? '').trim(),
     linkUrl: normalizeSlideLink(patch.linkUrl),
     alt: String(patch.alt ?? 'Hero slide').trim().slice(0, 120) || 'Hero slide',
@@ -88,12 +88,24 @@ function normalizeSlideLink(value: unknown): string {
 export function normalizeHeroSlide(input: Partial<HeroSlide> | null | undefined): HeroSlide {
   return {
     id: String(input?.id ?? createSlideId()),
-    imageUrl: assertShopifyFilesUrl(String(input?.imageUrl ?? '').trim(), 'Desktop slide image'),
+    imageUrl: sanitizeShopifyFilesUrl(input?.imageUrl),
     imageFileName: String(input?.imageFileName ?? '').trim(),
-    imageUrlMobile: assertShopifyFilesUrl(String(input?.imageUrlMobile ?? '').trim(), 'Mobile slide image'),
+    imageUrlMobile: sanitizeShopifyFilesUrl(input?.imageUrlMobile),
     imageFileNameMobile: String(input?.imageFileNameMobile ?? '').trim(),
     linkUrl: normalizeSlideLink(input?.linkUrl),
     alt: String(input?.alt ?? 'Hero slide').trim().slice(0, 120) || 'Hero slide',
+  }
+}
+
+/** Save-time: reject any non-CDN media that somehow reached the draft. */
+export function assertHeroBannerMediaUrls(config: HeroBannerConfig): HeroBannerConfig {
+  return {
+    ...config,
+    slides: config.slides.map((slide) => ({
+      ...slide,
+      imageUrl: assertShopifyFilesUrl(slide.imageUrl, 'Desktop slide image'),
+      imageUrlMobile: assertShopifyFilesUrl(slide.imageUrlMobile, 'Mobile slide image'),
+    })),
   }
 }
 
@@ -110,7 +122,7 @@ type LegacyHeroInput = Partial<HeroBannerConfig> & {
 function migrateLegacyHeroInput(input: LegacyHeroInput | null | undefined): Partial<HeroBannerConfig> {
   if (!input || Array.isArray(input.slides)) return input ?? {}
 
-  const legacyDesktop = String(input.imageUrl ?? '').trim()
+  const legacyDesktop = sanitizeShopifyFilesUrl(input.imageUrl)
   if (!legacyDesktop) {
     return { ...input, slides: [] }
   }
@@ -126,7 +138,7 @@ function migrateLegacyHeroInput(input: LegacyHeroInput | null | undefined): Part
         id: createSlideId(),
         imageUrl: legacyDesktop,
         imageFileName: String(input.imageFileName ?? '').trim(),
-        imageUrlMobile: String(input.imageUrlMobile ?? '').trim(),
+        imageUrlMobile: sanitizeShopifyFilesUrl(input.imageUrlMobile),
         imageFileNameMobile: String(input.imageFileNameMobile ?? '').trim(),
         linkUrl: normalizeSlideLink(input.buttonUrl),
         alt: String(input.heading ?? 'Hero slide').trim() || 'Hero slide',

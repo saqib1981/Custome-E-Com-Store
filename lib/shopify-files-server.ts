@@ -1,6 +1,12 @@
 import { shopifyAdminGraphql } from '@/lib/shopify-admin'
 import { isShopifyConfigured } from '@/lib/shopify-config'
-import { isShopifyFilesUrl } from '@/lib/store-media'
+import {
+  isShopifyFilesUrl,
+  requireShopifyCdnUploadUrl,
+  type StoreAssetFolder,
+} from '@/lib/store-media'
+
+export type { StoreAssetFolder } from '@/lib/store-media'
 
 type StagedUploadTarget = {
   url: string
@@ -111,7 +117,7 @@ async function postFileToStagedTarget(
   }
 }
 
-async function waitForShopifyFileUrl(fileId: string, attempts = 12): Promise<string | null> {
+async function waitForShopifyFileUrl(fileId: string, attempts = 20): Promise<string | null> {
   for (let i = 0; i < attempts; i += 1) {
     const data = await shopifyAdminGraphql<{
       node: {
@@ -142,7 +148,8 @@ async function waitForShopifyFileUrl(fileId: string, attempts = 12): Promise<str
     const url = data.node?.image?.url || data.node?.url || null
     if (url && isShopifyFilesUrl(url)) return url
 
-    await new Promise((resolve) => setTimeout(resolve, 1500))
+    // Still processing — wait a bit longer on later attempts
+    await new Promise((resolve) => setTimeout(resolve, i < 4 ? 1000 : 1500))
   }
 
   return null
@@ -207,14 +214,12 @@ async function registerShopifyFile(
   throw new Error('Shopify file upload did not return a CDN URL — try again in a moment')
 }
 
-const ALT_LABELS: Record<'favicon' | 'logo' | 'logo-transparent' | 'hero', string> = {
+const ALT_LABELS: Record<StoreAssetFolder, string> = {
   favicon: 'Store favicon',
   logo: 'Store logo',
   'logo-transparent': 'Store logo on transparent header',
   hero: 'Homepage hero slider',
 }
-
-export type StoreAssetFolder = 'favicon' | 'logo' | 'logo-transparent' | 'hero'
 
 /** Upload bytes to Shopify Files (CDN). Used by admin uploads and seed scripts. */
 export async function uploadBufferToShopify(
@@ -232,7 +237,10 @@ export async function uploadBufferToShopify(
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 120)
   const staged = await createStagedUpload(safeName, mimeType, buffer.byteLength)
   await postFileToStagedTarget(staged, buffer, safeName, mimeType)
-  const url = await registerShopifyFile(staged.resourceUrl, ALT_LABELS[folder], mimeType)
+  const url = requireShopifyCdnUploadUrl(
+    await registerShopifyFile(staged.resourceUrl, ALT_LABELS[folder], mimeType),
+    'Shopify Files'
+  )
 
   return { url, fileName: safeName }
 }

@@ -33,11 +33,12 @@ Run these in **Supabase → SQL Editor** in order.
 | 27 | [`028-product-page.sql`](./028-product-page.sql) | Old DB — product detail page settings |
 | 28 | [`029-store-settings-rpc.sql`](./029-store-settings-rpc.sql) | **Required** — `get_store_setting` / `upsert_store_setting` RPCs |
 | 29 | [`030-store-settings-write-fix.sql`](./030-store-settings-write-fix.sql) | **Required NOW** — disable RLS no-op writes + repair collection-products |
+| 30 | [`031-search.sql`](./031-search.sql) | Old DB — search popup theme settings |
 
 ## Fresh install
 
-Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**.
+Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**.
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 030). **030 is required** if saves show “saved” but reload restores old toggles.
+Run any migrations you have not applied yet (002 → 031). **030 is required** if saves show “saved” but reload restores old toggles.

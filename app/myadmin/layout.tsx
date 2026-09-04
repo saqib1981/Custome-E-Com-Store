@@ -19,6 +19,7 @@ import StoreFooterSettingsPanel from '@/components/admin/StoreFooterSettingsPane
 import CollectionsListSettingsPanel from '@/components/admin/CollectionsListSettingsPanel'
 import CollectionProductsSettingsPanel from '@/components/admin/CollectionProductsSettingsPanel'
 import ProductPageSettingsPanel from '@/components/admin/ProductPageSettingsPanel'
+import SearchSettingsPanel from '@/components/admin/SearchSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -84,6 +85,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'product-page') {
     return <ProductPageSettingsPanel />
+  }
+
+  if (activeSection === 'search') {
+    return <SearchSettingsPanel />
   }
 
   if (activeGlobalSetting) {

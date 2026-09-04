@@ -383,3 +383,12 @@ body {
   font-weight: 600;
   color: #111827;
 }
+
+/* Product cards — title always 1 line, ellipsis for overflow (all viewports). */
+.store-product-card-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}

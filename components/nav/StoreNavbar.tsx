@@ -15,6 +15,7 @@ import type { StoreNavItem } from '@/lib/shopify-menu'
 
 type StoreNavbarProps = {
   onOpenMenu?: () => void
+  onOpenSearch?: () => void
   cartCount?: number
   previewViewport?: PreviewViewport
   previewPath?: string
@@ -29,6 +30,7 @@ const iconButtonClass =
 
 export default function StoreNavbar({
   onOpenMenu,
+  onOpenSearch,
   cartCount = 0,
   previewViewport,
   previewPath = '/',
@@ -126,7 +128,12 @@ export default function StoreNavbar({
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
-          <button type="button" className={iconButtonClass} aria-label="Search">
+          <button
+            type="button"
+            className={iconButtonClass}
+            aria-label="Search"
+            onClick={onOpenSearch}
+          >
             <Search className="h-[17px] w-[17px]" strokeWidth={2} />
           </button>
           <button type="button" className={`${iconButtonClass} ${accountButtonClass}`} aria-label="Account">

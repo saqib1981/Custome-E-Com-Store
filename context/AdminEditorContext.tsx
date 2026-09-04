@@ -89,6 +89,12 @@ import {
   fetchProductPageSettings,
   persistProductPageSettings,
 } from '@/lib/product-page-client'
+import {
+  DEFAULT_SEARCH,
+  searchConfigsEqual,
+  type SearchConfig,
+} from '@/lib/search'
+import { fetchSearchSettings, persistSearchSettings } from '@/lib/search-client'
 import { clearStoreSettingsBrowserCaches } from '@/lib/store-settings-cache'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import { uploadAdminStoreAsset } from '@/lib/admin-store-upload'
@@ -110,6 +116,7 @@ export type AdminSectionId =
   | 'collections-list'
   | 'collection-products'
   | 'product-page'
+  | 'search'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -232,6 +239,14 @@ type AdminEditorContextValue = {
   productPageStatus: 'idle' | 'saved' | 'error'
   updateProductPageDraft: (patch: Partial<ProductPageConfig>) => void
   saveProductPage: () => Promise<boolean>
+  searchLoading: boolean
+  searchSaving: boolean
+  searchSaved: SearchConfig
+  searchDraft: SearchConfig
+  searchDirty: boolean
+  searchStatus: 'idle' | 'saved' | 'error'
+  updateSearchDraft: (patch: Partial<SearchConfig>) => void
+  saveSearch: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -437,6 +452,18 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   productPageSavedRef.current = productPageSaved
   const saveProductPageRef = useRef<() => Promise<boolean>>(async () => false)
   const productPageLocalAuthorityRef = useRef(false)
+
+  const [searchSaved, setSearchSaved] = useState<SearchConfig>(DEFAULT_SEARCH)
+  const [searchDraft, setSearchDraft] = useState<SearchConfig>(DEFAULT_SEARCH)
+  const [searchLoading, setSearchLoading] = useState(true)
+  const [searchSaving, setSearchSaving] = useState(false)
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const searchDraftRef = useRef(searchDraft)
+  searchDraftRef.current = searchDraft
+  const searchSavedRef = useRef(searchSaved)
+  searchSavedRef.current = searchSaved
+  const saveSearchRef = useRef<() => Promise<boolean>>(async () => false)
+  const searchLocalAuthorityRef = useRef(false)
 
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
@@ -725,6 +752,35 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    void fetchSearchSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (searchLocalAuthorityRef.current) return
+        const dirty = !searchConfigsEqual(searchDraftRef.current, searchSavedRef.current)
+        if (dirty) return
+        setSearchSaved(data)
+        setSearchDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (searchLocalAuthorityRef.current) return
+        const dirty = !searchConfigsEqual(searchDraftRef.current, searchSavedRef.current)
+        if (dirty) return
+        setSearchSaved(DEFAULT_SEARCH)
+        setSearchDraft(DEFAULT_SEARCH)
+      })
+      .finally(() => {
+        if (!cancelled) setSearchLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -867,6 +923,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [productPageSaved, productPageDraft]
   )
 
+  const searchDirty = useMemo(
+    () => !searchConfigsEqual(searchSaved, searchDraft),
+    [searchSaved, searchDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -933,6 +994,10 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
         const handle = parseProductHandleFromPath(current)
         return handle ? `/products/${handle}` : page.path
       })
+    } else if (id === 'search') {
+      const page = getThemePageById('search')
+      setActiveThemePageId(page.id)
+      setPreviewPathState(page.path)
     } else if (homepageOnlySections.includes(id)) {
       const page = getThemePageById('home')
       setActiveThemePageId(page.id)
@@ -963,6 +1028,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       !productPageConfigsEqual(productPageSavedRef.current, productPageDraftRef.current)
     ) {
       void saveProductPageRef.current()
+    }
+    if (
+      activeSection === 'search' &&
+      !searchConfigsEqual(searchSavedRef.current, searchDraftRef.current)
+    ) {
+      void saveSearchRef.current()
     }
     setActiveSection(null)
     setAnnouncementStatus('idle')
@@ -1386,6 +1457,37 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
 
   saveProductPageRef.current = saveProductPage
 
+  const updateSearchDraft = useCallback((patch: Partial<SearchConfig>) => {
+    setSearchDraft((prev) => {
+      const next = { ...prev, ...patch }
+      searchDraftRef.current = next
+      return next
+    })
+    setSearchStatus('idle')
+  }, [])
+
+  const saveSearch = useCallback(async () => {
+    setSearchSaving(true)
+    setSearchStatus('idle')
+    try {
+      const data = await persistSearchSettings(searchDraftRef.current)
+      searchLocalAuthorityRef.current = true
+      searchSavedRef.current = data
+      searchDraftRef.current = data
+      setSearchSaved(data)
+      setSearchDraft(data)
+      setSearchStatus('saved')
+      return true
+    } catch {
+      setSearchStatus('error')
+      return false
+    } finally {
+      setSearchSaving(false)
+    }
+  }, [])
+
+  saveSearchRef.current = saveSearch
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -1686,6 +1788,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       productPageStatus,
       updateProductPageDraft,
       saveProductPage,
+      searchLoading,
+      searchSaving,
+      searchSaved,
+      searchDraft,
+      searchDirty,
+      searchStatus,
+      updateSearchDraft,
+      saveSearch,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -1847,6 +1957,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       productPageStatus,
       updateProductPageDraft,
       saveProductPage,
+      searchLoading,
+      searchSaving,
+      searchSaved,
+      searchDraft,
+      searchDirty,
+      searchStatus,
+      updateSearchDraft,
+      saveSearch,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

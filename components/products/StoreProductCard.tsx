@@ -93,8 +93,11 @@ export default function StoreProductCard({
             </span>
           ) : null}
         </div>
-        <div className="flex min-h-[4.75rem] min-w-0 flex-1 flex-col gap-1 p-2.5 sm:min-h-[5.25rem] sm:p-3">
-          <h3 className="line-clamp-2 min-h-[2.5rem] w-full min-w-0 overflow-hidden break-words text-sm font-medium leading-tight text-gray-900 group-hover:text-primary-600 dark:text-gray-100">
+        <div className="flex min-h-[4.25rem] min-w-0 flex-1 flex-col gap-1 p-2.5">
+          <h3
+            className="store-product-card-title w-full min-w-0 text-sm font-medium leading-tight text-gray-900 group-hover:text-primary-600 dark:text-gray-100"
+            title={product.title}
+          >
             {product.title}
           </h3>
           <div className="mt-auto flex min-h-[1.25rem] flex-wrap items-baseline gap-x-2 gap-y-0.5">

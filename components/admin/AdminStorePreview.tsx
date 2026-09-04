@@ -15,6 +15,8 @@ import StoreFooter from '@/components/StoreFooter'
 import StoreFloatingButtons from '@/components/StoreFloatingButtons'
 import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
+import SearchPopup from '@/components/search/SearchPopup'
+import SearchPageView from '@/components/search/SearchPageView'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import {
   PREVIEW_VIEWPORT_WIDTHS,
@@ -23,6 +25,7 @@ import {
 import { resolveThemePageLabel } from '@/lib/admin-theme-pages'
 import { parseCollectionHandleFromPath } from '@/lib/collection-products'
 import { parseProductHandleFromPath } from '@/lib/product-page'
+import { buildSearchPath, parseSearchQueryFromPath } from '@/lib/search'
 import { FALLBACK_MAIN_MENU, type StoreNavItem } from '@/lib/shopify-menu'
 import { MENU_ADMIN_PREVIEW_REFRESH_MS } from '@/lib/store-menu-client'
 
@@ -41,6 +44,7 @@ async function fetchPreviewMenu(menuId: string, menuHandle: string): Promise<Sto
 
 export default function AdminStorePreview() {
   const [navOpen, setNavOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [previewMenu, setPreviewMenu] = useState<StoreNavItem[] | null>(null)
   const [previewMenuLoading, setPreviewMenuLoading] = useState(true)
   const {
@@ -91,6 +95,9 @@ export default function AdminStorePreview() {
     productPageDraft,
     productPageSaved,
     productPageLoading,
+    searchDraft,
+    searchSaved,
+    searchLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -116,6 +123,7 @@ export default function AdminStorePreview() {
   const isEditingCollectionsList = activeSection === 'collections-list'
   const isEditingCollectionProducts = activeSection === 'collection-products'
   const isEditingProductPage = activeSection === 'product-page'
+  const isEditingSearch = activeSection === 'search'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
@@ -143,6 +151,7 @@ export default function AdminStorePreview() {
     ? collectionProductsDraft
     : collectionProductsSaved
   const productPagePreview = isEditingProductPage ? productPageDraft : productPageSaved
+  const searchPreview = isEditingSearch ? searchDraft : searchSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -165,6 +174,7 @@ export default function AdminStorePreview() {
     collectionsListLoading ||
     collectionProductsLoading ||
     productPageLoading ||
+    searchLoading ||
     generalSettingsLoading ||
     floatingButtonsLoading
 
@@ -172,8 +182,18 @@ export default function AdminStorePreview() {
 
   const isHomePreview = previewPath === '/'
   const isCollectionsListPreview = previewPath === '/collections'
+  const searchPreviewPath = (previewPath.split('?')[0] || '/').replace(/\/+$/, '') || '/'
+  const isSearchPreview = searchPreviewPath === '/search'
+  const searchPreviewQuery = parseSearchQueryFromPath(previewPath)
   const collectionPreviewHandle = parseCollectionHandleFromPath(previewPath)
   const productPreviewHandle = parseProductHandleFromPath(previewPath)
+
+  // Only auto-open popup when editing Search settings from another page — not on /search itself.
+  useEffect(() => {
+    if (isEditingSearch && !isSearchPreview) {
+      setSearchOpen(true)
+    }
+  }, [isEditingSearch, isSearchPreview])
 
   const viewportWidth = PREVIEW_VIEWPORT_WIDTHS[previewViewport]
   const isDesktop = previewViewport === 'desktop'
@@ -271,6 +291,7 @@ export default function AdminStorePreview() {
             headerNavOverride={headerNavPreview}
             menuOverride={menuForPreview}
             onOpenMenu={() => setNavOpen(true)}
+            onOpenSearch={() => setSearchOpen(true)}
           />
           <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
             {isHomePreview ? (
@@ -322,6 +343,16 @@ export default function AdminStorePreview() {
                 configOverride={productPagePreview}
                 onPreviewNavigate={setPreviewPath}
               />
+            ) : isSearchPreview ? (
+              <SearchPageView
+                initialQuery={searchPreviewQuery}
+                configOverride={searchPreview}
+                preview
+                previewViewport={previewViewport}
+                onPreviewNavigate={setPreviewPath}
+                searchApiBase="/api/admin/search"
+                onQueryCommit={(q) => setPreviewPath(buildSearchPath(q))}
+              />
             ) : (
               <div className="flex flex-1 flex-col p-8 sm:p-12">
                 <>
@@ -350,6 +381,17 @@ export default function AdminStorePreview() {
           configOverride={floatingButtonsPreview}
           pageUrlOverride={previewPageUrl}
           pathname={previewPath}
+        />
+        <SearchPopup
+          open={searchOpen}
+          onClose={() => setSearchOpen(false)}
+          configOverride={searchPreview}
+          preview
+          onPreviewNavigate={(path) => {
+            setPreviewPath(path)
+            setSearchOpen(false)
+          }}
+          searchApiBase="/api/admin/search"
         />
       </div>
     </div>

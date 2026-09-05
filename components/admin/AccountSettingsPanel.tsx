@@ -127,9 +127,9 @@ export default function AccountSettingsPanel() {
         </label>
         <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
           Login is email-only: Shopify sends an OTP. Enable <strong>New customer accounts</strong>,
-          register callback <code>/account/callback</code> on the Headless / Customer Account API
-          client (same Client ID), and set <code>NEXT_PUBLIC_APP_URL</code> to your public HTTPS
-          origin.
+          register callback <code>/account/callback</code> on the Headless Customer Account API
+          client, set <code>Shopify_Customer_Account_Client_ID</code> (not the Admin Client ID),
+          and set <code>NEXT_PUBLIC_APP_URL</code> to your public HTTPS origin.
         </p>
       </SettingsCollapsibleSection>
     </AdminPanelShell>

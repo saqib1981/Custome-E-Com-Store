@@ -43,10 +43,15 @@ export function getCustomerAccountShopDomain(): string {
 }
 
 export function getCustomerAccountClientId(): string {
-  const config = getShopifyConfig()
-  const id = String(config?.clientId ?? '').trim()
+  // Headless Customer Account API client — must NOT reuse Admin API Client ID
+  const id = readEnv(
+    'SHOPIFY_CUSTOMER_ACCOUNT_CLIENT_ID',
+    'Shopify_Customer_Account_Client_ID'
+  )
   if (!id) {
-    throw new Error('Shopify Client ID is not configured.')
+    throw new Error(
+      'Shopify Customer Account Client ID is not configured (Shopify_Customer_Account_Client_ID).'
+    )
   }
   return id
 }

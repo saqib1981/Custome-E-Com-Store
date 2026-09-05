@@ -10,6 +10,10 @@ import {
 import { parseDisplayPriceAmount } from '@/lib/cart'
 import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
 import type { PreviewViewport } from '@/lib/preview-viewport'
+import {
+  previewProductPageGridClass,
+  storefrontProductPageGridClass,
+} from '@/lib/preview-viewport'
 import { useCartOptional } from '@/context/CartContext'
 
 type ProductPageViewProps = {
@@ -46,6 +50,7 @@ export default function ProductPageView({
   config,
   loading = false,
   preview = false,
+  previewViewport,
   onPreviewNavigate,
 }: ProductPageViewProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
@@ -170,10 +175,16 @@ export default function ProductPageView({
 
   if (loading) {
     return (
-      <section className={`relative w-full max-w-full ${STORE_SECTION_EDGE_CLASS}`}>
-        <div className="grid gap-6 lg:grid-cols-2 lg:gap-10">
-          <div className="aspect-square animate-pulse rounded-md bg-gray-200" />
-          <div className="space-y-3">
+      <section className={`relative w-full max-w-full overflow-x-clip ${STORE_SECTION_EDGE_CLASS}`}>
+        <div
+          className={
+            preview
+              ? previewProductPageGridClass(previewViewport)
+              : storefrontProductPageGridClass()
+          }
+        >
+          <div className="aspect-square min-w-0 animate-pulse rounded-md bg-gray-200" />
+          <div className="min-w-0 space-y-3">
             <div className="h-7 w-3/4 animate-pulse rounded bg-gray-200" />
             <div className="h-5 w-1/3 animate-pulse rounded bg-gray-200" />
             <div className="h-24 w-full animate-pulse rounded bg-gray-200" />
@@ -185,14 +196,18 @@ export default function ProductPageView({
 
   if (product.error && !product.id) {
     return (
-      <section className={`relative w-full max-w-full ${STORE_SECTION_EDGE_CLASS}`}>
+      <section className={`relative w-full max-w-full overflow-x-clip ${STORE_SECTION_EDGE_CLASS}`}>
         <p className="py-10 text-center text-sm text-gray-500">{product.error}</p>
       </section>
     )
   }
 
+  const layoutClass = preview
+    ? previewProductPageGridClass(previewViewport)
+    : storefrontProductPageGridClass()
+
   return (
-    <section className={`relative w-full max-w-full ${STORE_SECTION_EDGE_CLASS}`}>
+    <section className={`relative w-full max-w-full overflow-x-clip ${STORE_SECTION_EDGE_CLASS}`}>
       <button
         type="button"
         onClick={handleBack}
@@ -201,9 +216,9 @@ export default function ProductPageView({
         ← Back to products
       </button>
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:gap-10 lg:items-start">
-        <div>
-          <div className="relative aspect-square overflow-hidden rounded-md bg-gray-100">
+      <div className={layoutClass}>
+        <div className="min-w-0 max-w-full">
+          <div className="relative aspect-square w-full max-w-full overflow-hidden rounded-md bg-gray-100">
             {activeImage && !imageFailed ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
@@ -226,7 +241,7 @@ export default function ProductPageView({
           </div>
 
           {images.length > 1 ? (
-            <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+            <div className="mt-3 flex max-w-full gap-2 overflow-x-auto pb-1">
               {images.map((image, index) => (
                 <button
                   key={`${image.url}-${index}`}
@@ -254,7 +269,7 @@ export default function ProductPageView({
           ) : null}
         </div>
 
-        <div className="min-w-0">
+        <div className="min-w-0 max-w-full overflow-x-clip">
           <h1 className="text-xl font-semibold leading-snug text-gray-900 sm:text-2xl">
             {product.title}
           </h1>
@@ -416,9 +431,9 @@ export default function ProductPageView({
             )
           ) : null}
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-3">
+          <div className="mt-2.5 flex min-w-0 max-w-full flex-wrap items-center gap-3">
             {config.showQuantity ? (
-              <div className="inline-flex h-11 items-stretch overflow-hidden rounded-md border border-gray-300">
+              <div className="inline-flex h-11 shrink-0 items-stretch overflow-hidden rounded-md border border-gray-300">
                 <button
                   type="button"
                   aria-label="Decrease quantity"
@@ -445,7 +460,7 @@ export default function ProductPageView({
               type="button"
               disabled={!inStock}
               onClick={handleAddToCart}
-              className="h-11 min-w-[13rem] flex-1 rounded-md bg-gray-900 px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300"
+              className="h-11 min-w-0 flex-1 rounded-md bg-gray-900 px-5 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:bg-gray-300 sm:min-w-[10rem]"
             >
               {config.addToCartLabel}
             </button>

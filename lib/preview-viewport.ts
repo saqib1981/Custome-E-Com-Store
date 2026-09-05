@@ -63,19 +63,3 @@ export function previewCollectionsBootstrapRowClass(
   if (columnsDesktop === 3) return 'row row-cols-3 g-2'
   return 'row row-cols-4 g-2'
 }
-
-/**
- * Product PDP layout for admin preview — never use lg: here (follows window, not frame).
- * Mobile/tablet: image stacked above details. Desktop: two columns.
- */
-export function previewProductPageGridClass(viewport?: PreviewViewport): string {
-  if (viewport === 'desktop') {
-    return 'grid grid-cols-2 items-start gap-6 min-w-0 max-w-full'
-  }
-  return 'grid grid-cols-1 gap-6 min-w-0 max-w-full'
-}
-
-/** Storefront PDP grid (browser breakpoints). */
-export function storefrontProductPageGridClass(): string {
-  return 'grid grid-cols-1 gap-6 min-w-0 max-w-full lg:grid-cols-2 lg:items-start lg:gap-10'
-}

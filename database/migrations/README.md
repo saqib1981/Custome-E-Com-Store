@@ -37,11 +37,13 @@ Run these in **Supabase → SQL Editor** in order.
 | 31 | [`032-cart.sql`](./032-cart.sql) | Old DB — cart drawer + cart page settings |
 | 32 | [`033-cart-free-shipping.sql`](./033-cart-free-shipping.sql) | Old DB — cart free-shipping progress threshold |
 | 33 | [`034-checkout.sql`](./034-checkout.sql) | Old DB — custom checkout page theme settings |
+| 34 | [`035-checkout-payment-methods.sql`](./035-checkout-payment-methods.sql) | Old DB — checkout payment method instructions |
+| 35 | [`036-product-page-content-width.sql`](./036-product-page-content-width.sql) | Old DB — product page Full / Container / Stretch width |
 
 ## Fresh install
 
-Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`034`**.
+Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`036`**.
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 034). **030 is required** if saves show “saved” but reload restores old toggles.
+Run any migrations you have not applied yet (002 → 036). **030 is required** if saves show “saved” but reload restores old toggles.

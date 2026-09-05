@@ -4,6 +4,7 @@ values (
   'product-page',
   jsonb_build_object(
     'enabled', true,
+    'contentWidth', 'full',
     'showSaleBadge', true,
     'showDeliveryEstimate', true,
     'deliveryEstimateText', 'Estimate delivery times: 3-5 Working Days.',

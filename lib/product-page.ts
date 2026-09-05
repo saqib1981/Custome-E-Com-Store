@@ -1,7 +1,21 @@
 export const PRODUCT_PAGE_SETTING_KEY = 'product-page'
 
+/** Desktop content width for the product detail section. */
+export type ProductPageContentWidth = 'full' | 'container' | 'stretch'
+
+export const PRODUCT_PAGE_CONTENT_WIDTH_OPTIONS: Array<{
+  value: ProductPageContentWidth
+  label: string
+}> = [
+  { value: 'full', label: 'Full width' },
+  { value: 'container', label: 'Container width' },
+  { value: 'stretch', label: 'Stretch' },
+]
+
 export type ProductPageConfig = {
   enabled: boolean
+  /** How wide the PDP content sits on desktop (and tablet when container/stretch). */
+  contentWidth: ProductPageContentWidth
   showSaleBadge: boolean
   showDeliveryEstimate: boolean
   deliveryEstimateText: string
@@ -20,6 +34,7 @@ export type ProductPageConfig = {
 
 export const DEFAULT_PRODUCT_PAGE: ProductPageConfig = {
   enabled: true,
+  contentWidth: 'full',
   showSaleBadge: true,
   showDeliveryEstimate: true,
   deliveryEstimateText: 'Estimate delivery times: 3-5 Working Days.',
@@ -74,8 +89,17 @@ export type ProductPageData = {
 export function normalizeProductPageConfig(
   input: Partial<ProductPageConfig> | null | undefined
 ): ProductPageConfig {
+  const rawWidth = String(input?.contentWidth ?? DEFAULT_PRODUCT_PAGE.contentWidth)
+    .trim()
+    .toLowerCase()
+  const contentWidth: ProductPageContentWidth =
+    rawWidth === 'container' || rawWidth === 'stretch' || rawWidth === 'full'
+      ? rawWidth
+      : DEFAULT_PRODUCT_PAGE.contentWidth
+
   return {
     enabled: Boolean(input?.enabled ?? DEFAULT_PRODUCT_PAGE.enabled),
+    contentWidth,
     showSaleBadge: Boolean(input?.showSaleBadge ?? DEFAULT_PRODUCT_PAGE.showSaleBadge),
     showDeliveryEstimate: Boolean(
       input?.showDeliveryEstimate ?? DEFAULT_PRODUCT_PAGE.showDeliveryEstimate
@@ -108,6 +132,7 @@ export function normalizeProductPageConfig(
 export function productPageConfigsEqual(a: ProductPageConfig, b: ProductPageConfig): boolean {
   return (
     a.enabled === b.enabled &&
+    a.contentWidth === b.contentWidth &&
     a.showSaleBadge === b.showSaleBadge &&
     a.showDeliveryEstimate === b.showDeliveryEstimate &&
     a.deliveryEstimateText === b.deliveryEstimateText &&

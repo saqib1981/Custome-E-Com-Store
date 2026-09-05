@@ -5,6 +5,8 @@ module.exports = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    // Class strings returned from helpers (e.g. preview-viewport, breakpoints)
+    './lib/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     // Bootstrap 5 screens — keep in sync with lib/breakpoints.ts and screen-breakpoints.mdc

@@ -6,15 +6,64 @@ import {
   type ProductPageConfig,
   type ProductPageData,
   type ProductPageVariant,
+  type ProductPageContentWidth,
 } from '@/lib/product-page'
 import { parseDisplayPriceAmount } from '@/lib/cart'
 import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
 import type { PreviewViewport } from '@/lib/preview-viewport'
-import {
-  previewProductPageGridClass,
-  storefrontProductPageGridClass,
-} from '@/lib/preview-viewport'
+import { isPreviewMobileLayout } from '@/lib/preview-viewport'
 import { useCartOptional } from '@/context/CartContext'
+import ProductImageGallery from '@/components/products/ProductImageGallery'
+
+/** Product PDP grid — class strings live here so Tailwind always emits them.
+ * Preview: desktop = 2 cols (no lg: — follows frame, not window). Tablet/mobile = stacked.
+ * Storefront: stacked below lg (992px), side-by-side from lg up.
+ */
+function productPageLayoutClass(
+  preview: boolean,
+  previewViewport?: PreviewViewport
+): string {
+  if (preview) {
+    if (previewViewport === 'desktop') {
+      return 'grid grid-cols-2 items-start gap-6 min-w-0 max-w-full'
+    }
+    return 'grid grid-cols-1 gap-6 min-w-0 max-w-full'
+  }
+  return 'grid grid-cols-1 gap-6 min-w-0 max-w-full lg:grid-cols-2 lg:items-start lg:gap-10'
+}
+
+/**
+ * Inner content width for the PDP.
+ * Full = edge-padded fluid. Container = Bootstrap container max-widths.
+ * Stretch = nav-aligned 1400px cap. Preview uses frame-aware max-widths (no window media queries).
+ */
+function productPageWidthClass(
+  contentWidth: ProductPageContentWidth,
+  preview: boolean,
+  previewViewport?: PreviewViewport
+): string {
+  if (contentWidth === 'full') return 'w-full max-w-full'
+
+  if (preview && previewViewport) {
+    if (isPreviewMobileLayout(previewViewport)) return 'w-full max-w-full'
+    if (previewViewport === 'tablet') {
+      return contentWidth === 'stretch'
+        ? 'mx-auto w-full max-w-full'
+        : 'mx-auto w-full max-w-container-md'
+    }
+    // desktop preview frame
+    return contentWidth === 'stretch'
+      ? 'mx-auto w-full max-w-[1400px]'
+      : 'mx-auto w-full max-w-container-xl'
+  }
+
+  if (contentWidth === 'stretch') {
+    return 'mx-auto w-full max-w-[1400px]'
+  }
+
+  // container — Bootstrap 5 container max-widths via Tailwind theme tokens
+  return 'mx-auto w-full sm:max-w-container-sm md:max-w-container-md lg:max-w-container-lg xl:max-w-container-xl xxl:max-w-container-xxl'
+}
 
 type ProductPageViewProps = {
   product: ProductPageData
@@ -58,7 +107,6 @@ export default function ProductPageView({
   const [quantity, setQuantity] = useState(1)
   const [askOpen, setAskOpen] = useState(false)
   const [descriptionOpen, setDescriptionOpen] = useState(false)
-  const [imageFailed, setImageFailed] = useState(false)
   const [addedNote, setAddedNote] = useState(false)
   const cart = useCartOptional()
 
@@ -70,7 +118,6 @@ export default function ProductPageView({
     setSelectedOptions(initial)
     setActiveImageIndex(0)
     setQuantity(1)
-    setImageFailed(false)
     setAskOpen(false)
     setDescriptionOpen(false)
     setAddedNote(false)
@@ -89,7 +136,14 @@ export default function ProductPageView({
     return list
   }, [product.images, product.title, selectedVariant?.imageUrl])
 
-  const activeImage = images[activeImageIndex] ?? images[0] ?? null
+  useEffect(() => {
+    if (images.length === 0) {
+      setActiveImageIndex(0)
+      return
+    }
+    setActiveImageIndex((i) => Math.min(i, images.length - 1))
+  }, [images.length])
+
   const onSale = Boolean(selectedVariant?.compareAtPrice)
   const inventory =
     selectedVariant?.inventoryQuantity ?? product.totalInventory ?? null
@@ -157,21 +211,20 @@ export default function ProductPageView({
     window.location.href = '/checkout'
   }
 
+  const layoutClass = productPageLayoutClass(preview, previewViewport)
+  const widthClass = productPageWidthClass(config.contentWidth, preview, previewViewport)
+
   if (loading) {
     return (
       <section className={`relative w-full max-w-full overflow-x-clip ${STORE_SECTION_EDGE_CLASS}`}>
-        <div
-          className={
-            preview
-              ? previewProductPageGridClass(previewViewport)
-              : storefrontProductPageGridClass()
-          }
-        >
-          <div className="aspect-square min-w-0 animate-pulse rounded-md bg-gray-200" />
-          <div className="min-w-0 space-y-3">
-            <div className="h-7 w-3/4 animate-pulse rounded bg-gray-200" />
-            <div className="h-5 w-1/3 animate-pulse rounded bg-gray-200" />
-            <div className="h-24 w-full animate-pulse rounded bg-gray-200" />
+        <div className={widthClass}>
+          <div className={layoutClass}>
+            <div className="aspect-square min-w-0 animate-pulse rounded-md bg-gray-200" />
+            <div className="min-w-0 space-y-3">
+              <div className="h-7 w-3/4 animate-pulse rounded bg-gray-200" />
+              <div className="h-5 w-1/3 animate-pulse rounded bg-gray-200" />
+              <div className="h-24 w-full animate-pulse rounded bg-gray-200" />
+            </div>
           </div>
         </div>
       </section>
@@ -181,77 +234,35 @@ export default function ProductPageView({
   if (product.error && !product.id) {
     return (
       <section className={`relative w-full max-w-full overflow-x-clip ${STORE_SECTION_EDGE_CLASS}`}>
-        <p className="py-10 text-center text-sm text-gray-500">{product.error}</p>
+        <div className={widthClass}>
+          <p className="py-10 text-center text-sm text-gray-500">{product.error}</p>
+        </div>
       </section>
     )
   }
 
-  const layoutClass = preview
-    ? previewProductPageGridClass(previewViewport)
-    : storefrontProductPageGridClass()
-
   return (
     <section className={`relative w-full max-w-full overflow-x-clip ${STORE_SECTION_EDGE_CLASS}`}>
-      <button
-        type="button"
-        onClick={handleBack}
-        className="mb-4 text-sm text-gray-500 transition hover:text-gray-900"
-      >
-        ← Back to products
-      </button>
+      <div className={widthClass}>
+        <button
+          type="button"
+          onClick={handleBack}
+          className="mb-4 text-sm text-gray-500 transition hover:text-gray-900"
+        >
+          ← Back to products
+        </button>
 
-      <div className={layoutClass}>
-        <div className="min-w-0 max-w-full">
-          <div className="relative aspect-square w-full max-w-full overflow-hidden rounded-md bg-gray-100">
-            {activeImage && !imageFailed ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                key={activeImage.url}
-                src={activeImage.url}
-                alt={activeImage.alt || product.title}
-                className="absolute inset-0 h-full w-full object-cover"
-                onError={() => setImageFailed(true)}
-              />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center px-4 text-center text-sm text-gray-400">
-                {activeImage?.alt || product.title || 'No image'}
-              </div>
-            )}
-            {config.showSaleBadge && onSale ? (
-              <span className="absolute left-3 top-3 rounded bg-red-600 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white">
-                Sale
-              </span>
-            ) : null}
-          </div>
-
-          {images.length > 1 ? (
-            <div className="mt-3 flex max-w-full gap-2 overflow-x-auto pb-1">
-              {images.map((image, index) => (
-                <button
-                  key={`${image.url}-${index}`}
-                  type="button"
-                  onClick={() => {
-                    setActiveImageIndex(index)
-                    setImageFailed(false)
-                  }}
-                  className={`relative h-16 w-16 shrink-0 overflow-hidden rounded border ${
-                    index === activeImageIndex
-                      ? 'border-gray-900 ring-1 ring-gray-900'
-                      : 'border-gray-200'
-                  }`}
-                  aria-label={`View image ${index + 1}`}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={image.url}
-                    alt={image.alt || product.title}
-                    className="h-full w-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        <div className={layoutClass}>
+        <ProductImageGallery
+          key={product.id || product.handle}
+          images={images}
+          title={product.title}
+          activeIndex={activeImageIndex}
+          onActiveIndexChange={setActiveImageIndex}
+          showSaleBadge={Boolean(config.showSaleBadge && onSale)}
+          preview={preview}
+          previewViewport={previewViewport}
+        />
 
         <div className="min-w-0 max-w-full overflow-x-clip">
           <h1 className="text-xl font-semibold leading-snug text-gray-900 sm:text-2xl">
@@ -488,6 +499,7 @@ export default function ProductPageView({
             </div>
           ) : null}
         </div>
+      </div>
       </div>
     </section>
   )

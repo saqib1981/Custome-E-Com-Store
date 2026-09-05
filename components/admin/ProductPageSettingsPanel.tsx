@@ -3,6 +3,10 @@
 import AdminPanelShell from '@/components/admin/AdminPanelShell'
 import { SettingsCollapsibleSection } from '@/components/admin/LogoFaviconFields'
 import { useAdminEditor } from '@/context/AdminEditorContext'
+import {
+  PRODUCT_PAGE_CONTENT_WIDTH_OPTIONS,
+  type ProductPageContentWidth,
+} from '@/lib/product-page'
 
 const inputClass =
   'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'
@@ -28,6 +32,31 @@ export default function ProductPageSettingsPanel() {
       saving={productPageSaving}
       status={productPageStatus}
     >
+      <SettingsCollapsibleSection title="Layout" defaultOpen>
+        <label className="mb-1 block text-sm font-medium text-gray-800 dark:text-gray-200">
+          Content width
+        </label>
+        <select
+          value={productPageDraft.contentWidth}
+          onChange={(e) =>
+            updateProductPageDraft({
+              contentWidth: e.target.value as ProductPageContentWidth,
+            })
+          }
+          className={inputClass}
+        >
+          {PRODUCT_PAGE_CONTENT_WIDTH_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          Full width uses the full preview/store pane. Container follows Bootstrap max-widths
+          (540→1320px). Stretch caps at 1400px like the header.
+        </p>
+      </SettingsCollapsibleSection>
+
       <SettingsCollapsibleSection title="Visibility" defaultOpen>
         <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
           <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Show product page</span>

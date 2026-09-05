@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import {
   DEFAULT_ACCOUNT,
   normalizeAccountConfig,
@@ -13,6 +13,7 @@ import {
   fetchStoreAccountSettings,
 } from '@/lib/account-client'
 import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
+import { orderNameToPathSegment, writeOrderAccess } from '@/lib/orders'
 
 type AccountViewMode = 'login' | 'account'
 
@@ -321,16 +322,25 @@ export default function AccountPageView({
                       </tr>
                     </thead>
                     <tbody>
-                      {customer.orders.map((order) => (
+                      {customer.orders.map((order) => {
+                        const segment = orderNameToPathSegment(order.name)
+                        const href = segment ? `/orders/${segment}` : '/orders'
+                        const openOrder = (e: MouseEvent) => {
+                          writeOrderAccess({
+                            orderName: order.name,
+                            email: customer.email,
+                            phone: customer.phone,
+                          })
+                          if (preview && onPreviewNavigate) {
+                            e.preventDefault()
+                            onPreviewNavigate(href)
+                          }
+                        }
+                        return (
                         <tr key={order.id} className="border-b border-gray-100">
                           <td className="py-2.5 pr-4 font-medium text-gray-900">
-                            {order.statusUrl && order.statusUrl !== '#' ? (
-                              <a
-                                href={order.statusUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="underline"
-                              >
+                            {segment ? (
+                              <a href={href} onClick={openOrder} className="underline">
                                 {order.name}
                               </a>
                             ) : (
@@ -348,7 +358,8 @@ export default function AccountPageView({
                           </td>
                           <td className="py-2.5 text-gray-900">{order.totalPrice || '—'}</td>
                         </tr>
-                      ))}
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -5,8 +5,25 @@ import {
   orderContactMatches,
 } from '@/lib/shopify-orders-server'
 import { normalizeOrderName } from '@/lib/orders'
+import { fetchCustomerAccountProfile } from '@/lib/shopify-customer-account-auth-server'
+import { readCustomerCaAccessTokenFromCookies } from '@/lib/customer-session'
 
 export const dynamic = 'force-dynamic'
+
+async function resolveContactFromAccountSession(): Promise<{ email: string; phone: string }> {
+  try {
+    const token = await readCustomerCaAccessTokenFromCookies()
+    if (!token) return { email: '', phone: '' }
+    const customer = await fetchCustomerAccountProfile(token)
+    if (!customer) return { email: '', phone: '' }
+    return {
+      email: String(customer.email ?? '').trim(),
+      phone: String(customer.phone ?? '').trim(),
+    }
+  } catch {
+    return { email: '', phone: '' }
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,8 +34,13 @@ export async function POST(request: NextRequest) {
       history?: boolean
     }
 
-    const email = String(body.email ?? '').trim()
-    const phone = String(body.phone ?? '').trim()
+    let email = String(body.email ?? '').trim()
+    let phone = String(body.phone ?? '').trim()
+    if (!email && !phone) {
+      const sessionContact = await resolveContactFromAccountSession()
+      email = sessionContact.email
+      phone = sessionContact.phone
+    }
     if (!email && !phone) {
       return NextResponse.json(
         { error: 'Enter the email or phone used at checkout' },

@@ -53,9 +53,14 @@ export default function OrderDetailView({
       })
       const data = (await res.json()) as { order?: PublicOrder; error?: string }
       if (!res.ok || !data.order) {
-        if (res.status === 403 || res.status === 404) {
+        if (res.status === 400 || res.status === 403 || res.status === 404) {
           setNeedsAuth(true)
           setOrder(null)
+          // Silent unlock gate when no contact was provided yet (session miss / first visit).
+          if (!contact.email.trim() && !contact.phone.trim() && res.status === 400) {
+            setError(null)
+            return
+          }
           throw new Error(data.error || 'Confirm email or phone to view this order')
         }
         throw new Error(data.error || 'Failed to load order')
@@ -89,8 +94,10 @@ export default function OrderDetailView({
       return
     }
 
-    setLoading(false)
-    setNeedsAuth(true)
+    // Logged-in account session: API can resolve contact from cookies.
+    void fetchOrder({ email: '', phone: '' }).then(() => {
+      // fetchOrder already toggles needsAuth on 403/404/400
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderName])
 

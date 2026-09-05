@@ -142,6 +142,10 @@ import {
 } from '@/lib/checkout'
 import { fetchCheckoutSettings, persistCheckoutSettings } from '@/lib/checkout-client'
 import { clearStoreSettingsBrowserCaches } from '@/lib/store-settings-cache'
+import {
+  putAdminSettingsJson,
+  runOptimisticSettingsSave,
+} from '@/lib/admin-optimistic-save'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import { uploadAdminStoreAsset } from '@/lib/admin-store-upload'
 import { dispatchStoreThemeRefresh } from '@/lib/store-theme-client'
@@ -675,6 +679,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   checkoutSavedRef.current = checkoutSaved
   const saveCheckoutRef = useRef<() => Promise<boolean>>(async () => false)
   const checkoutLocalAuthorityRef = useRef(false)
+  /** After any successful settings save, ignore late mount GETs that could overwrite with stale data. */
+  const blockRemoteSettingsHydrationRef = useRef(false)
+  const noteSettingsWriteSuccess = () => {
+    blockRemoteSettingsHydrationRef.current = true
+    clearStoreSettingsBrowserCaches()
+  }
 
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
@@ -739,10 +749,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/announcement', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_ANNOUNCEMENT))
       .then((data: AnnouncementConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setAnnouncementSaved(data)
         setAnnouncementDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setAnnouncementSaved(DEFAULT_ANNOUNCEMENT)
         setAnnouncementDraft(DEFAULT_ANNOUNCEMENT)
       })
@@ -756,6 +768,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       .then((res) => (res.ok ? res.json() : DEFAULT_HERO_BANNER))
       .then((data: HeroBannerConfig) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         setHeroBannerSaved(data)
         setHeroBannerDraft((prev) =>
           heroBannerConfigsEqual(prev, heroBannerSavedRef.current) ? data : prev
@@ -763,6 +776,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         setHeroBannerSaved(DEFAULT_HERO_BANNER)
         setHeroBannerDraft((prev) =>
           heroBannerConfigsEqual(prev, heroBannerSavedRef.current) ? DEFAULT_HERO_BANNER : prev
@@ -781,10 +795,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/home-divider', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
       .then((data: HomeDividerConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerSaved(data)
         setHomeDividerDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerSaved(DEFAULT_HOME_DIVIDER)
         setHomeDividerDraft(DEFAULT_HOME_DIVIDER)
       })
@@ -795,10 +811,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/home-divider-after-cards', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
       .then((data: HomeDividerConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterCardsSaved(data)
         setHomeDividerAfterCardsDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterCardsSaved(DEFAULT_HOME_DIVIDER)
         setHomeDividerAfterCardsDraft(DEFAULT_HOME_DIVIDER)
       })
@@ -809,10 +827,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/home-divider-after-tabs', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
       .then((data: HomeDividerConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterTabsSaved(data)
         setHomeDividerAfterTabsDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterTabsSaved(DEFAULT_HOME_DIVIDER)
         setHomeDividerAfterTabsDraft(DEFAULT_HOME_DIVIDER)
       })
@@ -823,10 +843,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/collection-cards', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_COLLECTION_CARDS))
       .then((data: CollectionCardsConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setCollectionCardsSaved(data)
         setCollectionCardsDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setCollectionCardsSaved(DEFAULT_COLLECTION_CARDS)
         setCollectionCardsDraft(DEFAULT_COLLECTION_CARDS)
       })
@@ -837,10 +859,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/collection-tabs', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_COLLECTION_TABS))
       .then((data: CollectionTabsConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setCollectionTabsSaved(data)
         setCollectionTabsDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setCollectionTabsSaved(DEFAULT_COLLECTION_TABS)
         setCollectionTabsDraft(DEFAULT_COLLECTION_TABS)
       })
@@ -851,10 +875,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/trust-banner', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_TRUST_BANNER))
       .then((data: TrustBannerConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setTrustBannerSaved(data)
         setTrustBannerDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setTrustBannerSaved(DEFAULT_TRUST_BANNER)
         setTrustBannerDraft(DEFAULT_TRUST_BANNER)
       })
@@ -865,10 +891,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/home-divider-after-trust-banner', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
       .then((data: HomeDividerConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterTrustBannerSaved(data)
         setHomeDividerAfterTrustBannerDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterTrustBannerSaved(DEFAULT_HOME_DIVIDER)
         setHomeDividerAfterTrustBannerDraft(DEFAULT_HOME_DIVIDER)
       })
@@ -879,10 +907,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/home-divider-after-product', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
       .then((data: HomeDividerConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterProductSaved(data)
         setHomeDividerAfterProductDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterProductSaved(DEFAULT_HOME_DIVIDER)
         setHomeDividerAfterProductDraft(DEFAULT_HOME_DIVIDER)
       })
@@ -893,10 +923,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/home-divider-after-related-products', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
       .then((data: HomeDividerConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterRelatedProductsSaved(data)
         setHomeDividerAfterRelatedProductsDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHomeDividerAfterRelatedProductsSaved(DEFAULT_HOME_DIVIDER)
         setHomeDividerAfterRelatedProductsDraft(DEFAULT_HOME_DIVIDER)
       })
@@ -907,10 +939,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/store-footer', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_STORE_FOOTER))
       .then((data: StoreFooterConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setStoreFooterSaved(data)
         setStoreFooterDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setStoreFooterSaved(DEFAULT_STORE_FOOTER)
         setStoreFooterDraft(DEFAULT_STORE_FOOTER)
       })
@@ -921,10 +955,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/collections-list', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_COLLECTIONS_LIST))
       .then((data: CollectionsListConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setCollectionsListSaved(data)
         setCollectionsListDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setCollectionsListSaved(DEFAULT_COLLECTIONS_LIST)
         setCollectionsListDraft(DEFAULT_COLLECTIONS_LIST)
       })
@@ -937,6 +973,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchCollectionProductsSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (collectionProductsLocalAuthorityRef.current) return
         const dirty = !collectionProductsConfigsEqual(
           collectionProductsDraftRef.current,
@@ -948,6 +985,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (collectionProductsLocalAuthorityRef.current) return
         const dirty = !collectionProductsConfigsEqual(
           collectionProductsDraftRef.current,
@@ -972,6 +1010,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchProductPageSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (productPageLocalAuthorityRef.current) return
         const dirty = !productPageConfigsEqual(
           productPageDraftRef.current,
@@ -983,6 +1022,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (productPageLocalAuthorityRef.current) return
         const dirty = !productPageConfigsEqual(
           productPageDraftRef.current,
@@ -1007,6 +1047,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchRelatedProductsSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (relatedProductsLocalAuthorityRef.current) return
         const dirty = !relatedProductsConfigsEqual(
           relatedProductsDraftRef.current,
@@ -1018,6 +1059,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (relatedProductsLocalAuthorityRef.current) return
         const dirty = !relatedProductsConfigsEqual(
           relatedProductsDraftRef.current,
@@ -1042,6 +1084,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchRecentProductsSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (recentProductsLocalAuthorityRef.current) return
         const dirty = !recentProductsConfigsEqual(
           recentProductsDraftRef.current,
@@ -1053,6 +1096,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (recentProductsLocalAuthorityRef.current) return
         const dirty = !recentProductsConfigsEqual(
           recentProductsDraftRef.current,
@@ -1077,6 +1121,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchSearchSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (searchLocalAuthorityRef.current) return
         const dirty = !searchConfigsEqual(searchDraftRef.current, searchSavedRef.current)
         if (dirty) return
@@ -1085,6 +1130,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (searchLocalAuthorityRef.current) return
         const dirty = !searchConfigsEqual(searchDraftRef.current, searchSavedRef.current)
         if (dirty) return
@@ -1106,6 +1152,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchCartSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (cartLocalAuthorityRef.current) return
         const dirty = !cartConfigsEqual(cartDraftRef.current, cartSavedRef.current)
         if (dirty) return
@@ -1114,6 +1161,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (cartLocalAuthorityRef.current) return
         const dirty = !cartConfigsEqual(cartDraftRef.current, cartSavedRef.current)
         if (dirty) return
@@ -1135,6 +1183,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchAccountSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (accountLocalAuthorityRef.current) return
         const dirty = !accountConfigsEqual(accountDraftRef.current, accountSavedRef.current)
         if (dirty) return
@@ -1143,6 +1192,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (accountLocalAuthorityRef.current) return
         const dirty = !accountConfigsEqual(accountDraftRef.current, accountSavedRef.current)
         if (dirty) return
@@ -1164,6 +1214,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchCheckoutSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (checkoutLocalAuthorityRef.current) return
         const dirty = !checkoutConfigsEqual(checkoutDraftRef.current, checkoutSavedRef.current)
         if (dirty) return
@@ -1172,6 +1223,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         if (checkoutLocalAuthorityRef.current) return
         const dirty = !checkoutConfigsEqual(checkoutDraftRef.current, checkoutSavedRef.current)
         if (dirty) return
@@ -1191,10 +1243,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setLogoFaviconSaved(data)
         setLogoFaviconDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setLogoFaviconSaved(DEFAULT_LOGO_FAVICON)
         setLogoFaviconDraft(DEFAULT_LOGO_FAVICON)
       })
@@ -1205,10 +1259,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/general-settings', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_GENERAL_SETTINGS))
       .then((data: GeneralSettingsConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setGeneralSettingsSaved(data)
         setGeneralSettingsDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setGeneralSettingsSaved(DEFAULT_GENERAL_SETTINGS)
         setGeneralSettingsDraft(DEFAULT_GENERAL_SETTINGS)
       })
@@ -1221,6 +1277,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchFloatingButtons()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         setFloatingButtonsSaved(data)
         setFloatingButtonsDraft((prev) =>
           floatingButtonsConfigsEqual(prev, floatingButtonsSavedRef.current) ? data : prev
@@ -1228,6 +1285,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         setFloatingButtonsSaved(DEFAULT_FLOATING_BUTTONS)
         setFloatingButtonsDraft((prev) =>
           floatingButtonsConfigsEqual(prev, floatingButtonsSavedRef.current)
@@ -1250,6 +1308,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetchBadgesSettings()
       .then((data) => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         setBadgesSaved(data)
         setBadgesDraft((prev) =>
           badgesConfigsEqual(prev, badgesSavedRef.current) ? data : prev
@@ -1257,6 +1316,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         if (cancelled) return
+        if (blockRemoteSettingsHydrationRef.current) return
         setBadgesSaved(DEFAULT_BADGES)
         setBadgesDraft((prev) =>
           badgesConfigsEqual(prev, badgesSavedRef.current) ? DEFAULT_BADGES : prev
@@ -1275,10 +1335,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     void fetch('/api/admin/header-settings', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HEADER_NAV_SETTINGS))
       .then((data: HeaderNavSettingsConfig) => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHeaderNavSaved(data)
         setHeaderNavDraft(data)
       })
       .catch(() => {
+        if (blockRemoteSettingsHydrationRef.current) return
         setHeaderNavSaved(DEFAULT_HEADER_NAV_SETTINGS)
         setHeaderNavDraft(DEFAULT_HEADER_NAV_SETTINGS)
       })
@@ -1611,27 +1673,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveAnnouncement = useCallback(async () => {
-    setAnnouncementSaving(true)
-    setAnnouncementStatus('idle')
-    try {
-      const res = await fetch('/api/admin/announcement', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(announcementDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as AnnouncementConfig
-      setAnnouncementSaved(data)
-      setAnnouncementDraft(data)
-      setAnnouncementStatus('saved')
-      return true
-    } catch {
-      setAnnouncementStatus('error')
-      return false
-    } finally {
-      setAnnouncementSaving(false)
-    }
-  }, [announcementDraft])
+    return runOptimisticSettingsSave<AnnouncementConfig>({
+      getSnapshot: () => announcementSaved,
+      getOptimistic: () => announcementDraft,
+      applyLocal: (v) => {
+        setAnnouncementSaved(v)
+        setAnnouncementDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<AnnouncementConfig>('/api/admin/announcement', v),
+      setSaving: setAnnouncementSaving,
+      setStatus: setAnnouncementStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [announcementDraft, announcementSaved])
 
   const updateHeroBannerDraft = useCallback(
     (patch: Partial<HeroBannerConfig> | ((prev: HeroBannerConfig) => Partial<HeroBannerConfig>)) => {
@@ -1645,27 +1699,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   )
 
   const saveHeroBanner = useCallback(async () => {
-    const draft = heroBannerDraftRef.current
-    setHeroBannerSaving(true)
-    setHeroBannerStatus('idle')
-    try {
-      const res = await fetch('/api/admin/hero-banner', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(draft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HeroBannerConfig
-      setHeroBannerSaved(data)
-      setHeroBannerDraft(data)
-      setHeroBannerStatus('saved')
-      return true
-    } catch {
-      setHeroBannerStatus('error')
-      return false
-    } finally {
-      setHeroBannerSaving(false)
-    }
+    return runOptimisticSettingsSave<HeroBannerConfig>({
+      getSnapshot: () => heroBannerSavedRef.current,
+      getOptimistic: () => heroBannerDraftRef.current,
+      applyLocal: (v) => {
+        heroBannerSavedRef.current = v
+        heroBannerDraftRef.current = v
+        setHeroBannerSaved(v)
+        setHeroBannerDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HeroBannerConfig>('/api/admin/hero-banner', v),
+      setSaving: setHeroBannerSaving,
+      setStatus: setHeroBannerStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   const updateHomeDividerDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
@@ -1674,27 +1721,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveHomeDivider = useCallback(async () => {
-    setHomeDividerSaving(true)
-    setHomeDividerStatus('idle')
-    try {
-      const res = await fetch('/api/admin/home-divider', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(homeDividerDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HomeDividerConfig
-      setHomeDividerSaved(data)
-      setHomeDividerDraft(data)
-      setHomeDividerStatus('saved')
-      return true
-    } catch {
-      setHomeDividerStatus('error')
-      return false
-    } finally {
-      setHomeDividerSaving(false)
-    }
-  }, [homeDividerDraft])
+    return runOptimisticSettingsSave<HomeDividerConfig>({
+      getSnapshot: () => homeDividerSaved,
+      getOptimistic: () => homeDividerDraft,
+      applyLocal: (v) => {
+        setHomeDividerSaved(v)
+        setHomeDividerDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HomeDividerConfig>('/api/admin/home-divider', v),
+      setSaving: setHomeDividerSaving,
+      setStatus: setHomeDividerStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [homeDividerDraft, homeDividerSaved])
 
   const updateHomeDividerAfterCardsDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
     setHomeDividerAfterCardsDraft((prev) => ({ ...prev, ...patch }))
@@ -1702,27 +1741,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveHomeDividerAfterCards = useCallback(async () => {
-    setHomeDividerAfterCardsSaving(true)
-    setHomeDividerAfterCardsStatus('idle')
-    try {
-      const res = await fetch('/api/admin/home-divider-after-cards', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(homeDividerAfterCardsDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HomeDividerConfig
-      setHomeDividerAfterCardsSaved(data)
-      setHomeDividerAfterCardsDraft(data)
-      setHomeDividerAfterCardsStatus('saved')
-      return true
-    } catch {
-      setHomeDividerAfterCardsStatus('error')
-      return false
-    } finally {
-      setHomeDividerAfterCardsSaving(false)
-    }
-  }, [homeDividerAfterCardsDraft])
+    return runOptimisticSettingsSave<HomeDividerConfig>({
+      getSnapshot: () => homeDividerAfterCardsSaved,
+      getOptimistic: () => homeDividerAfterCardsDraft,
+      applyLocal: (v) => {
+        setHomeDividerAfterCardsSaved(v)
+        setHomeDividerAfterCardsDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HomeDividerConfig>('/api/admin/home-divider-after-cards', v),
+      setSaving: setHomeDividerAfterCardsSaving,
+      setStatus: setHomeDividerAfterCardsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [homeDividerAfterCardsDraft, homeDividerAfterCardsSaved])
 
   const updateHomeDividerAfterTabsDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
     setHomeDividerAfterTabsDraft((prev) => ({ ...prev, ...patch }))
@@ -1730,27 +1761,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveHomeDividerAfterTabs = useCallback(async () => {
-    setHomeDividerAfterTabsSaving(true)
-    setHomeDividerAfterTabsStatus('idle')
-    try {
-      const res = await fetch('/api/admin/home-divider-after-tabs', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(homeDividerAfterTabsDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HomeDividerConfig
-      setHomeDividerAfterTabsSaved(data)
-      setHomeDividerAfterTabsDraft(data)
-      setHomeDividerAfterTabsStatus('saved')
-      return true
-    } catch {
-      setHomeDividerAfterTabsStatus('error')
-      return false
-    } finally {
-      setHomeDividerAfterTabsSaving(false)
-    }
-  }, [homeDividerAfterTabsDraft])
+    return runOptimisticSettingsSave<HomeDividerConfig>({
+      getSnapshot: () => homeDividerAfterTabsSaved,
+      getOptimistic: () => homeDividerAfterTabsDraft,
+      applyLocal: (v) => {
+        setHomeDividerAfterTabsSaved(v)
+        setHomeDividerAfterTabsDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HomeDividerConfig>('/api/admin/home-divider-after-tabs', v),
+      setSaving: setHomeDividerAfterTabsSaving,
+      setStatus: setHomeDividerAfterTabsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [homeDividerAfterTabsDraft, homeDividerAfterTabsSaved])
 
   const updateCollectionCardsDraft = useCallback((patch: Partial<CollectionCardsConfig>) => {
     setCollectionCardsDraft((prev) => ({ ...prev, ...patch }))
@@ -1758,27 +1781,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveCollectionCards = useCallback(async () => {
-    setCollectionCardsSaving(true)
-    setCollectionCardsStatus('idle')
-    try {
-      const res = await fetch('/api/admin/collection-cards', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(collectionCardsDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as CollectionCardsConfig
-      setCollectionCardsSaved(data)
-      setCollectionCardsDraft(data)
-      setCollectionCardsStatus('saved')
-      return true
-    } catch {
-      setCollectionCardsStatus('error')
-      return false
-    } finally {
-      setCollectionCardsSaving(false)
-    }
-  }, [collectionCardsDraft])
+    return runOptimisticSettingsSave<CollectionCardsConfig>({
+      getSnapshot: () => collectionCardsSaved,
+      getOptimistic: () => collectionCardsDraft,
+      applyLocal: (v) => {
+        setCollectionCardsSaved(v)
+        setCollectionCardsDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<CollectionCardsConfig>('/api/admin/collection-cards', v),
+      setSaving: setCollectionCardsSaving,
+      setStatus: setCollectionCardsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [collectionCardsDraft, collectionCardsSaved])
 
   const updateCollectionTabsDraft = useCallback((patch: Partial<CollectionTabsConfig>) => {
     setCollectionTabsDraft((prev) => ({ ...prev, ...patch }))
@@ -1786,27 +1801,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveCollectionTabs = useCallback(async () => {
-    setCollectionTabsSaving(true)
-    setCollectionTabsStatus('idle')
-    try {
-      const res = await fetch('/api/admin/collection-tabs', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(collectionTabsDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as CollectionTabsConfig
-      setCollectionTabsSaved(data)
-      setCollectionTabsDraft(data)
-      setCollectionTabsStatus('saved')
-      return true
-    } catch {
-      setCollectionTabsStatus('error')
-      return false
-    } finally {
-      setCollectionTabsSaving(false)
-    }
-  }, [collectionTabsDraft])
+    return runOptimisticSettingsSave<CollectionTabsConfig>({
+      getSnapshot: () => collectionTabsSaved,
+      getOptimistic: () => collectionTabsDraft,
+      applyLocal: (v) => {
+        setCollectionTabsSaved(v)
+        setCollectionTabsDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<CollectionTabsConfig>('/api/admin/collection-tabs', v),
+      setSaving: setCollectionTabsSaving,
+      setStatus: setCollectionTabsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [collectionTabsDraft, collectionTabsSaved])
 
   const updateTrustBannerDraft = useCallback((patch: Partial<TrustBannerConfig>) => {
     setTrustBannerDraft((prev) => ({ ...prev, ...patch }))
@@ -1814,27 +1821,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveTrustBanner = useCallback(async () => {
-    setTrustBannerSaving(true)
-    setTrustBannerStatus('idle')
-    try {
-      const res = await fetch('/api/admin/trust-banner', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(trustBannerDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as TrustBannerConfig
-      setTrustBannerSaved(data)
-      setTrustBannerDraft(data)
-      setTrustBannerStatus('saved')
-      return true
-    } catch {
-      setTrustBannerStatus('error')
-      return false
-    } finally {
-      setTrustBannerSaving(false)
-    }
-  }, [trustBannerDraft])
+    return runOptimisticSettingsSave<TrustBannerConfig>({
+      getSnapshot: () => trustBannerSaved,
+      getOptimistic: () => trustBannerDraft,
+      applyLocal: (v) => {
+        setTrustBannerSaved(v)
+        setTrustBannerDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<TrustBannerConfig>('/api/admin/trust-banner', v),
+      setSaving: setTrustBannerSaving,
+      setStatus: setTrustBannerStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [trustBannerDraft, trustBannerSaved])
 
   const updateHomeDividerAfterTrustBannerDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
     setHomeDividerAfterTrustBannerDraft((prev) => ({ ...prev, ...patch }))
@@ -1842,27 +1841,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveHomeDividerAfterTrustBanner = useCallback(async () => {
-    setHomeDividerAfterTrustBannerSaving(true)
-    setHomeDividerAfterTrustBannerStatus('idle')
-    try {
-      const res = await fetch('/api/admin/home-divider-after-trust-banner', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(homeDividerAfterTrustBannerDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HomeDividerConfig
-      setHomeDividerAfterTrustBannerSaved(data)
-      setHomeDividerAfterTrustBannerDraft(data)
-      setHomeDividerAfterTrustBannerStatus('saved')
-      return true
-    } catch {
-      setHomeDividerAfterTrustBannerStatus('error')
-      return false
-    } finally {
-      setHomeDividerAfterTrustBannerSaving(false)
-    }
-  }, [homeDividerAfterTrustBannerDraft])
+    return runOptimisticSettingsSave<HomeDividerConfig>({
+      getSnapshot: () => homeDividerAfterTrustBannerSaved,
+      getOptimistic: () => homeDividerAfterTrustBannerDraft,
+      applyLocal: (v) => {
+        setHomeDividerAfterTrustBannerSaved(v)
+        setHomeDividerAfterTrustBannerDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HomeDividerConfig>('/api/admin/home-divider-after-trust-banner', v),
+      setSaving: setHomeDividerAfterTrustBannerSaving,
+      setStatus: setHomeDividerAfterTrustBannerStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [homeDividerAfterTrustBannerDraft, homeDividerAfterTrustBannerSaved])
 
   const updateHomeDividerAfterProductDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
     setHomeDividerAfterProductDraft((prev) => ({ ...prev, ...patch }))
@@ -1870,27 +1861,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveHomeDividerAfterProduct = useCallback(async () => {
-    setHomeDividerAfterProductSaving(true)
-    setHomeDividerAfterProductStatus('idle')
-    try {
-      const res = await fetch('/api/admin/home-divider-after-product', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(homeDividerAfterProductDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HomeDividerConfig
-      setHomeDividerAfterProductSaved(data)
-      setHomeDividerAfterProductDraft(data)
-      setHomeDividerAfterProductStatus('saved')
-      return true
-    } catch {
-      setHomeDividerAfterProductStatus('error')
-      return false
-    } finally {
-      setHomeDividerAfterProductSaving(false)
-    }
-  }, [homeDividerAfterProductDraft])
+    return runOptimisticSettingsSave<HomeDividerConfig>({
+      getSnapshot: () => homeDividerAfterProductSaved,
+      getOptimistic: () => homeDividerAfterProductDraft,
+      applyLocal: (v) => {
+        setHomeDividerAfterProductSaved(v)
+        setHomeDividerAfterProductDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HomeDividerConfig>('/api/admin/home-divider-after-product', v),
+      setSaving: setHomeDividerAfterProductSaving,
+      setStatus: setHomeDividerAfterProductStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [homeDividerAfterProductDraft, homeDividerAfterProductSaved])
 
   const updateHomeDividerAfterRelatedProductsDraft = useCallback(
     (patch: Partial<HomeDividerConfig>) => {
@@ -1901,27 +1884,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   )
 
   const saveHomeDividerAfterRelatedProducts = useCallback(async () => {
-    setHomeDividerAfterRelatedProductsSaving(true)
-    setHomeDividerAfterRelatedProductsStatus('idle')
-    try {
-      const res = await fetch('/api/admin/home-divider-after-related-products', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(homeDividerAfterRelatedProductsDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HomeDividerConfig
-      setHomeDividerAfterRelatedProductsSaved(data)
-      setHomeDividerAfterRelatedProductsDraft(data)
-      setHomeDividerAfterRelatedProductsStatus('saved')
-      return true
-    } catch {
-      setHomeDividerAfterRelatedProductsStatus('error')
-      return false
-    } finally {
-      setHomeDividerAfterRelatedProductsSaving(false)
-    }
-  }, [homeDividerAfterRelatedProductsDraft])
+    return runOptimisticSettingsSave<HomeDividerConfig>({
+      getSnapshot: () => homeDividerAfterRelatedProductsSaved,
+      getOptimistic: () => homeDividerAfterRelatedProductsDraft,
+      applyLocal: (v) => {
+        setHomeDividerAfterRelatedProductsSaved(v)
+        setHomeDividerAfterRelatedProductsDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HomeDividerConfig>('/api/admin/home-divider-after-related-products', v),
+      setSaving: setHomeDividerAfterRelatedProductsSaving,
+      setStatus: setHomeDividerAfterRelatedProductsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [homeDividerAfterRelatedProductsDraft, homeDividerAfterRelatedProductsSaved])
 
   const updateStoreFooterDraft = useCallback((patch: Partial<StoreFooterConfig>) => {
     setStoreFooterDraft((prev) => ({ ...prev, ...patch }))
@@ -1945,27 +1920,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   )
 
   const saveStoreFooter = useCallback(async () => {
-    setStoreFooterSaving(true)
-    setStoreFooterStatus('idle')
-    try {
-      const res = await fetch('/api/admin/store-footer', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(storeFooterDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as StoreFooterConfig
-      setStoreFooterSaved(data)
-      setStoreFooterDraft(data)
-      setStoreFooterStatus('saved')
-      return true
-    } catch {
-      setStoreFooterStatus('error')
-      return false
-    } finally {
-      setStoreFooterSaving(false)
-    }
-  }, [storeFooterDraft])
+    return runOptimisticSettingsSave<StoreFooterConfig>({
+      getSnapshot: () => storeFooterSaved,
+      getOptimistic: () => storeFooterDraft,
+      applyLocal: (v) => {
+        setStoreFooterSaved(v)
+        setStoreFooterDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<StoreFooterConfig>('/api/admin/store-footer', v),
+      setSaving: setStoreFooterSaving,
+      setStatus: setStoreFooterStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [storeFooterDraft, storeFooterSaved])
 
   const updateCollectionsListDraft = useCallback((patch: Partial<CollectionsListConfig>) => {
     setCollectionsListDraft((prev) => ({ ...prev, ...patch }))
@@ -1973,27 +1940,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveCollectionsList = useCallback(async () => {
-    setCollectionsListSaving(true)
-    setCollectionsListStatus('idle')
-    try {
-      const res = await fetch('/api/admin/collections-list', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(collectionsListDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as CollectionsListConfig
-      setCollectionsListSaved(data)
-      setCollectionsListDraft(data)
-      setCollectionsListStatus('saved')
-      return true
-    } catch {
-      setCollectionsListStatus('error')
-      return false
-    } finally {
-      setCollectionsListSaving(false)
-    }
-  }, [collectionsListDraft])
+    return runOptimisticSettingsSave<CollectionsListConfig>({
+      getSnapshot: () => collectionsListSaved,
+      getOptimistic: () => collectionsListDraft,
+      applyLocal: (v) => {
+        setCollectionsListSaved(v)
+        setCollectionsListDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<CollectionsListConfig>('/api/admin/collections-list', v),
+      setSaving: setCollectionsListSaving,
+      setStatus: setCollectionsListStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
+  }, [collectionsListDraft, collectionsListSaved])
 
   const updateCollectionProductsDraft = useCallback((patch: Partial<CollectionProductsConfig>) => {
     setCollectionProductsDraft((prev) => {
@@ -2006,25 +1965,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveCollectionProducts = useCallback(async () => {
-    setCollectionProductsSaving(true)
-    setCollectionProductsStatus('idle')
-    setCollectionProductsErrorMessage(null)
-    try {
-      const data = await persistCollectionProductsSettings(collectionProductsDraftRef.current)
-      collectionProductsLocalAuthorityRef.current = true
-      collectionProductsSavedRef.current = data
-      collectionProductsDraftRef.current = data
-      setCollectionProductsSaved(data)
-      setCollectionProductsDraft(data)
-      setCollectionProductsStatus('saved')
-      return true
-    } catch (e) {
-      setCollectionProductsStatus('error')
-      setCollectionProductsErrorMessage(e instanceof Error ? e.message : 'Could not save.')
-      return false
-    } finally {
-      setCollectionProductsSaving(false)
-    }
+    return runOptimisticSettingsSave<CollectionProductsConfig>({
+      getSnapshot: () => collectionProductsSavedRef.current,
+      getOptimistic: () => collectionProductsDraftRef.current,
+      applyLocal: (v) => {
+        collectionProductsLocalAuthorityRef.current = true
+        collectionProductsSavedRef.current = v
+        collectionProductsDraftRef.current = v
+        setCollectionProductsSaved(v)
+        setCollectionProductsDraft(v)
+      },
+      persist: (v) => persistCollectionProductsSettings(v),
+      setSaving: setCollectionProductsSaving,
+      setStatus: setCollectionProductsStatus,
+      setErrorMessage: setCollectionProductsErrorMessage,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveCollectionProductsRef.current = saveCollectionProducts
@@ -2035,23 +1991,21 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveProductPage = useCallback(async () => {
-    setProductPageSaving(true)
-    setProductPageStatus('idle')
-    try {
-      const data = await persistProductPageSettings(productPageDraftRef.current)
-      productPageLocalAuthorityRef.current = true
-      productPageSavedRef.current = data
-      productPageDraftRef.current = data
-      setProductPageSaved(data)
-      setProductPageDraft(data)
-      setProductPageStatus('saved')
-      return true
-    } catch {
-      setProductPageStatus('error')
-      return false
-    } finally {
-      setProductPageSaving(false)
-    }
+    return runOptimisticSettingsSave<ProductPageConfig>({
+      getSnapshot: () => productPageSavedRef.current,
+      getOptimistic: () => productPageDraftRef.current,
+      applyLocal: (v) => {
+        productPageLocalAuthorityRef.current = true
+        productPageSavedRef.current = v
+        productPageDraftRef.current = v
+        setProductPageSaved(v)
+        setProductPageDraft(v)
+      },
+      persist: (v) => persistProductPageSettings(v),
+      setSaving: setProductPageSaving,
+      setStatus: setProductPageStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveProductPageRef.current = saveProductPage
@@ -2066,23 +2020,21 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveRelatedProducts = useCallback(async () => {
-    setRelatedProductsSaving(true)
-    setRelatedProductsStatus('idle')
-    try {
-      const data = await persistRelatedProductsSettings(relatedProductsDraftRef.current)
-      relatedProductsLocalAuthorityRef.current = true
-      relatedProductsSavedRef.current = data
-      relatedProductsDraftRef.current = data
-      setRelatedProductsSaved(data)
-      setRelatedProductsDraft(data)
-      setRelatedProductsStatus('saved')
-      return true
-    } catch {
-      setRelatedProductsStatus('error')
-      return false
-    } finally {
-      setRelatedProductsSaving(false)
-    }
+    return runOptimisticSettingsSave<RelatedProductsConfig>({
+      getSnapshot: () => relatedProductsSavedRef.current,
+      getOptimistic: () => relatedProductsDraftRef.current,
+      applyLocal: (v) => {
+        relatedProductsLocalAuthorityRef.current = true
+        relatedProductsSavedRef.current = v
+        relatedProductsDraftRef.current = v
+        setRelatedProductsSaved(v)
+        setRelatedProductsDraft(v)
+      },
+      persist: (v) => persistRelatedProductsSettings(v),
+      setSaving: setRelatedProductsSaving,
+      setStatus: setRelatedProductsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveRelatedProductsRef.current = saveRelatedProducts
@@ -2097,23 +2049,21 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveRecentProducts = useCallback(async () => {
-    setRecentProductsSaving(true)
-    setRecentProductsStatus('idle')
-    try {
-      const data = await persistRecentProductsSettings(recentProductsDraftRef.current)
-      recentProductsLocalAuthorityRef.current = true
-      recentProductsSavedRef.current = data
-      recentProductsDraftRef.current = data
-      setRecentProductsSaved(data)
-      setRecentProductsDraft(data)
-      setRecentProductsStatus('saved')
-      return true
-    } catch {
-      setRecentProductsStatus('error')
-      return false
-    } finally {
-      setRecentProductsSaving(false)
-    }
+    return runOptimisticSettingsSave<RecentProductsConfig>({
+      getSnapshot: () => recentProductsSavedRef.current,
+      getOptimistic: () => recentProductsDraftRef.current,
+      applyLocal: (v) => {
+        recentProductsLocalAuthorityRef.current = true
+        recentProductsSavedRef.current = v
+        recentProductsDraftRef.current = v
+        setRecentProductsSaved(v)
+        setRecentProductsDraft(v)
+      },
+      persist: (v) => persistRecentProductsSettings(v),
+      setSaving: setRecentProductsSaving,
+      setStatus: setRecentProductsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveRecentProductsRef.current = saveRecentProducts
@@ -2128,23 +2078,21 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveSearch = useCallback(async () => {
-    setSearchSaving(true)
-    setSearchStatus('idle')
-    try {
-      const data = await persistSearchSettings(searchDraftRef.current)
-      searchLocalAuthorityRef.current = true
-      searchSavedRef.current = data
-      searchDraftRef.current = data
-      setSearchSaved(data)
-      setSearchDraft(data)
-      setSearchStatus('saved')
-      return true
-    } catch {
-      setSearchStatus('error')
-      return false
-    } finally {
-      setSearchSaving(false)
-    }
+    return runOptimisticSettingsSave<SearchConfig>({
+      getSnapshot: () => searchSavedRef.current,
+      getOptimistic: () => searchDraftRef.current,
+      applyLocal: (v) => {
+        searchLocalAuthorityRef.current = true
+        searchSavedRef.current = v
+        searchDraftRef.current = v
+        setSearchSaved(v)
+        setSearchDraft(v)
+      },
+      persist: (v) => persistSearchSettings(v),
+      setSaving: setSearchSaving,
+      setStatus: setSearchStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveSearchRef.current = saveSearch
@@ -2159,23 +2107,21 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveCart = useCallback(async () => {
-    setCartSaving(true)
-    setCartStatus('idle')
-    try {
-      const data = await persistCartSettings(cartDraftRef.current)
-      cartLocalAuthorityRef.current = true
-      cartSavedRef.current = data
-      cartDraftRef.current = data
-      setCartSaved(data)
-      setCartDraft(data)
-      setCartStatus('saved')
-      return true
-    } catch {
-      setCartStatus('error')
-      return false
-    } finally {
-      setCartSaving(false)
-    }
+    return runOptimisticSettingsSave<CartConfig>({
+      getSnapshot: () => cartSavedRef.current,
+      getOptimistic: () => cartDraftRef.current,
+      applyLocal: (v) => {
+        cartLocalAuthorityRef.current = true
+        cartSavedRef.current = v
+        cartDraftRef.current = v
+        setCartSaved(v)
+        setCartDraft(v)
+      },
+      persist: (v) => persistCartSettings(v),
+      setSaving: setCartSaving,
+      setStatus: setCartStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveCartRef.current = saveCart
@@ -2190,23 +2136,21 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveAccount = useCallback(async () => {
-    setAccountSaving(true)
-    setAccountStatus('idle')
-    try {
-      const data = await persistAccountSettings(accountDraftRef.current)
-      accountLocalAuthorityRef.current = true
-      accountSavedRef.current = data
-      accountDraftRef.current = data
-      setAccountSaved(data)
-      setAccountDraft(data)
-      setAccountStatus('saved')
-      return true
-    } catch {
-      setAccountStatus('error')
-      return false
-    } finally {
-      setAccountSaving(false)
-    }
+    return runOptimisticSettingsSave<AccountConfig>({
+      getSnapshot: () => accountSavedRef.current,
+      getOptimistic: () => accountDraftRef.current,
+      applyLocal: (v) => {
+        accountLocalAuthorityRef.current = true
+        accountSavedRef.current = v
+        accountDraftRef.current = v
+        setAccountSaved(v)
+        setAccountDraft(v)
+      },
+      persist: (v) => persistAccountSettings(v),
+      setSaving: setAccountSaving,
+      setStatus: setAccountStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveAccountRef.current = saveAccount
@@ -2222,27 +2166,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveCheckout = useCallback(async () => {
-    setCheckoutSaving(true)
-    setCheckoutStatus('idle')
-    setCheckoutErrorMessage(null)
-    try {
-      const data = await persistCheckoutSettings(checkoutDraftRef.current)
-      checkoutLocalAuthorityRef.current = true
-      checkoutSavedRef.current = data
-      checkoutDraftRef.current = data
-      setCheckoutSaved(data)
-      setCheckoutDraft(data)
-      setCheckoutStatus('saved')
-      return true
-    } catch (e) {
-      setCheckoutStatus('error')
-      setCheckoutErrorMessage(
-        e instanceof Error ? e.message : 'Could not save. Please try again.'
-      )
-      return false
-    } finally {
-      setCheckoutSaving(false)
-    }
+    return runOptimisticSettingsSave<CheckoutConfig>({
+      getSnapshot: () => checkoutSavedRef.current,
+      getOptimistic: () => checkoutDraftRef.current,
+      applyLocal: (v) => {
+        checkoutLocalAuthorityRef.current = true
+        checkoutSavedRef.current = v
+        checkoutDraftRef.current = v
+        setCheckoutSaved(v)
+        setCheckoutDraft(v)
+      },
+      persist: (v) => persistCheckoutSettings(v),
+      setSaving: setCheckoutSaving,
+      setStatus: setCheckoutStatus,
+      setErrorMessage: setCheckoutErrorMessage,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveCheckoutRef.current = saveCheckout
@@ -2279,40 +2218,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   )
 
   const saveLogoFavicon = useCallback(async () => {
-    setLogoFaviconSaving(true)
-    setLogoFaviconStatus('idle')
-    try {
-      const res = await fetch('/api/admin/logo-favicon', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(logoFaviconDraft),
-      })
-      const payload = (await res.json().catch(() => null)) as
-        | (LogoFaviconConfig & { error?: string })
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(
-          payload && typeof payload === 'object' && 'error' in payload && payload.error
-            ? String(payload.error)
-            : 'Save failed'
-        )
-      }
-
-      const data = payload as LogoFaviconConfig
-      setLogoFaviconSaved(data)
-      setLogoFaviconDraft(data)
-      setLogoFaviconStatus('saved')
-      dispatchStoreThemeRefresh({ keys: ['logo-favicon'] })
-      return true
-    } catch {
-      setLogoFaviconStatus('error')
-      return false
-    } finally {
-      setLogoFaviconSaving(false)
-    }
-  }, [logoFaviconDraft])
+    return runOptimisticSettingsSave<LogoFaviconConfig>({
+      getSnapshot: () => logoFaviconSaved,
+      getOptimistic: () => logoFaviconDraft,
+      applyLocal: (v) => {
+        setLogoFaviconSaved(v)
+        setLogoFaviconDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<LogoFaviconConfig>('/api/admin/logo-favicon', v),
+      setSaving: setLogoFaviconSaving,
+      setStatus: setLogoFaviconStatus,
+      onWriteSuccess: () => {
+        noteSettingsWriteSuccess()
+        dispatchStoreThemeRefresh({ keys: ['logo-favicon'] })
+      },
+    })
+  }, [logoFaviconDraft, logoFaviconSaved])
 
   const updateGeneralSettingsDraft = useCallback((patch: Partial<GeneralSettingsConfig>) => {
     setGeneralSettingsDraft((prev) => ({ ...prev, ...patch }))
@@ -2320,27 +2241,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveGeneralSettings = useCallback(async () => {
-    setGeneralSettingsSaving(true)
-    setGeneralSettingsStatus('idle')
-    try {
-      const res = await fetch('/api/admin/general-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(generalSettingsDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as GeneralSettingsConfig
-      setGeneralSettingsSaved(data)
-      setGeneralSettingsDraft(data)
-      setGeneralSettingsStatus('saved')
-      return true
-    } catch {
-      setGeneralSettingsStatus('error')
-      return false
-    } finally {
-      setGeneralSettingsSaving(false)
-    }
-  }, [generalSettingsDraft])
+    return runOptimisticSettingsSave<GeneralSettingsConfig>({
+      getSnapshot: () => generalSettingsSaved,
+      getOptimistic: () => generalSettingsDraft,
+      applyLocal: (v) => {
+        setGeneralSettingsSaved(v)
+        setGeneralSettingsDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<GeneralSettingsConfig>('/api/admin/general-settings', v),
+      setSaving: setGeneralSettingsSaving,
+      setStatus: setGeneralSettingsStatus,
+      onWriteSuccess: () => {
+        noteSettingsWriteSuccess()
+        dispatchStoreThemeRefresh({ keys: ['general'] })
+      },
+    })
+  }, [generalSettingsDraft, generalSettingsSaved])
 
   const updateFloatingButtonsDraft = useCallback((patch: Partial<FloatingButtonsConfig>) => {
     setFloatingButtonsDraft((prev) => ({ ...prev, ...patch }))
@@ -2348,20 +2264,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveFloatingButtons = useCallback(async () => {
-    setFloatingButtonsSaving(true)
-    setFloatingButtonsStatus('idle')
-    try {
-      const data = await persistFloatingButtons(floatingButtonsDraftRef.current)
-      setFloatingButtonsSaved(data)
-      setFloatingButtonsDraft(data)
-      setFloatingButtonsStatus('saved')
-      return true
-    } catch {
-      setFloatingButtonsStatus('error')
-      return false
-    } finally {
-      setFloatingButtonsSaving(false)
-    }
+    return runOptimisticSettingsSave<FloatingButtonsConfig>({
+      getSnapshot: () => floatingButtonsSavedRef.current,
+      getOptimistic: () => floatingButtonsDraftRef.current,
+      applyLocal: (v) => {
+        floatingButtonsSavedRef.current = v
+        floatingButtonsDraftRef.current = v
+        setFloatingButtonsSaved(v)
+        setFloatingButtonsDraft(v)
+      },
+      persist: (v) => persistFloatingButtons(v),
+      setSaving: setFloatingButtonsSaving,
+      setStatus: setFloatingButtonsStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveFloatingButtonsRef.current = saveFloatingButtons
@@ -2383,20 +2299,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveBadges = useCallback(async () => {
-    setBadgesSaving(true)
-    setBadgesStatus('idle')
-    try {
-      const data = await persistBadgesSettings(badgesDraftRef.current)
-      setBadgesSaved(data)
-      setBadgesDraft(data)
-      setBadgesStatus('saved')
-      return true
-    } catch {
-      setBadgesStatus('error')
-      return false
-    } finally {
-      setBadgesSaving(false)
-    }
+    return runOptimisticSettingsSave<BadgesConfig>({
+      getSnapshot: () => badgesSavedRef.current,
+      getOptimistic: () => badgesDraftRef.current,
+      applyLocal: (v) => {
+        badgesSavedRef.current = v
+        badgesDraftRef.current = v
+        setBadgesSaved(v)
+        setBadgesDraft(v)
+      },
+      persist: (v) => persistBadgesSettings(v),
+      setSaving: setBadgesSaving,
+      setStatus: setBadgesStatus,
+      onWriteSuccess: noteSettingsWriteSuccess,
+    })
   }, [])
 
   saveBadgesRef.current = saveBadges
@@ -2419,27 +2335,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const saveHeaderNavSettings = useCallback(async () => {
-    setHeaderNavSaving(true)
-    setHeaderNavStatus('idle')
-    try {
-      const res = await fetch('/api/admin/header-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(headerNavDraft),
-      })
-      if (!res.ok) throw new Error('Save failed')
-      const data = (await res.json()) as HeaderNavSettingsConfig
-      setHeaderNavSaved(data)
-      setHeaderNavDraft(data)
-      setHeaderNavStatus('saved')
-      return true
-    } catch {
-      setHeaderNavStatus('error')
-      return false
-    } finally {
-      setHeaderNavSaving(false)
-    }
-  }, [headerNavDraft])
+    return runOptimisticSettingsSave<HeaderNavSettingsConfig>({
+      getSnapshot: () => headerNavSaved,
+      getOptimistic: () => headerNavDraft,
+      applyLocal: (v) => {
+        setHeaderNavSaved(v)
+        setHeaderNavDraft(v)
+      },
+      persist: (v) => putAdminSettingsJson<HeaderNavSettingsConfig>('/api/admin/header-settings', v),
+      setSaving: setHeaderNavSaving,
+      setStatus: setHeaderNavStatus,
+      onWriteSuccess: () => {
+        noteSettingsWriteSuccess()
+        dispatchStoreThemeRefresh({ keys: ['header-nav'] })
+      },
+    })
+  }, [headerNavDraft, headerNavSaved])
 
   const saveHeaderSection = useCallback(async () => {
     setHeaderSectionSaving(true)

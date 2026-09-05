@@ -3,7 +3,10 @@ import {
   type FloatingButtonsConfig,
   normalizeFloatingButtonsConfig,
 } from '@/lib/floating-buttons'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 const CACHE_KEY = 'store-floating-buttons-v2'
 
@@ -66,7 +69,7 @@ export async function fetchFloatingButtons(signal?: AbortSignal): Promise<Floati
     const normalized = normalizeFloatingButtonsConfig(data)
 
     if (epochAtStart !== settingsEpoch) {
-      return readCachedFloatingButtons()
+      return resolveInvalidatedSettingsFetch(readCachedFloatingButtons, normalized)
     }
 
     cacheFloatingButtons(normalized)

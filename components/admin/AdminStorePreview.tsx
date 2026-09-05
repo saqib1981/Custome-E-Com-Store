@@ -214,7 +214,7 @@ export default function AdminStorePreview() {
     ? floatingButtonsDraft
     : floatingButtonsSaved
   const badgesPreview = isEditingBadges ? badgesDraft : badgesSaved
-  const isLoading =
+  const isSyncing =
     announcementLoading ||
     logoFaviconLoading ||
     headerNavLoading ||
@@ -281,7 +281,7 @@ export default function AdminStorePreview() {
     let cancelled = false
 
     const run = async () => {
-      setPreviewMenuLoading(true)
+      if (!previewMenu) setPreviewMenuLoading(true)
       try {
         const items = await fetchPreviewMenu(menuSelection.menuId, menuSelection.menuHandle)
         if (!cancelled) setPreviewMenu(items)
@@ -321,10 +321,14 @@ export default function AdminStorePreview() {
 
   return (
     <div className="relative flex h-full min-h-0 min-w-0 flex-1 justify-center overflow-y-auto overflow-x-clip bg-white p-4 sm:p-6">
-      {isLoading || (previewMenuLoading && !previewMenu) ? (
-        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin text-gray-500" aria-hidden />
-          <span className="text-sm text-gray-600">Loading preview…</span>
+      {isSyncing || (previewMenuLoading && !previewMenu) ? (
+        <div
+          className="pointer-events-none absolute right-4 top-4 z-20 inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white/95 px-2.5 py-1.5 text-xs text-gray-600 shadow-sm dark:border-gray-700 dark:bg-gray-900/95 dark:text-gray-300"
+          role="status"
+          aria-live="polite"
+        >
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-500" aria-hidden />
+          Syncing…
         </div>
       ) : null}
 

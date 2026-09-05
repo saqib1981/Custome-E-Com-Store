@@ -3,7 +3,10 @@ import {
   normalizeAccountConfig,
   type AccountConfig,
 } from '@/lib/account'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 const CACHE_KEY = 'store-account-settings-v1'
 
@@ -71,7 +74,7 @@ export async function fetchAccountSettings(signal?: AbortSignal): Promise<Accoun
     const normalized = normalizeAccountConfig(data)
 
     if (epochAtStart !== settingsEpoch) {
-      return readCachedAccountSettings() ?? normalized
+      return resolveInvalidatedSettingsFetch(readCachedAccountSettings, normalized)
     }
 
     cacheAccountSettings(normalized)

@@ -3,7 +3,10 @@ import {
   normalizeRelatedProductsConfig,
   type RelatedProductsConfig,
 } from '@/lib/related-products'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 const CACHE_KEY = 'store-related-products-v1'
 
@@ -75,7 +78,7 @@ export async function fetchRelatedProductsSettings(
     const normalized = normalizeRelatedProductsConfig(data)
 
     if (epochAtStart !== settingsEpoch) {
-      return readCachedRelatedProducts() ?? normalized
+      return resolveInvalidatedSettingsFetch(readCachedRelatedProducts, normalized)
     }
 
     cacheRelatedProducts(normalized)

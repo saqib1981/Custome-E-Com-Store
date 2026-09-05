@@ -41,6 +41,18 @@ alter table public.store_settings disable row level security;
 drop policy if exists "store_settings_service_all" on public.store_settings;
 
 -- ---------------------------------------------------------------------------
+-- Realtime — live storefront/admin sync on store_settings changes
+-- ---------------------------------------------------------------------------
+do $$
+begin
+  alter publication supabase_realtime add table public.store_settings;
+exception
+  when duplicate_object then null;
+  when undefined_object then
+    raise notice 'supabase_realtime publication missing — enable Realtime in Supabase dashboard';
+end $$;
+
+-- ---------------------------------------------------------------------------
 -- RPCs
 -- ---------------------------------------------------------------------------
 drop function if exists public.force_upsert_store_setting(text, jsonb);

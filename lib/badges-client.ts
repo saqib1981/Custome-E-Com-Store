@@ -3,7 +3,10 @@ import {
   normalizeBadgesConfig,
   type BadgesConfig,
 } from '@/lib/badges'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 const CACHE_KEY = 'store-badges-v1'
 
@@ -66,7 +69,7 @@ export async function fetchBadgesSettings(signal?: AbortSignal): Promise<BadgesC
     const normalized = normalizeBadgesConfig(data)
 
     if (epochAtStart !== settingsEpoch) {
-      return readCachedBadges()
+      return resolveInvalidatedSettingsFetch(readCachedBadges, normalized)
     }
 
     cacheBadges(normalized)

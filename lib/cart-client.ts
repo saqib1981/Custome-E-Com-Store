@@ -3,7 +3,10 @@ import {
   normalizeCartConfig,
   type CartConfig,
 } from '@/lib/cart'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 const CACHE_KEY = 'store-cart-settings-v1'
 
@@ -71,7 +74,7 @@ export async function fetchCartSettings(signal?: AbortSignal): Promise<CartConfi
     const normalized = normalizeCartConfig(data)
 
     if (epochAtStart !== settingsEpoch) {
-      return readCachedCartSettings() ?? normalized
+      return resolveInvalidatedSettingsFetch(readCachedCartSettings, normalized)
     }
 
     cacheCartSettings(normalized)

@@ -247,8 +247,8 @@ body {
   display: none;
 }
 
-/* Desktop nav dropdowns — display:none when closed so off-screen flyouts
-   do not widen the document and cause a horizontal scrollbar. */
+/* Desktop nav dropdowns — hover open/close only.
+   :focus-within alone kept flyouts stuck open after click (focus stayed on the link). */
 .store-nav-flyout {
   display: none;
   visibility: hidden;
@@ -258,9 +258,7 @@ body {
 }
 
 .group\/menu:hover > .store-nav-flyout,
-.group\/menu:focus-within > .store-nav-flyout,
-.group\/sub:hover > .store-nav-flyout,
-.group\/sub:focus-within > .store-nav-flyout {
+.group\/sub:hover > .store-nav-flyout {
   display: block;
   visibility: visible;
   opacity: 1;

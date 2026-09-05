@@ -12,6 +12,7 @@ import SearchPopup from './search/SearchPopup'
 import CartDrawer from './cart/CartDrawer'
 import { StoreThemeProvider, useStoreTheme } from '@/context/StoreThemeContext'
 import { CartProvider, useCart } from '@/context/CartContext'
+import { StoreSettingsRealtimeBridge } from '@/components/StoreSettingsRealtimeBridge'
 
 function CheckoutShell({ children }: { children: React.ReactNode }) {
   const { logoFavicon } = useStoreTheme()
@@ -66,6 +67,7 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
 
   return (
     <StoreThemeProvider>
+      <StoreSettingsRealtimeBridge />
       <CartProvider>
         {pathname.startsWith('/myadmin') ? (
           <>{children}</>

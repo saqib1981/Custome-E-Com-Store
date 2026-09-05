@@ -3,7 +3,10 @@ import {
   normalizeProductPageConfig,
   type ProductPageConfig,
 } from '@/lib/product-page'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 const CACHE_KEY = 'store-product-page-v2'
 
@@ -73,7 +76,7 @@ export async function fetchProductPageSettings(signal?: AbortSignal): Promise<Pr
     const normalized = normalizeProductPageConfig(data)
 
     if (epochAtStart !== settingsEpoch) {
-      return readCachedProductPage() ?? normalized
+      return resolveInvalidatedSettingsFetch(readCachedProductPage, normalized)
     }
 
     cacheProductPage(normalized)

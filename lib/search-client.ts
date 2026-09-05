@@ -3,7 +3,10 @@ import {
   normalizeSearchConfig,
   type SearchConfig,
 } from '@/lib/search'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 const CACHE_KEY = 'store-search-v1'
 
@@ -71,7 +74,7 @@ export async function fetchSearchSettings(signal?: AbortSignal): Promise<SearchC
     const normalized = normalizeSearchConfig(data)
 
     if (epochAtStart !== settingsEpoch) {
-      return readCachedSearch() ?? normalized
+      return resolveInvalidatedSettingsFetch(readCachedSearch, normalized)
     }
 
     cacheSearch(normalized)

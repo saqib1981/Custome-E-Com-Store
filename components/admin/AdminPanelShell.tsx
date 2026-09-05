@@ -40,6 +40,15 @@ export default function AdminPanelShell({
             <ChevronLeft className="h-4 w-4" aria-hidden />
             Back
           </button>
+          {saving ? (
+            <span
+              className="ml-auto inline-flex items-center gap-1 text-[11px] text-gray-500 dark:text-gray-400"
+              role="status"
+            >
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+              Syncing
+            </span>
+          ) : null}
         </div>
         <div className="flex items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
@@ -69,7 +78,7 @@ export default function AdminPanelShell({
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
         {status === 'saved' && (
           <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-600 dark:bg-green-950/30 dark:text-green-400">
-            Settings saved.
+            {saving ? 'Saved — syncing…' : 'Settings saved.'}
           </p>
         )}
         {status === 'error' && (

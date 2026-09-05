@@ -97,6 +97,14 @@ function DropdownNavAnchor({
   )
 }
 
+function blurFocusedDescendant(root: HTMLElement | null) {
+  if (!root) return
+  const active = document.activeElement
+  if (active instanceof HTMLElement && root.contains(active)) {
+    active.blur()
+  }
+}
+
 function NestedDropdownItem({
   item,
   pathname,
@@ -126,7 +134,7 @@ function NestedDropdownItem({
   }
 
   return (
-    <li className="group/sub relative">
+    <li className="group/sub relative" onMouseLeave={(e) => blurFocusedDescendant(e.currentTarget)}>
       <div className="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50">
         <DropdownNavAnchor
           item={item}
@@ -168,7 +176,10 @@ function DesktopNavDropdown({
   const active = isStoreNavActive(pathname, item)
 
   return (
-    <li className="group/menu relative">
+    <li
+      className="group/menu relative"
+      onMouseLeave={(e) => blurFocusedDescendant(e.currentTarget)}
+    >
       <div className="inline-flex items-center">
         <NavAnchor
           item={item}
@@ -178,7 +189,7 @@ function DesktopNavDropdown({
           highlight={highlight}
         />
         <ChevronDown
-          className="-ml-2 mr-1 h-3.5 w-3.5 text-gray-500 transition-transform group-hover/menu:rotate-180 group-focus-within/menu:rotate-180"
+          className="-ml-2 mr-1 h-3.5 w-3.5 text-gray-500 transition-transform group-hover/menu:rotate-180"
           aria-hidden
         />
       </div>

@@ -16,7 +16,13 @@ export const STORE_SETTINGS_CACHE_KEYS = [
   'store-checkout-settings-v1',
 ] as const
 
-/** Drop all known settings caches (call once on admin boot). */
+/** Shared no-store headers for admin/store settings API responses. */
+export const SETTINGS_NO_STORE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+  Pragma: 'no-cache',
+} as const
+
+/** Drop all known settings caches (call once on admin boot + after every successful save). */
 export function clearStoreSettingsBrowserCaches(): void {
   if (typeof window === 'undefined') return
   try {
@@ -28,8 +34,30 @@ export function clearStoreSettingsBrowserCaches(): void {
   }
 }
 
+/** Overwrite a settings cache key with fresh JSON (preferred over leaving stale after mutation). */
+export function writeStoreSettingsBrowserCache(key: string, value: unknown): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // private mode / quota
+  }
+}
+
 /** Cache-busting query for settings GETs (avoids stale browser/HTTP cache). */
 export function settingsFetchUrl(path: string): string {
-  const sep = path.includes('?') ? '&' : '?'
-  return `${path}${sep}_ts=${Date.now()}`
+  const join = path.includes('?') ? '&' : '?'
+  return `${path}${join}_ts=${Date.now()}`
+}
+
+/**
+ * When a settings fetch was invalidated mid-flight, prefer fresh cache from the
+ * newer write — never prefer the stale in-flight response over a post-save cache.
+ */
+export function resolveInvalidatedSettingsFetch<T>(
+  readCached: () => T | null,
+  staleNormalized: T
+): T {
+  const cached = readCached()
+  return cached ?? staleNormalized
 }

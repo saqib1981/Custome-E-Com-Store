@@ -3,7 +3,10 @@ import {
   normalizeCollectionProductsConfig,
   type CollectionProductsConfig,
 } from '@/lib/collection-products'
-import { settingsFetchUrl } from '@/lib/store-settings-cache'
+import {
+  resolveInvalidatedSettingsFetch,
+  settingsFetchUrl,
+} from '@/lib/store-settings-cache'
 
 /** Bumped so old browsers drop stale v1 localStorage. */
 const CACHE_KEY = 'store-collection-products-v2'
@@ -82,7 +85,7 @@ export async function fetchCollectionProductsSettings(
 
     // Save won while this GET was in flight — keep the saved cache, don't invent defaults.
     if (epochAtStart !== settingsEpoch) {
-      return readCachedCollectionProducts() ?? normalized
+      return resolveInvalidatedSettingsFetch(readCachedCollectionProducts, normalized)
     }
 
     cacheCollectionProducts(normalized)

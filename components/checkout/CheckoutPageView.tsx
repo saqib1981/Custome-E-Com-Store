@@ -9,7 +9,7 @@ import {
   type CheckoutConfig,
   type CheckoutCustomerDetails,
 } from '@/lib/checkout'
-import { fetchStoreCheckoutSettings } from '@/lib/checkout-client'
+import { fetchStoreCheckoutSettings, CHECKOUT_SETTINGS_UPDATED_EVENT } from '@/lib/checkout-client'
 import {
   cartSubtotalAmount,
   formatCartOptionSummary,
@@ -727,6 +727,26 @@ export default function CheckoutPageView({
     return () => {
       cancelled = true
     }
+  }, [configOverride])
+
+  useEffect(() => {
+    if (configOverride) return
+    const onUpdate = (event: Event) => {
+      const detail = (event as CustomEvent<CheckoutConfig>).detail
+      if (!detail) return
+      const data = normalizeCheckoutConfig(detail)
+      setConfig(data)
+      if (data.paymentMethods?.length) {
+        setPaymentMethods(data.paymentMethods)
+        setSelectedPaymentId((prev) =>
+          data.paymentMethods.some((m) => m.id === prev)
+            ? prev
+            : data.paymentMethods[0]!.id
+        )
+      }
+    }
+    window.addEventListener(CHECKOUT_SETTINGS_UPDATED_EVENT, onUpdate)
+    return () => window.removeEventListener(CHECKOUT_SETTINGS_UPDATED_EVENT, onUpdate)
   }, [configOverride])
 
   useEffect(() => {

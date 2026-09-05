@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { Eye, LayoutPanelTop } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { Eye, LayoutPanelTop, LogOut } from 'lucide-react'
 import { AdminEditorProvider, useAdminEditor } from '@/context/AdminEditorContext'
 import AdminSidebarNav from '@/components/admin/AdminSidebarNav'
 import { AnnouncementBarSettingsPanel } from '@/components/admin/AdminSidebar'
@@ -34,6 +35,8 @@ import AdminEditorTabs from '@/components/admin/AdminEditorTabs'
 import AdminThemePageSelect from '@/components/admin/AdminThemePageSelect'
 import AdminStoreFavicon from '@/components/admin/AdminStoreFavicon'
 import { useStoreTheme } from '@/context/StoreThemeContext'
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser'
+import { useState } from 'react'
 
 function AdminSidebarPanel() {
   const { activeSection, activeGlobalSetting } = useAdminEditor()
@@ -136,7 +139,23 @@ function AdminSidebarPanel() {
 function MyAdminShell({ children }: { children: React.ReactNode }) {
   const { isDetailPanelOpen, previewViewport, setPreviewViewport } = useAdminEditor()
   const { storeName } = useStoreTheme()
+  const router = useRouter()
+  const [loggingOut, setLoggingOut] = useState(false)
   const adminStoreLabel = storeName.trim() || 'Store'
+
+  const handleLogout = async () => {
+    if (loggingOut) return
+    setLoggingOut(true)
+    try {
+      const supabase = createSupabaseBrowserClient()
+      await supabase.auth.signOut()
+      await fetch('/api/admin/auth/logout', { method: 'POST' })
+      router.replace('/myadmin/login')
+      router.refresh()
+    } catch {
+      setLoggingOut(false)
+    }
+  }
 
   return (
     <div className="flex h-screen max-w-[100vw] flex-col overflow-x-clip bg-gray-100 text-gray-900">
@@ -168,6 +187,16 @@ function MyAdminShell({ children }: { children: React.ReactNode }) {
           >
             <Eye className="h-4 w-4" aria-hidden />
           </Link>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            disabled={loggingOut}
+            aria-label="Log out"
+            title="Log out"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-700 bg-gray-900 text-gray-200 hover:bg-gray-800 disabled:opacity-50"
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
+          </button>
         </div>
       </header>
       <div className="flex min-h-0 min-w-0 flex-1 overflow-x-clip">
@@ -185,6 +214,11 @@ function MyAdminShell({ children }: { children: React.ReactNode }) {
 }
 
 export default function MyAdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  if (pathname === '/myadmin/login' || pathname.startsWith('/myadmin/login/')) {
+    return <>{children}</>
+  }
+
   return (
     <AdminEditorProvider>
       <MyAdminShell>{children}</MyAdminShell>

@@ -15,7 +15,7 @@ import {
   quoteCheckoutShipping,
   type CheckoutShippingQuote,
 } from '@/lib/checkout-shipping'
-import { readCartConfig } from '@/lib/cart-settings-server'
+import { readCheckoutConfig } from '@/lib/checkout-settings-server'
 import {
   subscribeCustomerEmailMarketing,
   subscribeCustomerSmsMarketing,
@@ -103,8 +103,8 @@ export async function createShopifyOrderFromCheckout(params: {
     return { ok: false, error: 'Cart is empty' }
   }
 
-  const cartConfig = await readCartConfig()
-  const shipping = params.shipping ?? quoteCheckoutShipping(params.lines, cartConfig)
+  const checkoutConfig = await readCheckoutConfig()
+  const shipping = params.shipping ?? quoteCheckoutShipping(params.lines, checkoutConfig)
   const gateway =
     params.customer.paymentMethod?.trim() || 'Cash on Delivery (COD)'
 

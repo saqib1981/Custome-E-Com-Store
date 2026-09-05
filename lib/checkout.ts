@@ -30,6 +30,14 @@ export type CheckoutConfig = {
    * Shopify Admin does not expose these notes via API — edit them here.
    */
   paymentMethods: CheckoutPaymentMethod[]
+  /** Flat shipping charge (PKR) when free-shipping threshold is not met. */
+  shippingAmount: number
+  /** Label shown for paid shipping (e.g. Standard). */
+  shippingTitle: string
+  /** When true, shipping is free once cart subtotal ≥ freeShippingThreshold. */
+  freeShippingEnabled: boolean
+  /** Cart subtotal (PKR) required for free shipping. */
+  freeShippingThreshold: number
 }
 
 export const DEFAULT_CHECKOUT: CheckoutConfig = {
@@ -45,6 +53,10 @@ export const DEFAULT_CHECKOUT: CheckoutConfig = {
   requireAddress: true,
   requireCity: true,
   paymentMethods: DEFAULT_CHECKOUT_PAYMENT_METHODS.map((m) => ({ ...m })),
+  shippingAmount: 200,
+  shippingTitle: 'Standard',
+  freeShippingEnabled: true,
+  freeShippingThreshold: 3500,
 }
 
 /** Matches Shopify one-page checkout delivery + contact fields. */
@@ -109,6 +121,22 @@ export function normalizeCheckoutConfig(
     paymentMethods: normalizeCheckoutPaymentMethods(
       (input as Partial<CheckoutConfig> | null | undefined)?.paymentMethods
     ),
+    shippingAmount: (() => {
+      const n = Number(input?.shippingAmount)
+      if (!Number.isFinite(n) || n < 0) return DEFAULT_CHECKOUT.shippingAmount
+      return Math.round(n * 100) / 100
+    })(),
+    shippingTitle:
+      String(input?.shippingTitle ?? DEFAULT_CHECKOUT.shippingTitle).trim() ||
+      DEFAULT_CHECKOUT.shippingTitle,
+    freeShippingEnabled: Boolean(
+      input?.freeShippingEnabled ?? DEFAULT_CHECKOUT.freeShippingEnabled
+    ),
+    freeShippingThreshold: (() => {
+      const n = Number(input?.freeShippingThreshold)
+      if (!Number.isFinite(n) || n < 0) return DEFAULT_CHECKOUT.freeShippingThreshold
+      return Math.round(n)
+    })(),
   }
 }
 
@@ -125,7 +153,11 @@ export function checkoutConfigsEqual(a: CheckoutConfig, b: CheckoutConfig): bool
     a.requireEmail === b.requireEmail &&
     a.requireAddress === b.requireAddress &&
     a.requireCity === b.requireCity &&
-    checkoutPaymentMethodsEqual(a.paymentMethods, b.paymentMethods)
+    checkoutPaymentMethodsEqual(a.paymentMethods, b.paymentMethods) &&
+    a.shippingAmount === b.shippingAmount &&
+    a.shippingTitle === b.shippingTitle &&
+    a.freeShippingEnabled === b.freeShippingEnabled &&
+    a.freeShippingThreshold === b.freeShippingThreshold
   )
 }
 

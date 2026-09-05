@@ -34,7 +34,7 @@ import {
   orderNameToPathSegment,
   writeOrderAccess,
 } from '@/lib/orders'
-import { quoteCheckoutShipping, STANDARD_SHIPPING_AMOUNT } from '@/lib/checkout-shipping'
+import { quoteCheckoutShipping } from '@/lib/checkout-shipping'
 import {
   dialCodeForCountry,
   formatE164,
@@ -814,13 +814,13 @@ export default function CheckoutPageView({
   const previewLines: CartLine[] = lines
 
   const shippingQuote = useMemo(
-    () => quoteCheckoutShipping(lines, cartConfig),
-    [lines, cartConfig]
+    () => quoteCheckoutShipping(lines, config),
+    [lines, config]
   )
   const shippingAmount = shippingQuote.amount
   const shippingLabel = shippingQuote.free
     ? 'Free'
-    : formatFreeShippingAmount(STANDARD_SHIPPING_AMOUNT)
+    : formatFreeShippingAmount(shippingQuote.amount || config.shippingAmount)
   const orderTotal = subtotal + shippingAmount
 
   const patchCustomer = (patch: Partial<CheckoutCustomerDetails>) => {

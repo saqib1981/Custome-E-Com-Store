@@ -473,7 +473,11 @@ values (
         'description', 'Pay with cash when your order is delivered.',
         'manual', true
       )
-    )
+    ),
+    'shippingAmount', 200,
+    'shippingTitle', 'Standard',
+    'freeShippingEnabled', true,
+    'freeShippingThreshold', 3500
   )
 )
 on conflict (key) do nothing;

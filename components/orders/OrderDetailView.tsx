@@ -31,11 +31,23 @@ export default function OrderDetailView({
   const [submitting, setSubmitting] = useState(false)
 
   const goOrders = () => {
-    if (preview && onPreviewNavigate) {
-      onPreviewNavigate('/orders')
-      return
-    }
-    window.location.href = '/orders'
+    void (async () => {
+      let path = '/orders'
+      if (!preview) {
+        try {
+          const res = await fetch('/api/store/account/me', { cache: 'no-store' })
+          const data = (await res.json()) as { customer?: { id?: string } | null }
+          if (data?.customer?.id) path = '/account'
+        } catch {
+          // guest lookup
+        }
+      }
+      if (preview && onPreviewNavigate) {
+        onPreviewNavigate(path)
+        return
+      }
+      window.location.href = path
+    })()
   }
 
   const fetchOrder = async (contact: { email: string; phone: string }) => {

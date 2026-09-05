@@ -27,8 +27,37 @@ export default function OrderLookupView({
   const [email, setEmail] = useState(initialEmail)
   const [phone, setPhone] = useState(initialPhone)
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(!preview)
   const [error, setError] = useState<string | null>(null)
   const [history, setHistory] = useState<PublicOrder[]>([])
+
+  useEffect(() => {
+    if (preview) {
+      setCheckingSession(false)
+      return
+    }
+    let cancelled = false
+    void fetch('/api/store/account/me', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { customer?: { id?: string } | null } | null) => {
+        if (cancelled) return
+        if (data?.customer?.id) {
+          if (onPreviewNavigate) {
+            onPreviewNavigate('/account')
+          } else {
+            window.location.replace('/account')
+          }
+          return
+        }
+        setCheckingSession(false)
+      })
+      .catch(() => {
+        if (!cancelled) setCheckingSession(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [preview, onPreviewNavigate])
 
   const goOrder = (name: string) => {
     const segment = orderNameToPathSegment(name)
@@ -109,6 +138,16 @@ export default function OrderLookupView({
 
   const inputClass =
     'w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-gray-900 focus:ring-1 focus:ring-gray-900'
+
+  if (checkingSession) {
+    return (
+      <section className={`relative w-full max-w-full ${STORE_SECTION_EDGE_CLASS}`}>
+        <div className="flex justify-center py-20">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-500" aria-hidden />
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className={`relative w-full max-w-full ${STORE_SECTION_EDGE_CLASS}`}>

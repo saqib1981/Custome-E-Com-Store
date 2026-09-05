@@ -13,6 +13,18 @@ import CartDrawer from './cart/CartDrawer'
 import { StoreThemeProvider, useStoreTheme } from '@/context/StoreThemeContext'
 import { CartProvider, useCart } from '@/context/CartContext'
 
+function CheckoutShell({ children }: { children: React.ReactNode }) {
+  const { logoFavicon } = useStoreTheme()
+
+  return (
+    <div className="relative min-h-screen max-w-full overflow-x-clip bg-white">
+      <StoreFavicon faviconUrl={logoFavicon.faviconUrl} />
+      <main className="min-h-screen">{children}</main>
+      <CartDrawer />
+    </div>
+  )
+}
+
 function StoreShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { generalSettings, logoFavicon } = useStoreTheme()
@@ -50,12 +62,15 @@ function StoreShell({ children }: { children: React.ReactNode }) {
 
 export default function LayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const isCheckout = pathname === '/checkout' || pathname.startsWith('/checkout/')
 
   return (
     <StoreThemeProvider>
       <CartProvider>
         {pathname.startsWith('/myadmin') ? (
           <>{children}</>
+        ) : isCheckout ? (
+          <CheckoutShell>{children}</CheckoutShell>
         ) : (
           <StoreShell>{children}</StoreShell>
         )}

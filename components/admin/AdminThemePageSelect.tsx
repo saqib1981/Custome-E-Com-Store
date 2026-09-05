@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   Search,
   ShoppingBag,
+  ShoppingCart,
   Tag,
   Tags,
   User,
@@ -25,6 +26,7 @@ const PAGE_ICONS: Record<AdminThemePageId, LucideIcon> = {
   collection: Tags,
   product: Tag,
   cart: ShoppingBag,
+  checkout: ShoppingCart,
   search: Search,
   account: User,
 }

@@ -15,6 +15,12 @@ export const SHOPIFY_REQUIRED_SCOPES = [
     label: 'Files',
     description: 'Upload logo and favicon to Shopify Files (CDN)',
   },
+  {
+    handle: 'write_draft_orders',
+    label: 'Draft orders',
+    description:
+      'Create and complete draft orders so custom checkout places real orders in Shopify Orders',
+  },
 ] as const
 
 export type ShopifyRequiredScope = (typeof SHOPIFY_REQUIRED_SCOPES)[number]

@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
 import CartLineList from '@/components/cart/CartLineList'
 import CartFreeShippingProgress from '@/components/cart/CartFreeShippingProgress'
 import {
@@ -29,8 +28,6 @@ export default function CartPageView({
   const [config, setConfig] = useState<CartConfig>(
     () => configOverride ?? DEFAULT_CART
   )
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
   useEffect(() => {
     if (configOverride) {
@@ -58,28 +55,13 @@ export default function CartPageView({
     window.location.href = '/'
   }
 
-  const handleCheckout = async () => {
+  const goCheckout = () => {
     if (!lines.length) return
-    setCheckoutLoading(true)
-    setCheckoutError(null)
-    try {
-      const res = await fetch('/api/store/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lines }),
-      })
-      const data = (await res.json()) as { url?: string; error?: string }
-      if (!res.ok || !data.url) throw new Error(data.error || 'Checkout failed')
-      if (preview) {
-        window.open(data.url, '_blank', 'noopener,noreferrer')
-      } else {
-        window.location.href = data.url
-      }
-    } catch (e) {
-      setCheckoutError(e instanceof Error ? e.message : 'Checkout failed')
-    } finally {
-      setCheckoutLoading(false)
+    if (preview && onPreviewNavigate) {
+      onPreviewNavigate('/checkout')
+      return
     }
+    window.location.href = '/checkout'
   }
 
   if (!config.enabled) {
@@ -119,9 +101,6 @@ export default function CartPageView({
               onPreviewNavigate={onPreviewNavigate}
             />
             <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-              {checkoutError ? (
-                <p className="w-full text-sm text-red-600 sm:mr-auto">{checkoutError}</p>
-              ) : null}
               <button
                 type="button"
                 onClick={goContinue}
@@ -131,15 +110,10 @@ export default function CartPageView({
               </button>
               <button
                 type="button"
-                onClick={() => void handleCheckout()}
-                disabled={checkoutLoading}
-                className="inline-flex h-11 min-w-[10rem] items-center justify-center rounded-md bg-gray-900 px-5 text-sm font-semibold text-white hover:bg-gray-800 disabled:bg-gray-300"
+                onClick={goCheckout}
+                className="inline-flex h-11 min-w-[10rem] items-center justify-center rounded-md bg-gray-900 px-5 text-sm font-semibold text-white hover:bg-gray-800"
               >
-                {checkoutLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                ) : (
-                  config.checkoutLabel
-                )}
+                {config.checkoutLabel}
               </button>
             </div>
           </div>

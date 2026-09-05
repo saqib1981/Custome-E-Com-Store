@@ -36,11 +36,12 @@ Run these in **Supabase → SQL Editor** in order.
 | 30 | [`031-search.sql`](./031-search.sql) | Old DB — search popup theme settings |
 | 31 | [`032-cart.sql`](./032-cart.sql) | Old DB — cart drawer + cart page settings |
 | 32 | [`033-cart-free-shipping.sql`](./033-cart-free-shipping.sql) | Old DB — cart free-shipping progress threshold |
+| 33 | [`034-checkout.sql`](./034-checkout.sql) | Old DB — custom checkout page theme settings |
 
 ## Fresh install
 
-Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`033`**.
+Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`034`**.
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 033). **030 is required** if saves show “saved” but reload restores old toggles.
+Run any migrations you have not applied yet (002 → 034). **030 is required** if saves show “saved” but reload restores old toggles.

@@ -4,6 +4,7 @@ export type AdminThemePageId =
   | 'collection'
   | 'product'
   | 'cart'
+  | 'checkout'
   | 'search'
   | 'account'
 
@@ -20,6 +21,7 @@ export const ADMIN_THEME_PAGES: AdminThemePage[] = [
   { id: 'collection', name: 'Collection', path: '/collections/all' },
   { id: 'product', name: 'Product', path: '/products/example' },
   { id: 'cart', name: 'Cart', path: '/cart' },
+  { id: 'checkout', name: 'Checkout', path: '/checkout' },
   { id: 'search', name: 'Search', path: '/search' },
   { id: 'account', name: 'Account', path: '/account' },
 ]
@@ -45,6 +47,9 @@ export function getThemePageByPath(path: string): AdminThemePage | undefined {
   }
   if (normalized.startsWith('/products')) {
     return ADMIN_THEME_PAGES.find((page) => page.id === 'product')
+  }
+  if (normalized === '/checkout') {
+    return ADMIN_THEME_PAGES.find((page) => page.id === 'checkout')
   }
 
   return undefined

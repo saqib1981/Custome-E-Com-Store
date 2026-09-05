@@ -101,6 +101,12 @@ import {
   type CartConfig,
 } from '@/lib/cart'
 import { fetchCartSettings, persistCartSettings } from '@/lib/cart-client'
+import {
+  DEFAULT_CHECKOUT,
+  checkoutConfigsEqual,
+  type CheckoutConfig,
+} from '@/lib/checkout'
+import { fetchCheckoutSettings, persistCheckoutSettings } from '@/lib/checkout-client'
 import { clearStoreSettingsBrowserCaches } from '@/lib/store-settings-cache'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import { uploadAdminStoreAsset } from '@/lib/admin-store-upload'
@@ -124,6 +130,7 @@ export type AdminSectionId =
   | 'product-page'
   | 'search'
   | 'cart'
+  | 'checkout'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -262,6 +269,14 @@ type AdminEditorContextValue = {
   cartStatus: 'idle' | 'saved' | 'error'
   updateCartDraft: (patch: Partial<CartConfig>) => void
   saveCart: () => Promise<boolean>
+  checkoutLoading: boolean
+  checkoutSaving: boolean
+  checkoutSaved: CheckoutConfig
+  checkoutDraft: CheckoutConfig
+  checkoutDirty: boolean
+  checkoutStatus: 'idle' | 'saved' | 'error'
+  updateCheckoutDraft: (patch: Partial<CheckoutConfig>) => void
+  saveCheckout: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -491,6 +506,18 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   cartSavedRef.current = cartSaved
   const saveCartRef = useRef<() => Promise<boolean>>(async () => false)
   const cartLocalAuthorityRef = useRef(false)
+
+  const [checkoutSaved, setCheckoutSaved] = useState<CheckoutConfig>(DEFAULT_CHECKOUT)
+  const [checkoutDraft, setCheckoutDraft] = useState<CheckoutConfig>(DEFAULT_CHECKOUT)
+  const [checkoutLoading, setCheckoutLoading] = useState(true)
+  const [checkoutSaving, setCheckoutSaving] = useState(false)
+  const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const checkoutDraftRef = useRef(checkoutDraft)
+  checkoutDraftRef.current = checkoutDraft
+  const checkoutSavedRef = useRef(checkoutSaved)
+  checkoutSavedRef.current = checkoutSaved
+  const saveCheckoutRef = useRef<() => Promise<boolean>>(async () => false)
+  const checkoutLocalAuthorityRef = useRef(false)
 
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
@@ -837,6 +864,35 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    void fetchCheckoutSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (checkoutLocalAuthorityRef.current) return
+        const dirty = !checkoutConfigsEqual(checkoutDraftRef.current, checkoutSavedRef.current)
+        if (dirty) return
+        setCheckoutSaved(data)
+        setCheckoutDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (checkoutLocalAuthorityRef.current) return
+        const dirty = !checkoutConfigsEqual(checkoutDraftRef.current, checkoutSavedRef.current)
+        if (dirty) return
+        setCheckoutSaved(DEFAULT_CHECKOUT)
+        setCheckoutDraft(DEFAULT_CHECKOUT)
+      })
+      .finally(() => {
+        if (!cancelled) setCheckoutLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -989,6 +1045,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [cartSaved, cartDraft]
   )
 
+  const checkoutDirty = useMemo(
+    () => !checkoutConfigsEqual(checkoutSaved, checkoutDraft),
+    [checkoutSaved, checkoutDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -1063,6 +1124,10 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       const page = getThemePageById('cart')
       setActiveThemePageId(page.id)
       setPreviewPathState(page.path)
+    } else if (id === 'checkout') {
+      const page = getThemePageById('checkout')
+      setActiveThemePageId(page.id)
+      setPreviewPathState(page.path)
     } else if (homepageOnlySections.includes(id)) {
       const page = getThemePageById('home')
       setActiveThemePageId(page.id)
@@ -1105,6 +1170,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       !cartConfigsEqual(cartSavedRef.current, cartDraftRef.current)
     ) {
       void saveCartRef.current()
+    }
+    if (
+      activeSection === 'checkout' &&
+      !checkoutConfigsEqual(checkoutSavedRef.current, checkoutDraftRef.current)
+    ) {
+      void saveCheckoutRef.current()
     }
     setActiveSection(null)
     setAnnouncementStatus('idle')
@@ -1590,6 +1661,37 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
 
   saveCartRef.current = saveCart
 
+  const updateCheckoutDraft = useCallback((patch: Partial<CheckoutConfig>) => {
+    setCheckoutDraft((prev) => {
+      const next = { ...prev, ...patch }
+      checkoutDraftRef.current = next
+      return next
+    })
+    setCheckoutStatus('idle')
+  }, [])
+
+  const saveCheckout = useCallback(async () => {
+    setCheckoutSaving(true)
+    setCheckoutStatus('idle')
+    try {
+      const data = await persistCheckoutSettings(checkoutDraftRef.current)
+      checkoutLocalAuthorityRef.current = true
+      checkoutSavedRef.current = data
+      checkoutDraftRef.current = data
+      setCheckoutSaved(data)
+      setCheckoutDraft(data)
+      setCheckoutStatus('saved')
+      return true
+    } catch {
+      setCheckoutStatus('error')
+      return false
+    } finally {
+      setCheckoutSaving(false)
+    }
+  }, [])
+
+  saveCheckoutRef.current = saveCheckout
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -1906,6 +2008,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       cartStatus,
       updateCartDraft,
       saveCart,
+      checkoutLoading,
+      checkoutSaving,
+      checkoutSaved,
+      checkoutDraft,
+      checkoutDirty,
+      checkoutStatus,
+      updateCheckoutDraft,
+      saveCheckout,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -2083,6 +2193,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       cartStatus,
       updateCartDraft,
       saveCart,
+      checkoutLoading,
+      checkoutSaving,
+      checkoutSaved,
+      checkoutDraft,
+      checkoutDirty,
+      checkoutStatus,
+      updateCheckoutDraft,
+      saveCheckout,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

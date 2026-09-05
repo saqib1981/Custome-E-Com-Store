@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Loader2, X } from 'lucide-react'
 import CartLineList from '@/components/cart/CartLineList'
 import CartFreeShippingProgress from '@/components/cart/CartFreeShippingProgress'
 import {
@@ -12,6 +11,7 @@ import {
 } from '@/lib/cart'
 import { fetchStoreCartSettings } from '@/lib/cart-client'
 import { useCart } from '@/context/CartContext'
+import { X } from 'lucide-react'
 
 const DRAWER_TRANSITION_MS = 320
 
@@ -32,8 +32,6 @@ export default function CartDrawer({
   const [config, setConfig] = useState<CartConfig>(
     () => configOverride ?? DEFAULT_CART
   )
-  const [checkoutLoading, setCheckoutLoading] = useState(false)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [visible, setVisible] = useState(false)
 
@@ -100,28 +98,15 @@ export default function CartDrawer({
     closeDrawer()
   }
 
-  const handleCheckout = async () => {
+  const goCheckout = () => {
     if (!lines.length) return
-    setCheckoutLoading(true)
-    setCheckoutError(null)
-    try {
-      const res = await fetch('/api/store/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lines }),
-      })
-      const data = (await res.json()) as { url?: string; error?: string }
-      if (!res.ok || !data.url) throw new Error(data.error || 'Checkout failed')
-      if (preview) {
-        window.open(data.url, '_blank', 'noopener,noreferrer')
-      } else {
-        window.location.href = data.url
-      }
-    } catch (e) {
-      setCheckoutError(e instanceof Error ? e.message : 'Checkout failed')
-    } finally {
-      setCheckoutLoading(false)
+    if (preview && onPreviewNavigate) {
+      onPreviewNavigate('/checkout')
+      closeDrawer()
+      return
     }
+    closeDrawer()
+    window.location.href = '/checkout'
   }
 
   return (
@@ -195,20 +180,12 @@ export default function CartDrawer({
 
         {lines.length > 0 ? (
           <div className="shrink-0 space-y-2 border-t border-gray-200 px-4 py-4">
-            {checkoutError ? (
-              <p className="text-sm text-red-600">{checkoutError}</p>
-            ) : null}
             <button
               type="button"
-              onClick={() => void handleCheckout()}
-              disabled={checkoutLoading}
-              className="flex h-11 w-full items-center justify-center rounded-md bg-gray-900 text-sm font-semibold text-white transition hover:bg-gray-800 disabled:bg-gray-300"
+              onClick={goCheckout}
+              className="flex h-11 w-full items-center justify-center rounded-md bg-gray-900 text-sm font-semibold text-white transition hover:bg-gray-800"
             >
-              {checkoutLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              ) : (
-                config.checkoutLabel
-              )}
+              {config.checkoutLabel}
             </button>
             <button
               type="button"

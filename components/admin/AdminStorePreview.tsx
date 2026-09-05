@@ -19,6 +19,7 @@ import SearchPopup from '@/components/search/SearchPopup'
 import SearchPageView from '@/components/search/SearchPageView'
 import CartDrawer from '@/components/cart/CartDrawer'
 import CartPageView from '@/components/cart/CartPageView'
+import CheckoutPageView from '@/components/checkout/CheckoutPageView'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { useCart } from '@/context/CartContext'
 import {
@@ -105,6 +106,9 @@ export default function AdminStorePreview() {
     cartDraft,
     cartSaved,
     cartLoading,
+    checkoutDraft,
+    checkoutSaved,
+    checkoutLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -132,6 +136,7 @@ export default function AdminStorePreview() {
   const isEditingProductPage = activeSection === 'product-page'
   const isEditingSearch = activeSection === 'search'
   const isEditingCart = activeSection === 'cart'
+  const isEditingCheckout = activeSection === 'checkout'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
@@ -161,6 +166,7 @@ export default function AdminStorePreview() {
   const productPagePreview = isEditingProductPage ? productPageDraft : productPageSaved
   const searchPreview = isEditingSearch ? searchDraft : searchSaved
   const cartPreview = isEditingCart ? cartDraft : cartSaved
+  const checkoutPreview = isEditingCheckout ? checkoutDraft : checkoutSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -185,6 +191,7 @@ export default function AdminStorePreview() {
     productPageLoading ||
     searchLoading ||
     cartLoading ||
+    checkoutLoading ||
     generalSettingsLoading ||
     floatingButtonsLoading
 
@@ -195,6 +202,7 @@ export default function AdminStorePreview() {
   const searchPreviewPath = (previewPath.split('?')[0] || '/').replace(/\/+$/, '') || '/'
   const isSearchPreview = searchPreviewPath === '/search'
   const isCartPreview = searchPreviewPath === '/cart'
+  const isCheckoutPreview = searchPreviewPath === '/checkout'
   const searchPreviewQuery = parseSearchQueryFromPath(previewPath)
   const collectionPreviewHandle = parseCollectionHandleFromPath(previewPath)
   const productPreviewHandle = parseProductHandleFromPath(previewPath)
@@ -375,6 +383,13 @@ export default function AdminStorePreview() {
             ) : isCartPreview ? (
               <CartPageView
                 configOverride={cartPreview}
+                preview
+                onPreviewNavigate={setPreviewPath}
+              />
+            ) : isCheckoutPreview ? (
+              <CheckoutPageView
+                configOverride={checkoutPreview}
+                cartConfigOverride={cartPreview}
                 preview
                 onPreviewNavigate={setPreviewPath}
               />

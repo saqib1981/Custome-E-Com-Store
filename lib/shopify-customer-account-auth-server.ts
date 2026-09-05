@@ -169,7 +169,7 @@ export async function exchangeCustomerAuthCode(options: {
   }
 
   return {
-    accessToken: body.access_token,
+    accessToken: formatCustomerAccountAccessToken(body.access_token),
     expiresIn: Number(body.expires_in) || 60 * 60,
     idToken: body.id_token,
   }
@@ -203,12 +203,25 @@ function mapCaAddress(node: {
   }
 }
 
+/** Customer Account GraphQL expects raw `shcat_…` — never `Bearer …`. */
+function formatCustomerAccountAccessToken(accessToken: string): string {
+  let token = String(accessToken ?? '').trim()
+  if (token.toLowerCase().startsWith('bearer ')) {
+    token = token.slice(7).trim()
+  }
+  if (!token) return ''
+  return token.startsWith('shcat_') ? token : `shcat_${token}`
+}
+
 export async function fetchCustomerAccountProfile(
   accessToken: string
 ): Promise<AccountCustomer | null> {
   const api = await discoverCustomerAccountApi()
   const endpoint = String(api.graphql_api ?? '').trim()
   if (!endpoint) throw new Error('Customer Account GraphQL endpoint missing.')
+
+  const authToken = formatCustomerAccountAccessToken(accessToken)
+  if (!authToken) throw new Error('Missing Customer Account access token.')
 
   const query = `
     query CustomerAccountProfile {
@@ -269,7 +282,8 @@ export async function fetchCustomerAccountProfile(
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: accessToken.startsWith('Bearer ') ? accessToken : `Bearer ${accessToken}`,
+      // Official CA API: Authorization is the access token itself (no Bearer).
+      Authorization: authToken,
     },
     body: JSON.stringify({ query }),
     cache: 'no-store',

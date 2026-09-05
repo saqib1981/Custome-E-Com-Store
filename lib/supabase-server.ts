@@ -12,7 +12,13 @@ export function getSupabaseAdmin(): SupabaseClient {
       'Missing Supabase env: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
     )
   }
-  _admin = createClient(supabaseUrl, serviceRoleKey)
+  // Next.js caches fetch() by default — that served stale store_settings (e.g. shippingAmount).
+  _admin = createClient(supabaseUrl, serviceRoleKey, {
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: 'no-store' }),
+    },
+  })
   return _admin
 }
 

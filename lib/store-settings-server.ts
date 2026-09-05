@@ -109,41 +109,40 @@ export async function writeStoreSettingValue(
   const admin = getSupabaseAdmin()
   const payload = JSON.parse(JSON.stringify(value)) as Record<string, unknown>
 
+  // Prefer direct table upsert (service role) — avoids stale RPC/cache quirks.
+  const up = await admin
+    .from('store_settings')
+    .upsert(
+      { key: safeKey, value: payload, updated_at: new Date().toISOString() },
+      { onConflict: 'key' }
+    )
+    .select('value')
+    .single()
+
+  if (!up.error) {
+    const fromUpsert = parseStoreSettingValue(up.data?.value)
+    if (fromUpsert && payloadMatches(payload, fromUpsert)) {
+      return fromUpsert
+    }
+  } else {
+    console.error(`store_settings upsert[${safeKey}]`, up.error)
+  }
+
   const rpc = await admin.rpc('force_upsert_store_setting', {
     p_key: safeKey,
     p_value: payload,
   })
 
   if (rpc.error) {
-    const missing =
-      /could not find the function|function .* does not exist|PGRST202/i.test(rpc.error.message) ||
-      rpc.error.code === 'PGRST202' ||
-      rpc.error.code === '42883'
+    console.error(`force_upsert_store_setting[${safeKey}]`, rpc.error)
+    throw new Error(
+      `${up.error?.message || rpc.error.message}. ${MIGRATION_HINT}`
+    )
+  }
 
-    if (!missing) {
-      console.error(`force_upsert_store_setting[${safeKey}]`, rpc.error)
-      throw new Error(`${rpc.error.message}. ${MIGRATION_HINT}`)
-    }
-
-    const up = await admin
-      .from('store_settings')
-      .upsert(
-        { key: safeKey, value: payload, updated_at: new Date().toISOString() },
-        { onConflict: 'key' }
-      )
-      .select('*')
-      .single()
-
-    if (up.error) {
-      console.error(`store_settings upsert[${safeKey}]`, up.error)
-      throw new Error(`${up.error.message}. ${MIGRATION_HINT}`)
-    }
-  } else {
-    // Trust RPC return when present (avoids false FAIL from jsonb float/key-order quirks).
-    const rpcValue = parseStoreSettingValue(rpc.data)
-    if (rpcValue && payloadMatches(payload, rpcValue)) {
-      return rpcValue
-    }
+  const rpcValue = parseStoreSettingValue(rpc.data)
+  if (rpcValue && payloadMatches(payload, rpcValue)) {
+    return rpcValue
   }
 
   const verified = await readUntilMatches(admin, safeKey, payload)
@@ -152,6 +151,7 @@ export async function writeStoreSettingValue(
       payload,
       verified,
       rpcData: rpc.data ?? null,
+      upsertData: up.data ?? null,
     })
     throw new Error(`Save DB me confirm nahi hua. ${MIGRATION_HINT}`)
   }
@@ -162,6 +162,12 @@ export async function writeStoreSettingValue(
 export function createStoreSettingsAdminClient(): SupabaseClient {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      global: {
+        fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+          fetch(input, { ...init, cache: 'no-store' }),
+      },
+    }
   )
 }

@@ -39,11 +39,13 @@ Run these in **Supabase → SQL Editor** in order.
 | 33 | [`034-checkout.sql`](./034-checkout.sql) | Old DB — custom checkout page theme settings |
 | 34 | [`035-checkout-payment-methods.sql`](./035-checkout-payment-methods.sql) | Old DB — checkout payment method instructions |
 | 35 | [`036-product-page-content-width.sql`](./036-product-page-content-width.sql) | Old DB — product page Full / Container / Stretch width |
+| 36 | [`037-related-products.sql`](./037-related-products.sql) | Old DB — related products section on PDP |
+| 37 | [`038-home-divider-after-product.sql`](./038-home-divider-after-product.sql) | Old DB — divider between product details and related products |
 
 ## Fresh install
 
-Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`036`**.
+Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`038`**.
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 036). **030 is required** if saves show “saved” but reload restores old toggles.
+Run any migrations you have not applied yet (002 → 038). **030 is required** if saves show “saved” but reload restores old toggles.

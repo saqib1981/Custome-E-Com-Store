@@ -227,6 +227,22 @@ function ProductPageSectionsNav() {
       </button>
       <button
         type="button"
+        onClick={() => openSection('home-divider-after-product')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Minus className="h-4 w-4 shrink-0" aria-hidden />
+        Divider
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('related-products')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <LayoutGrid className="h-4 w-4 shrink-0" aria-hidden />
+        Related products
+      </button>
+      <button
+        type="button"
         onClick={() => openSection('store-footer')}
         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
       >

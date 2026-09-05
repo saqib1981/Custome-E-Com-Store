@@ -2,6 +2,7 @@ import type { HomeDividerConfig } from '@/lib/home-divider'
 import {
   DEFAULT_HOME_DIVIDER,
   HOME_DIVIDER_AFTER_CARDS_SETTING_KEY,
+  HOME_DIVIDER_AFTER_PRODUCT_SETTING_KEY,
   HOME_DIVIDER_AFTER_TABS_SETTING_KEY,
   HOME_DIVIDER_AFTER_TRUST_BANNER_SETTING_KEY,
   HOME_DIVIDER_SETTING_KEY,
@@ -79,4 +80,14 @@ export async function writeHomeDividerAfterTrustBannerConfig(
   config: Partial<HomeDividerConfig> | HomeDividerConfig
 ): Promise<HomeDividerConfig> {
   return writeDividerConfigByKey(HOME_DIVIDER_AFTER_TRUST_BANNER_SETTING_KEY, config)
+}
+
+export async function readHomeDividerAfterProductConfig(): Promise<HomeDividerConfig> {
+  return readDividerConfigByKey(HOME_DIVIDER_AFTER_PRODUCT_SETTING_KEY, DEFAULT_HOME_DIVIDER)
+}
+
+export async function writeHomeDividerAfterProductConfig(
+  config: Partial<HomeDividerConfig> | HomeDividerConfig
+): Promise<HomeDividerConfig> {
+  return writeDividerConfigByKey(HOME_DIVIDER_AFTER_PRODUCT_SETTING_KEY, config)
 }

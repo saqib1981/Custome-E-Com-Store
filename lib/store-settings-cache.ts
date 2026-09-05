@@ -5,6 +5,7 @@ export const STORE_SETTINGS_CACHE_KEYS = [
   'store-collection-products-v2',
   'store-product-page-v1',
   'store-product-page-v2',
+  'store-related-products-v1',
   'store-floating-buttons-v1',
   'store-floating-buttons-v2',
   'store-search-v1',

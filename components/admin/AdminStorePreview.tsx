@@ -88,6 +88,9 @@ export default function AdminStorePreview() {
     homeDividerAfterTrustBannerDraft,
     homeDividerAfterTrustBannerSaved,
     homeDividerAfterTrustBannerLoading,
+    homeDividerAfterProductDraft,
+    homeDividerAfterProductSaved,
+    homeDividerAfterProductLoading,
     storeFooterDraft,
     storeFooterSaved,
     storeFooterLoading,
@@ -100,6 +103,9 @@ export default function AdminStorePreview() {
     productPageDraft,
     productPageSaved,
     productPageLoading,
+    relatedProductsDraft,
+    relatedProductsSaved,
+    relatedProductsLoading,
     searchDraft,
     searchSaved,
     searchLoading,
@@ -130,10 +136,12 @@ export default function AdminStorePreview() {
   const isEditingHomeDividerAfterTabs = activeSection === 'home-divider-after-tabs'
   const isEditingTrustBanner = activeSection === 'trust-banner'
   const isEditingHomeDividerAfterTrustBanner = activeSection === 'home-divider-after-trust-banner'
+  const isEditingHomeDividerAfterProduct = activeSection === 'home-divider-after-product'
   const isEditingStoreFooter = activeSection === 'store-footer'
   const isEditingCollectionsList = activeSection === 'collections-list'
   const isEditingCollectionProducts = activeSection === 'collection-products'
   const isEditingProductPage = activeSection === 'product-page'
+  const isEditingRelatedProducts = activeSection === 'related-products'
   const isEditingSearch = activeSection === 'search'
   const isEditingCart = activeSection === 'cart'
   const isEditingCheckout = activeSection === 'checkout'
@@ -158,12 +166,18 @@ export default function AdminStorePreview() {
   const homeDividerAfterTrustBannerPreview = isEditingHomeDividerAfterTrustBanner
     ? homeDividerAfterTrustBannerDraft
     : homeDividerAfterTrustBannerSaved
+  const homeDividerAfterProductPreview = isEditingHomeDividerAfterProduct
+    ? homeDividerAfterProductDraft
+    : homeDividerAfterProductSaved
   const storeFooterPreview = isEditingStoreFooter ? storeFooterDraft : storeFooterSaved
   const collectionsListPreview = isEditingCollectionsList ? collectionsListDraft : collectionsListSaved
   const collectionProductsPreview = isEditingCollectionProducts
     ? collectionProductsDraft
     : collectionProductsSaved
   const productPagePreview = isEditingProductPage ? productPageDraft : productPageSaved
+  const relatedProductsPreview = isEditingRelatedProducts
+    ? relatedProductsDraft
+    : relatedProductsSaved
   const searchPreview = isEditingSearch ? searchDraft : searchSaved
   const cartPreview = isEditingCart ? cartDraft : cartSaved
   const checkoutPreview = isEditingCheckout ? checkoutDraft : checkoutSaved
@@ -185,10 +199,12 @@ export default function AdminStorePreview() {
     homeDividerAfterTabsLoading ||
     trustBannerLoading ||
     homeDividerAfterTrustBannerLoading ||
+    homeDividerAfterProductLoading ||
     storeFooterLoading ||
     collectionsListLoading ||
     collectionProductsLoading ||
     productPageLoading ||
+    relatedProductsLoading ||
     searchLoading ||
     cartLoading ||
     checkoutLoading ||
@@ -368,6 +384,8 @@ export default function AdminStorePreview() {
                 preview
                 previewViewport={previewViewport}
                 configOverride={productPagePreview}
+                relatedProductsOverride={relatedProductsPreview}
+                dividerAfterProductOverride={homeDividerAfterProductPreview}
                 onPreviewNavigate={setPreviewPath}
               />
             ) : isSearchPreview ? (

@@ -2,23 +2,27 @@
 
 import { useEffect, useState } from 'react'
 import ProductPageView from '@/components/products/ProductPageView'
+import RelatedProducts from '@/components/RelatedProducts'
+import HomeDividerAfterProduct from '@/components/HomeDividerAfterProduct'
 import {
   DEFAULT_PRODUCT_PAGE,
   normalizeProductPageConfig,
   type ProductPageConfig,
   type ProductPageData,
 } from '@/lib/product-page'
-import {
-  PRODUCT_PAGE_UPDATED_EVENT,
-} from '@/lib/product-page-client'
+import { PRODUCT_PAGE_UPDATED_EVENT } from '@/lib/product-page-client'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import { PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS } from '@/lib/store-section-client'
+import type { RelatedProductsConfig } from '@/lib/related-products'
+import type { HomeDividerConfig } from '@/lib/home-divider'
 
 type ProductPageProps = {
   handle: string
   preview?: boolean
   previewViewport?: PreviewViewport
   configOverride?: ProductPageConfig
+  relatedProductsOverride?: RelatedProductsConfig
+  dividerAfterProductOverride?: HomeDividerConfig
   onPreviewNavigate?: (path: string) => void
 }
 
@@ -47,6 +51,8 @@ export default function ProductPage({
   preview = false,
   previewViewport,
   configOverride,
+  relatedProductsOverride,
+  dividerAfterProductOverride,
   onPreviewNavigate,
 }: ProductPageProps) {
   const safeHandle = String(handle ?? '').trim() || 'example'
@@ -135,14 +141,27 @@ export default function ProductPage({
 
   if (!config.enabled && !isPreviewMode) return null
 
+  const relatedHandle = product.handle || safeHandle
+
   return (
-    <ProductPageView
-      product={product}
-      config={config}
-      loading={loading}
-      preview={preview}
-      previewViewport={previewViewport}
-      onPreviewNavigate={onPreviewNavigate}
-    />
+    <>
+      <ProductPageView
+        product={product}
+        config={config}
+        loading={loading}
+        preview={preview}
+        previewViewport={previewViewport}
+        onPreviewNavigate={onPreviewNavigate}
+      />
+      <HomeDividerAfterProduct configOverride={dividerAfterProductOverride} />
+      <RelatedProducts
+        handle={relatedHandle}
+        preview={preview}
+        previewViewport={previewViewport}
+        configOverride={relatedProductsOverride}
+        contentWidth={config.contentWidth}
+        onPreviewNavigate={onPreviewNavigate}
+      />
+    </>
   )
 }

@@ -249,3 +249,32 @@ export function HomeDividerAfterTrustBannerSettingsPanel() {
     />
   )
 }
+
+export function HomeDividerAfterProductSettingsPanel() {
+  const {
+    closeSection,
+    homeDividerAfterProductDraft,
+    homeDividerAfterProductDirty,
+    homeDividerAfterProductSaving,
+    homeDividerAfterProductStatus,
+    updateHomeDividerAfterProductDraft,
+    saveHomeDividerAfterProduct,
+  } = useAdminEditor()
+
+  return (
+    <DividerSettingsPanel
+      title="Divider"
+      subtitle="Line between product details and related products"
+      idPrefix="home-divider-after-product"
+      gapTopLabel="Gap above line (after product details)"
+      gapBottomLabel="Gap below line (before related products)"
+      draft={homeDividerAfterProductDraft}
+      dirty={homeDividerAfterProductDirty}
+      saving={homeDividerAfterProductSaving}
+      status={homeDividerAfterProductStatus}
+      onUpdate={updateHomeDividerAfterProductDraft}
+      onSave={() => void saveHomeDividerAfterProduct()}
+      onBack={closeSection}
+    />
+  )
+}

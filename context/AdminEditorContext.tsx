@@ -90,6 +90,15 @@ import {
   persistProductPageSettings,
 } from '@/lib/product-page-client'
 import {
+  DEFAULT_RELATED_PRODUCTS,
+  relatedProductsConfigsEqual,
+  type RelatedProductsConfig,
+} from '@/lib/related-products'
+import {
+  fetchRelatedProductsSettings,
+  persistRelatedProductsSettings,
+} from '@/lib/related-products-client'
+import {
   DEFAULT_SEARCH,
   searchConfigsEqual,
   type SearchConfig,
@@ -124,10 +133,12 @@ export type AdminSectionId =
   | 'home-divider-after-tabs'
   | 'trust-banner'
   | 'home-divider-after-trust-banner'
+  | 'home-divider-after-product'
   | 'store-footer'
   | 'collections-list'
   | 'collection-products'
   | 'product-page'
+  | 'related-products'
   | 'search'
   | 'cart'
   | 'checkout'
@@ -218,6 +229,14 @@ type AdminEditorContextValue = {
   homeDividerAfterTrustBannerStatus: 'idle' | 'saved' | 'error'
   updateHomeDividerAfterTrustBannerDraft: (patch: Partial<HomeDividerConfig>) => void
   saveHomeDividerAfterTrustBanner: () => Promise<boolean>
+  homeDividerAfterProductLoading: boolean
+  homeDividerAfterProductSaving: boolean
+  homeDividerAfterProductSaved: HomeDividerConfig
+  homeDividerAfterProductDraft: HomeDividerConfig
+  homeDividerAfterProductDirty: boolean
+  homeDividerAfterProductStatus: 'idle' | 'saved' | 'error'
+  updateHomeDividerAfterProductDraft: (patch: Partial<HomeDividerConfig>) => void
+  saveHomeDividerAfterProduct: () => Promise<boolean>
   storeFooterLoading: boolean
   storeFooterSaving: boolean
   storeFooterSaved: StoreFooterConfig
@@ -253,6 +272,14 @@ type AdminEditorContextValue = {
   productPageStatus: 'idle' | 'saved' | 'error'
   updateProductPageDraft: (patch: Partial<ProductPageConfig>) => void
   saveProductPage: () => Promise<boolean>
+  relatedProductsLoading: boolean
+  relatedProductsSaving: boolean
+  relatedProductsSaved: RelatedProductsConfig
+  relatedProductsDraft: RelatedProductsConfig
+  relatedProductsDirty: boolean
+  relatedProductsStatus: 'idle' | 'saved' | 'error'
+  updateRelatedProductsDraft: (patch: Partial<RelatedProductsConfig>) => void
+  saveRelatedProducts: () => Promise<boolean>
   searchLoading: boolean
   searchSaving: boolean
   searchSaved: SearchConfig
@@ -436,6 +463,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     'idle' | 'saved' | 'error'
   >('idle')
 
+  const [homeDividerAfterProductSaved, setHomeDividerAfterProductSaved] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterProductDraft, setHomeDividerAfterProductDraft] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterProductLoading, setHomeDividerAfterProductLoading] = useState(true)
+  const [homeDividerAfterProductSaving, setHomeDividerAfterProductSaving] = useState(false)
+  const [homeDividerAfterProductStatus, setHomeDividerAfterProductStatus] = useState<
+    'idle' | 'saved' | 'error'
+  >('idle')
+
   const [storeFooterSaved, setStoreFooterSaved] = useState<StoreFooterConfig>(DEFAULT_STORE_FOOTER)
   const [storeFooterDraft, setStoreFooterDraft] = useState<StoreFooterConfig>(DEFAULT_STORE_FOOTER)
   const [storeFooterLoading, setStoreFooterLoading] = useState(true)
@@ -482,6 +519,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   productPageSavedRef.current = productPageSaved
   const saveProductPageRef = useRef<() => Promise<boolean>>(async () => false)
   const productPageLocalAuthorityRef = useRef(false)
+
+  const [relatedProductsSaved, setRelatedProductsSaved] =
+    useState<RelatedProductsConfig>(DEFAULT_RELATED_PRODUCTS)
+  const [relatedProductsDraft, setRelatedProductsDraft] =
+    useState<RelatedProductsConfig>(DEFAULT_RELATED_PRODUCTS)
+  const [relatedProductsLoading, setRelatedProductsLoading] = useState(true)
+  const [relatedProductsSaving, setRelatedProductsSaving] = useState(false)
+  const [relatedProductsStatus, setRelatedProductsStatus] = useState<'idle' | 'saved' | 'error'>(
+    'idle'
+  )
+  const relatedProductsDraftRef = useRef(relatedProductsDraft)
+  relatedProductsDraftRef.current = relatedProductsDraft
+  const relatedProductsSavedRef = useRef(relatedProductsSaved)
+  relatedProductsSavedRef.current = relatedProductsSaved
+  const saveRelatedProductsRef = useRef<() => Promise<boolean>>(async () => false)
+  const relatedProductsLocalAuthorityRef = useRef(false)
 
   const [searchSaved, setSearchSaved] = useState<SearchConfig>(DEFAULT_SEARCH)
   const [searchDraft, setSearchDraft] = useState<SearchConfig>(DEFAULT_SEARCH)
@@ -708,6 +761,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/home-divider-after-product', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
+      .then((data: HomeDividerConfig) => {
+        setHomeDividerAfterProductSaved(data)
+        setHomeDividerAfterProductDraft(data)
+      })
+      .catch(() => {
+        setHomeDividerAfterProductSaved(DEFAULT_HOME_DIVIDER)
+        setHomeDividerAfterProductDraft(DEFAULT_HOME_DIVIDER)
+      })
+      .finally(() => setHomeDividerAfterProductLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/store-footer', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_STORE_FOOTER))
       .then((data: StoreFooterConfig) => {
@@ -798,6 +865,41 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         if (!cancelled) setProductPageLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void fetchRelatedProductsSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (relatedProductsLocalAuthorityRef.current) return
+        const dirty = !relatedProductsConfigsEqual(
+          relatedProductsDraftRef.current,
+          relatedProductsSavedRef.current
+        )
+        if (dirty) return
+        setRelatedProductsSaved(data)
+        setRelatedProductsDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (relatedProductsLocalAuthorityRef.current) return
+        const dirty = !relatedProductsConfigsEqual(
+          relatedProductsDraftRef.current,
+          relatedProductsSavedRef.current
+        )
+        if (dirty) return
+        setRelatedProductsSaved(DEFAULT_RELATED_PRODUCTS)
+        setRelatedProductsDraft(DEFAULT_RELATED_PRODUCTS)
+      })
+      .finally(() => {
+        if (!cancelled) setRelatedProductsLoading(false)
       })
 
     return () => {
@@ -1015,6 +1117,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [homeDividerAfterTrustBannerSaved, homeDividerAfterTrustBannerDraft]
   )
 
+  const homeDividerAfterProductDirty = useMemo(
+    () => !homeDividerConfigsEqual(homeDividerAfterProductSaved, homeDividerAfterProductDraft),
+    [homeDividerAfterProductSaved, homeDividerAfterProductDraft]
+  )
+
   const storeFooterDirty = useMemo(
     () => !storeFooterConfigsEqual(storeFooterSaved, storeFooterDraft),
     [storeFooterSaved, storeFooterDraft]
@@ -1033,6 +1140,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const productPageDirty = useMemo(
     () => !productPageConfigsEqual(productPageSaved, productPageDraft),
     [productPageSaved, productPageDraft]
+  )
+
+  const relatedProductsDirty = useMemo(
+    () => !relatedProductsConfigsEqual(relatedProductsSaved, relatedProductsDraft),
+    [relatedProductsSaved, relatedProductsDraft]
   )
 
   const searchDirty = useMemo(
@@ -1109,7 +1221,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
         const handle = parseCollectionHandleFromPath(current)
         return handle ? `/collections/${handle}` : page.path
       })
-    } else if (id === 'product-page') {
+    } else if (
+      id === 'product-page' ||
+      id === 'related-products' ||
+      id === 'home-divider-after-product'
+    ) {
       const page = getThemePageById('product')
       setActiveThemePageId(page.id)
       setPreviewPathState((current) => {
@@ -1160,6 +1276,15 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       void saveProductPageRef.current()
     }
     if (
+      activeSection === 'related-products' &&
+      !relatedProductsConfigsEqual(
+        relatedProductsSavedRef.current,
+        relatedProductsDraftRef.current
+      )
+    ) {
+      void saveRelatedProductsRef.current()
+    }
+    if (
       activeSection === 'search' &&
       !searchConfigsEqual(searchSavedRef.current, searchDraftRef.current)
     ) {
@@ -1185,6 +1310,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setHeaderSectionStatus('idle')
     setCollectionProductsStatus('idle')
     setProductPageStatus('idle')
+    setRelatedProductsStatus('idle')
   }, [activeSection])
 
   const openGlobalSetting = useCallback((id: AdminGlobalSettingId) => {
@@ -1466,6 +1592,34 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [homeDividerAfterTrustBannerDraft])
 
+  const updateHomeDividerAfterProductDraft = useCallback((patch: Partial<HomeDividerConfig>) => {
+    setHomeDividerAfterProductDraft((prev) => ({ ...prev, ...patch }))
+    setHomeDividerAfterProductStatus('idle')
+  }, [])
+
+  const saveHomeDividerAfterProduct = useCallback(async () => {
+    setHomeDividerAfterProductSaving(true)
+    setHomeDividerAfterProductStatus('idle')
+    try {
+      const res = await fetch('/api/admin/home-divider-after-product', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(homeDividerAfterProductDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HomeDividerConfig
+      setHomeDividerAfterProductSaved(data)
+      setHomeDividerAfterProductDraft(data)
+      setHomeDividerAfterProductStatus('saved')
+      return true
+    } catch {
+      setHomeDividerAfterProductStatus('error')
+      return false
+    } finally {
+      setHomeDividerAfterProductSaving(false)
+    }
+  }, [homeDividerAfterProductDraft])
+
   const updateStoreFooterDraft = useCallback((patch: Partial<StoreFooterConfig>) => {
     setStoreFooterDraft((prev) => ({ ...prev, ...patch }))
     setStoreFooterStatus('idle')
@@ -1598,6 +1752,37 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   saveProductPageRef.current = saveProductPage
+
+  const updateRelatedProductsDraft = useCallback((patch: Partial<RelatedProductsConfig>) => {
+    setRelatedProductsDraft((prev) => {
+      const next = { ...prev, ...patch }
+      relatedProductsDraftRef.current = next
+      return next
+    })
+    setRelatedProductsStatus('idle')
+  }, [])
+
+  const saveRelatedProducts = useCallback(async () => {
+    setRelatedProductsSaving(true)
+    setRelatedProductsStatus('idle')
+    try {
+      const data = await persistRelatedProductsSettings(relatedProductsDraftRef.current)
+      relatedProductsLocalAuthorityRef.current = true
+      relatedProductsSavedRef.current = data
+      relatedProductsDraftRef.current = data
+      setRelatedProductsSaved(data)
+      setRelatedProductsDraft(data)
+      setRelatedProductsStatus('saved')
+      return true
+    } catch {
+      setRelatedProductsStatus('error')
+      return false
+    } finally {
+      setRelatedProductsSaving(false)
+    }
+  }, [])
+
+  saveRelatedProductsRef.current = saveRelatedProducts
 
   const updateSearchDraft = useCallback((patch: Partial<SearchConfig>) => {
     setSearchDraft((prev) => {
@@ -1957,6 +2142,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerAfterTrustBannerStatus,
       updateHomeDividerAfterTrustBannerDraft,
       saveHomeDividerAfterTrustBanner,
+      homeDividerAfterProductLoading,
+      homeDividerAfterProductSaving,
+      homeDividerAfterProductSaved,
+      homeDividerAfterProductDraft,
+      homeDividerAfterProductDirty,
+      homeDividerAfterProductStatus,
+      updateHomeDividerAfterProductDraft,
+      saveHomeDividerAfterProduct,
       storeFooterLoading,
       storeFooterSaving,
       storeFooterSaved,
@@ -1992,6 +2185,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       productPageStatus,
       updateProductPageDraft,
       saveProductPage,
+      relatedProductsLoading,
+      relatedProductsSaving,
+      relatedProductsSaved,
+      relatedProductsDraft,
+      relatedProductsDirty,
+      relatedProductsStatus,
+      updateRelatedProductsDraft,
+      saveRelatedProducts,
       searchLoading,
       searchSaving,
       searchSaved,
@@ -2142,6 +2343,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerAfterTrustBannerStatus,
       updateHomeDividerAfterTrustBannerDraft,
       saveHomeDividerAfterTrustBanner,
+      homeDividerAfterProductLoading,
+      homeDividerAfterProductSaving,
+      homeDividerAfterProductSaved,
+      homeDividerAfterProductDraft,
+      homeDividerAfterProductDirty,
+      homeDividerAfterProductStatus,
+      updateHomeDividerAfterProductDraft,
+      saveHomeDividerAfterProduct,
       storeFooterLoading,
       storeFooterSaving,
       storeFooterSaved,
@@ -2177,6 +2386,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       productPageStatus,
       updateProductPageDraft,
       saveProductPage,
+      relatedProductsLoading,
+      relatedProductsSaving,
+      relatedProductsSaved,
+      relatedProductsDraft,
+      relatedProductsDirty,
+      relatedProductsStatus,
+      updateRelatedProductsDraft,
+      saveRelatedProducts,
       searchLoading,
       searchSaving,
       searchSaved,

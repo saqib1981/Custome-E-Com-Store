@@ -43,7 +43,19 @@ export async function persistCheckoutSettings(
     body: JSON.stringify(normalized),
     cache: 'no-store',
   })
-  if (!res.ok) throw new Error('Failed to save checkout settings')
+  if (!res.ok) {
+    let message = 'Failed to save checkout settings'
+    try {
+      const body = (await res.json()) as { error?: string }
+      if (body.error?.trim()) message = body.error.trim()
+    } catch {
+      // ignore
+    }
+    if (res.status === 401) {
+      message = 'Session expired. Sign in again at /myadmin/login.'
+    }
+    throw new Error(message)
+  }
   return normalizeCheckoutConfig((await res.json()) as Partial<CheckoutConfig>)
 }
 

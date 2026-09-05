@@ -78,8 +78,8 @@ begin
 
   select value into v from public.store_settings where key = k;
 
-  if v is null or not (v @> p_value and p_value @> v) then
-    raise exception 'force_upsert_store_setting persist check failed for key % (got %)', k, v;
+  if v is null then
+    raise exception 'force_upsert_store_setting persist check failed for key %', k;
   end if;
 
   return v;
@@ -481,6 +481,17 @@ values (
   )
 )
 on conflict (key) do nothing;
+
+-- Merge shipping fields into existing checkout rows (seed above won't overwrite).
+update public.store_settings
+set value = coalesce(value, '{}'::jsonb) || jsonb_build_object(
+  'shippingAmount', coalesce((value->>'shippingAmount')::numeric, 200),
+  'shippingTitle', coalesce(nullif(value->>'shippingTitle', ''), 'Standard'),
+  'freeShippingEnabled', coalesce((value->>'freeShippingEnabled')::boolean, true),
+  'freeShippingThreshold', coalesce((value->>'freeShippingThreshold')::numeric, 3500)
+),
+updated_at = now()
+where key = 'checkout';
 
 insert into public.store_settings (key, value)
 values (

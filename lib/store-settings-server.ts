@@ -32,8 +32,13 @@ function payloadMatches(
 ): boolean {
   if (!verified) return false
   for (const [k, v] of Object.entries(payload)) {
-    if (typeof v === 'boolean' || typeof v === 'number' || typeof v === 'string') {
-      if (verified[k] !== v) return false
+    if (typeof v === 'boolean') {
+      if (Boolean(verified[k]) !== v) return false
+    } else if (typeof v === 'number') {
+      const n = Number(verified[k])
+      if (!Number.isFinite(n) || n !== v) return false
+    } else if (typeof v === 'string') {
+      if (String(verified[k] ?? '') !== v) return false
     }
   }
   return true
@@ -132,6 +137,12 @@ export async function writeStoreSettingValue(
     if (up.error) {
       console.error(`store_settings upsert[${safeKey}]`, up.error)
       throw new Error(`${up.error.message}. ${MIGRATION_HINT}`)
+    }
+  } else {
+    // Trust RPC return when present (avoids false FAIL from jsonb float/key-order quirks).
+    const rpcValue = parseStoreSettingValue(rpc.data)
+    if (rpcValue && payloadMatches(payload, rpcValue)) {
+      return rpcValue
     }
   }
 

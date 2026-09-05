@@ -14,6 +14,7 @@ export default function CheckoutSettingsPanel() {
     checkoutDirty,
     checkoutSaving,
     checkoutStatus,
+    checkoutErrorMessage,
     updateCheckoutDraft,
     saveCheckout,
   } = useAdminEditor()
@@ -27,6 +28,7 @@ export default function CheckoutSettingsPanel() {
       saveDisabled={!checkoutDirty}
       saving={checkoutSaving}
       status={checkoutStatus}
+      errorMessage={checkoutErrorMessage}
     >
       <SettingsCollapsibleSection title="Visibility" defaultOpen>
         <label className="flex cursor-pointer items-center justify-between gap-3 py-2">

@@ -356,6 +356,7 @@ type AdminEditorContextValue = {
   checkoutDraft: CheckoutConfig
   checkoutDirty: boolean
   checkoutStatus: 'idle' | 'saved' | 'error'
+  checkoutErrorMessage: string | null
   updateCheckoutDraft: (patch: Partial<CheckoutConfig>) => void
   saveCheckout: () => Promise<boolean>
   logoFaviconLoading: boolean
@@ -667,6 +668,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const [checkoutLoading, setCheckoutLoading] = useState(true)
   const [checkoutSaving, setCheckoutSaving] = useState(false)
   const [checkoutStatus, setCheckoutStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [checkoutErrorMessage, setCheckoutErrorMessage] = useState<string | null>(null)
   const checkoutDraftRef = useRef(checkoutDraft)
   checkoutDraftRef.current = checkoutDraft
   const checkoutSavedRef = useRef(checkoutSaved)
@@ -2216,11 +2218,13 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       return next
     })
     setCheckoutStatus('idle')
+    setCheckoutErrorMessage(null)
   }, [])
 
   const saveCheckout = useCallback(async () => {
     setCheckoutSaving(true)
     setCheckoutStatus('idle')
+    setCheckoutErrorMessage(null)
     try {
       const data = await persistCheckoutSettings(checkoutDraftRef.current)
       checkoutLocalAuthorityRef.current = true
@@ -2230,8 +2234,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       setCheckoutDraft(data)
       setCheckoutStatus('saved')
       return true
-    } catch {
+    } catch (e) {
       setCheckoutStatus('error')
+      setCheckoutErrorMessage(
+        e instanceof Error ? e.message : 'Could not save. Please try again.'
+      )
       return false
     } finally {
       setCheckoutSaving(false)
@@ -2639,6 +2646,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       checkoutDraft,
       checkoutDirty,
       checkoutStatus,
+      checkoutErrorMessage,
       updateCheckoutDraft,
       saveCheckout,
       logoFaviconLoading,
@@ -2874,6 +2882,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       checkoutDraft,
       checkoutDirty,
       checkoutStatus,
+      checkoutErrorMessage,
       updateCheckoutDraft,
       saveCheckout,
       logoFaviconLoading,

@@ -1,62 +1,28 @@
 # Database setup
 
-Run in **Supabase → SQL Editor**.
+Run **once** in **Supabase → SQL Editor**:
 
-## New project (first time)
+[`store-settings.sql`](./store-settings.sql)
 
-1. [`store-settings.sql`](./store-settings.sql) — table + default announcement (includes colors + height)
+That single file creates:
 
-## Existing project (already ran old SQL)
+- `store_settings` table
+- `updated_at` trigger
+- `get_store_setting` / `upsert_store_setting` / `force_upsert_store_setting` RPCs
+- Default rows for every theme section (announcement, header, hero, cart, checkout, account, …)
 
-Run any missing migrations from [`migrations/`](./migrations/):
-
-- [`002-announcement-bar-colors.sql`](./migrations/002-announcement-bar-colors.sql)
-- [`003-announcement-bar-height.sql`](./migrations/003-announcement-bar-height.sql)
-- [`004-logo-favicon.sql`](./migrations/004-logo-favicon.sql)
-- [`005-store-assets-bucket.sql`](./migrations/005-store-assets-bucket.sql) — optional (legacy Supabase uploads)
-
-**Image uploads** (logo, favicon) go to **Shopify Files** — configure `SHOPIFY_*` in `.env.local` (see `.env.example`).
-
-See [`migrations/README.md`](./migrations/README.md) for the full migration list.
+It is **idempotent**: safe to re-run. Existing keys are **not** overwritten (`on conflict do nothing`).
 
 ## Environment
 
-Copy [`.env.example`](../.env.example) to `.env.local` and set:
+Copy [`.env.example`](../.env.example) to `.env.local`:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (server only — never expose to the browser)
+- `SUPABASE_SERVICE_ROLE_KEY` (server only)
 
-## `store_settings` keys
+## Notes
 
-| Key | Description |
-|-----|-------------|
-| `announcement` | Top marquee bar |
-| `logo-favicon` | Logo, favicon, logo widths |
-
-### `logo-favicon` JSON fields
-
-| Field | Type | Example |
-|-------|------|---------|
-| `faviconUrl` | string | `https://...` |
-| `faviconFileName` | string | `favicon.png` |
-| `logoUrl` | string | `https://...` |
-| `logoFileName` | string | `logo.png` |
-| `logoTransparentUrl` | string | `https://...` |
-| `logoTransparentFileName` | string | `logo-white.png` |
-| `logoWidthDesktop` | number | `200` (40–400) |
-| `logoWidthMobile` | number | `150` (40–400) |
-
-### `announcement` JSON fields
-
-| Field | Type | Example |
-|-------|------|---------|
-| `enabled` | boolean | `true` |
-| `message` | string | `Free shipping...` |
-| `speed` | string | `15s` (8–90 seconds) |
-| `gap` | string | `3rem` |
-| `backgroundColor` | string | `#0369a1` |
-| `textColor` | string | `#ffffff` |
-| `height` | string | `36px` (24–80px) |
-
-More admin sections can use the same table with new keys later.
+- Theme media (logo, hero, etc.) is stored on **Shopify Files CDN**, not Supabase Storage.
+- `/myadmin` login uses **Supabase Authentication → Users** (email/password) — no extra SQL table.
+- Admin reads/writes go through Next.js with the service role key.

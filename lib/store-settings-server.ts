@@ -40,7 +40,7 @@ function payloadMatches(
 }
 
 const MIGRATION_HINT =
-  'Supabase SQL Editor me database/migrations/030-store-settings-write-fix.sql dobara Run karo (poori file), phir admin hard-reload karke Save try karo.'
+  'Supabase SQL Editor me database/store-settings.sql dobara Run karo (poori file), phir admin hard-reload karke Save try karo.'
 
 async function readFromTable(
   admin: SupabaseClient,

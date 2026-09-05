@@ -12,6 +12,7 @@ export const STORE_SETTINGS_CACHE_KEYS = [
   'store-badges-v1',
   'store-search-v1',
   'store-cart-settings-v1',
+  'store-account-settings-v1',
   'store-checkout-settings-v1',
 ] as const
 

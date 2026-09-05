@@ -25,6 +25,7 @@ import RelatedProductsSettingsPanel from '@/components/admin/RelatedProductsSett
 import RecentProductsSettingsPanel from '@/components/admin/RecentProductsSettingsPanel'
 import SearchSettingsPanel from '@/components/admin/SearchSettingsPanel'
 import CartSettingsPanel from '@/components/admin/CartSettingsPanel'
+import AccountSettingsPanel from '@/components/admin/AccountSettingsPanel'
 import CheckoutSettingsPanel from '@/components/admin/CheckoutSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
@@ -115,6 +116,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'cart') {
     return <CartSettingsPanel />
+  }
+
+  if (activeSection === 'account') {
+    return <AccountSettingsPanel />
   }
 
   if (activeSection === 'checkout') {

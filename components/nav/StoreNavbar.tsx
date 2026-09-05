@@ -138,9 +138,15 @@ export default function StoreNavbar({
           >
             <Search className="h-[17px] w-[17px]" strokeWidth={2} />
           </button>
-          <button type="button" className={`${iconButtonClass} ${accountButtonClass}`} aria-label="Account">
+          <StoreNavLink
+            href="/account"
+            previewMode={inPreview}
+            onPreviewNavigate={onPreviewNavigate}
+            className={`${iconButtonClass} ${accountButtonClass}`}
+            aria-label="Account"
+          >
             <User className="h-4 w-4" strokeWidth={2} />
-          </button>
+          </StoreNavLink>
           {onOpenCart ? (
             <button
               type="button"

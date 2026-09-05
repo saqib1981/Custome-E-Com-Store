@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Image as ImageIcon,
   LayoutList,
+  User,
 } from 'lucide-react'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { GLOBAL_SETTINGS_ITEMS } from '@/lib/admin-global-settings'
@@ -352,6 +353,47 @@ function CartPageSectionsNav() {
   )
 }
 
+function AccountPageSectionsNav() {
+  const { openSection } = useAdminEditor()
+
+  return (
+    <nav className="mt-2 space-y-1" aria-label="Account page sections">
+      <button
+        type="button"
+        onClick={() => openSection('announcement')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Megaphone className="h-4 w-4 shrink-0" aria-hidden />
+        Announcement bar
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('header')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <LayoutPanelTop className="h-4 w-4 shrink-0" aria-hidden />
+        Header
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('account')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <User className="h-4 w-4 shrink-0" aria-hidden />
+        Account
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('store-footer')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <PanelBottom className="h-4 w-4 shrink-0" aria-hidden />
+        Footer
+      </button>
+    </nav>
+  )
+}
+
 function CheckoutPageSectionsNav() {
   const { openSection } = useAdminEditor()
 
@@ -400,11 +442,14 @@ export default function AdminSidebarNav() {
   const isProductPage = activeThemePageId === 'product'
   const isSearchPage = activeThemePageId === 'search'
   const isCartPage = activeThemePageId === 'cart'
+  const isAccountPage = activeThemePageId === 'account'
   const isCheckoutPage = activeThemePageId === 'checkout'
 
   const sectionsLabel = isCheckoutPage
     ? 'Checkout'
-    : isCartPage
+    : isAccountPage
+      ? 'Account'
+      : isCartPage
     ? 'Cart'
     : isSearchPage
       ? 'Search'
@@ -426,6 +471,8 @@ export default function AdminSidebarNav() {
             </p>
             {isCheckoutPage ? (
               <CheckoutPageSectionsNav />
+            ) : isAccountPage ? (
+              <AccountPageSectionsNav />
             ) : isCartPage ? (
               <CartPageSectionsNav />
             ) : isSearchPage ? (

@@ -59,6 +59,11 @@ export const SHOPIFY_RECOMMENDED_SCOPES = [
     label: 'Markets',
     description: 'Checkout Country/Region from active Markets (fallback if shipsToCountries empty)',
   },
+  {
+    handle: 'unauthenticated_read_product_listings',
+    label: 'Storefront product listings',
+    description: 'Needed so Admin API can create a Storefront access token for /account login',
+  },
 ] as const
 
 export type ShopifyRequiredScope = (typeof SHOPIFY_REQUIRED_SCOPES)[number]

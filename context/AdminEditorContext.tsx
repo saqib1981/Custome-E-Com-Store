@@ -130,6 +130,12 @@ import {
 } from '@/lib/cart'
 import { fetchCartSettings, persistCartSettings } from '@/lib/cart-client'
 import {
+  accountConfigsEqual,
+  DEFAULT_ACCOUNT,
+  type AccountConfig,
+} from '@/lib/account'
+import { fetchAccountSettings, persistAccountSettings } from '@/lib/account-client'
+import {
   DEFAULT_CHECKOUT,
   checkoutConfigsEqual,
   type CheckoutConfig,
@@ -162,6 +168,7 @@ export type AdminSectionId =
   | 'recent-products'
   | 'search'
   | 'cart'
+  | 'account'
   | 'checkout'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
@@ -333,6 +340,16 @@ type AdminEditorContextValue = {
   cartStatus: 'idle' | 'saved' | 'error'
   updateCartDraft: (patch: Partial<CartConfig>) => void
   saveCart: () => Promise<boolean>
+  accountLoading: boolean
+  accountSaving: boolean
+  accountSaved: AccountConfig
+  accountDraft: AccountConfig
+  accountDirty: boolean
+  accountStatus: 'idle' | 'saved' | 'error'
+  accountPreviewLoggedIn: boolean
+  setAccountPreviewLoggedIn: (value: boolean) => void
+  updateAccountDraft: (patch: Partial<AccountConfig>) => void
+  saveAccount: () => Promise<boolean>
   checkoutLoading: boolean
   checkoutSaving: boolean
   checkoutSaved: CheckoutConfig
@@ -631,6 +648,19 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   cartSavedRef.current = cartSaved
   const saveCartRef = useRef<() => Promise<boolean>>(async () => false)
   const cartLocalAuthorityRef = useRef(false)
+
+  const [accountSaved, setAccountSaved] = useState<AccountConfig>(DEFAULT_ACCOUNT)
+  const [accountDraft, setAccountDraft] = useState<AccountConfig>(DEFAULT_ACCOUNT)
+  const [accountLoading, setAccountLoading] = useState(true)
+  const [accountSaving, setAccountSaving] = useState(false)
+  const [accountStatus, setAccountStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const [accountPreviewLoggedIn, setAccountPreviewLoggedIn] = useState(false)
+  const accountDraftRef = useRef(accountDraft)
+  accountDraftRef.current = accountDraft
+  const accountSavedRef = useRef(accountSaved)
+  accountSavedRef.current = accountSaved
+  const saveAccountRef = useRef<() => Promise<boolean>>(async () => false)
+  const accountLocalAuthorityRef = useRef(false)
 
   const [checkoutSaved, setCheckoutSaved] = useState<CheckoutConfig>(DEFAULT_CHECKOUT)
   const [checkoutDraft, setCheckoutDraft] = useState<CheckoutConfig>(DEFAULT_CHECKOUT)
@@ -1100,6 +1130,35 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
 
+    void fetchAccountSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (accountLocalAuthorityRef.current) return
+        const dirty = !accountConfigsEqual(accountDraftRef.current, accountSavedRef.current)
+        if (dirty) return
+        setAccountSaved(data)
+        setAccountDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (accountLocalAuthorityRef.current) return
+        const dirty = !accountConfigsEqual(accountDraftRef.current, accountSavedRef.current)
+        if (dirty) return
+        setAccountSaved(DEFAULT_ACCOUNT)
+        setAccountDraft(DEFAULT_ACCOUNT)
+      })
+      .finally(() => {
+        if (!cancelled) setAccountLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
     void fetchCheckoutSettings()
       .then((data) => {
         if (cancelled) return
@@ -1330,6 +1389,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [cartSaved, cartDraft]
   )
 
+  const accountDirty = useMemo(
+    () => !accountConfigsEqual(accountSaved, accountDraft),
+    [accountSaved, accountDraft]
+  )
+
   const checkoutDirty = useMemo(
     () => !checkoutConfigsEqual(checkoutSaved, checkoutDraft),
     [checkoutSaved, checkoutDraft]
@@ -1420,6 +1484,10 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       const page = getThemePageById('cart')
       setActiveThemePageId(page.id)
       setPreviewPathState(page.path)
+    } else if (id === 'account') {
+      const page = getThemePageById('account')
+      setActiveThemePageId(page.id)
+      setPreviewPathState(page.path)
     } else if (id === 'checkout') {
       const page = getThemePageById('checkout')
       setActiveThemePageId(page.id)
@@ -1484,6 +1552,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       !cartConfigsEqual(cartSavedRef.current, cartDraftRef.current)
     ) {
       void saveCartRef.current()
+    }
+    if (
+      activeSection === 'account' &&
+      !accountConfigsEqual(accountSavedRef.current, accountDraftRef.current)
+    ) {
+      void saveAccountRef.current()
     }
     if (
       activeSection === 'checkout' &&
@@ -2104,6 +2178,37 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
 
   saveCartRef.current = saveCart
 
+  const updateAccountDraft = useCallback((patch: Partial<AccountConfig>) => {
+    setAccountDraft((prev) => {
+      const next = { ...prev, ...patch }
+      accountDraftRef.current = next
+      return next
+    })
+    setAccountStatus('idle')
+  }, [])
+
+  const saveAccount = useCallback(async () => {
+    setAccountSaving(true)
+    setAccountStatus('idle')
+    try {
+      const data = await persistAccountSettings(accountDraftRef.current)
+      accountLocalAuthorityRef.current = true
+      accountSavedRef.current = data
+      accountDraftRef.current = data
+      setAccountSaved(data)
+      setAccountDraft(data)
+      setAccountStatus('saved')
+      return true
+    } catch {
+      setAccountStatus('error')
+      return false
+    } finally {
+      setAccountSaving(false)
+    }
+  }, [])
+
+  saveAccountRef.current = saveAccount
+
   const updateCheckoutDraft = useCallback((patch: Partial<CheckoutConfig>) => {
     setCheckoutDraft((prev) => {
       const next = { ...prev, ...patch }
@@ -2518,6 +2623,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       cartStatus,
       updateCartDraft,
       saveCart,
+      accountLoading,
+      accountSaving,
+      accountSaved,
+      accountDraft,
+      accountDirty,
+      accountStatus,
+      accountPreviewLoggedIn,
+      setAccountPreviewLoggedIn,
+      updateAccountDraft,
+      saveAccount,
       checkoutLoading,
       checkoutSaving,
       checkoutSaved,
@@ -2743,6 +2858,16 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       cartStatus,
       updateCartDraft,
       saveCart,
+      accountLoading,
+      accountSaving,
+      accountSaved,
+      accountDraft,
+      accountDirty,
+      accountStatus,
+      accountPreviewLoggedIn,
+      setAccountPreviewLoggedIn,
+      updateAccountDraft,
+      saveAccount,
       checkoutLoading,
       checkoutSaving,
       checkoutSaved,

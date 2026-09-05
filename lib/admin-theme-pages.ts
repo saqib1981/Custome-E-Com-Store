@@ -51,6 +51,9 @@ export function getThemePageByPath(path: string): AdminThemePage | undefined {
   if (normalized === '/checkout') {
     return ADMIN_THEME_PAGES.find((page) => page.id === 'checkout')
   }
+  if (normalized === '/account') {
+    return ADMIN_THEME_PAGES.find((page) => page.id === 'account')
+  }
 
   return undefined
 }

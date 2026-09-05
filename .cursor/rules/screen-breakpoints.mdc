@@ -77,4 +77,4 @@ Every storefront screen and admin preview frame must look **professionally balan
 - Contained content: use container max-widths above (or Bootstrap `container` / `bootstrap-grid`).
 - Full-bleed (hero, trust banner bands, dividers): `width: 100%`; inner content may use the same edge class when needed.
 - Never invent custom breakpoint px values that conflict with this table.
-- Collection product-count badge (`.collection-card-product-count`) sizes with these breakpoints; in admin preview use `data-preview-viewport` so size follows the frame (never `vw`).
+- Collection product-count badge matches product card New/Sale badge styling (`absolute right-2 top-2 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white`); do not size it with breakpoints or `vw`.

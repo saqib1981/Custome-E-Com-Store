@@ -1,6 +1,5 @@
 import { formatMoney } from '@/lib/format-money'
 import {
-  COLLECTION_PRODUCTS_NEW_BADGE_DAYS_DEFAULT,
   COLLECTION_PRODUCTS_PAGE_SIZE,
   isProductCreatedWithinDays,
   normalizeCollectionProductsSort,
@@ -12,7 +11,7 @@ import {
   fetchShopifyCollectionProductsPage,
   type ShopifyCollectionProduct,
 } from '@/lib/shopify-collections-server'
-import { readCollectionProductsConfig } from '@/lib/collection-products-settings-server'
+import { readBadgesConfig } from '@/lib/badges-server'
 
 function isOnSale(product: ShopifyCollectionProduct): boolean {
   const price = Number(product.priceAmount)
@@ -55,8 +54,8 @@ export async function resolveCollectionProductsPage(options: {
   const rawSort = String(options.sort ?? '').trim()
   const useShopifySort = !rawSort || rawSort === 'shopify' || rawSort === 'collection-default'
   const first = options.first ?? COLLECTION_PRODUCTS_PAGE_SIZE
-  const config = await readCollectionProductsConfig()
-  const newBadgeDays = config.newBadgeDays || COLLECTION_PRODUCTS_NEW_BADGE_DAYS_DEFAULT
+  const badges = await readBadgesConfig()
+  const newBadgeDays = badges.newBadgeDays
 
   const page = await fetchShopifyCollectionProductsPage({
     collectionHandle: handle,

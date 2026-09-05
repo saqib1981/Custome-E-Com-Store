@@ -6,36 +6,40 @@ import type { CollectionProductCard } from '@/lib/collection-products'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import type { ProductPageContentWidth } from '@/lib/product-page'
 import {
-  DEFAULT_RELATED_PRODUCTS,
-  normalizeRelatedProductsConfig,
-  type RelatedProductsConfig,
-} from '@/lib/related-products'
-import { RELATED_PRODUCTS_UPDATED_EVENT } from '@/lib/related-products-client'
+  DEFAULT_RECENT_PRODUCTS,
+  normalizeRecentProductsConfig,
+  type RecentProductsConfig,
+} from '@/lib/recent-products'
+import { RECENT_PRODUCTS_UPDATED_EVENT } from '@/lib/recent-products-client'
+import {
+  readRecentlyViewedHandles,
+  RECENTLY_VIEWED_UPDATED_EVENT,
+} from '@/lib/recently-viewed-products'
 import type { BadgesConfig } from '@/lib/badges'
 import { useConfigWithBadges } from '@/components/useBadgesConfig'
 import { PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS } from '@/lib/store-section-client'
 
-type RelatedProductsProps = {
+type RecentProductsProps = {
   handle: string
   preview?: boolean
   previewViewport?: PreviewViewport
-  configOverride?: RelatedProductsConfig
+  configOverride?: RecentProductsConfig
   badgesOverride?: BadgesConfig
   contentWidth?: ProductPageContentWidth
   onPreviewNavigate?: (path: string) => void
 }
 
 function resolveProductsApi(preview: boolean): string {
-  return preview ? '/api/admin/related-products' : '/api/store/related-products'
+  return preview ? '/api/admin/recent-products' : '/api/store/recent-products'
 }
 
 function resolveSettingsApi(preview: boolean): string {
   return preview
-    ? '/api/admin/related-products-settings'
-    : '/api/store/related-products-settings'
+    ? '/api/admin/recent-products-settings'
+    : '/api/store/recent-products-settings'
 }
 
-export default function RelatedProducts({
+export default function RecentProducts({
   handle,
   preview = false,
   previewViewport,
@@ -43,14 +47,15 @@ export default function RelatedProducts({
   badgesOverride,
   contentWidth = 'full',
   onPreviewNavigate,
-}: RelatedProductsProps) {
+}: RecentProductsProps) {
   const safeHandle = String(handle ?? '').trim() || 'example'
-  const [config, setConfig] = useState<RelatedProductsConfig>(
-    () => configOverride ?? DEFAULT_RELATED_PRODUCTS
+  const [config, setConfig] = useState<RecentProductsConfig>(
+    () => configOverride ?? DEFAULT_RECENT_PRODUCTS
   )
   const displayConfig = useConfigWithBadges(config, badgesOverride)
   const [products, setProducts] = useState<CollectionProductCard[]>([])
   const [loading, setLoading] = useState(true)
+  const [viewedHandlesKey, setViewedHandlesKey] = useState(0)
   const isPreviewMode = preview || Boolean(configOverride)
 
   useEffect(() => {
@@ -62,12 +67,12 @@ export default function RelatedProducts({
 
     let cancelled = false
     void fetch(resolveSettingsApi(preview), { cache: 'no-store' })
-      .then((res) => (res.ok ? res.json() : DEFAULT_RELATED_PRODUCTS))
-      .then((data: Partial<RelatedProductsConfig>) => {
-        if (!cancelled) setConfig(normalizeRelatedProductsConfig(data))
+      .then((res) => (res.ok ? res.json() : DEFAULT_RECENT_PRODUCTS))
+      .then((data: Partial<RecentProductsConfig>) => {
+        if (!cancelled) setConfig(normalizeRecentProductsConfig(data))
       })
       .catch(() => {
-        if (!cancelled) setConfig(DEFAULT_RELATED_PRODUCTS)
+        if (!cancelled) setConfig(DEFAULT_RECENT_PRODUCTS)
       })
 
     return () => {
@@ -79,14 +84,20 @@ export default function RelatedProducts({
     if (configOverride) return
 
     const onUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<RelatedProductsConfig>).detail
+      const detail = (event as CustomEvent<RecentProductsConfig>).detail
       if (!detail) return
-      setConfig(normalizeRelatedProductsConfig(detail))
+      setConfig(normalizeRecentProductsConfig(detail))
     }
 
-    window.addEventListener(RELATED_PRODUCTS_UPDATED_EVENT, onUpdated)
-    return () => window.removeEventListener(RELATED_PRODUCTS_UPDATED_EVENT, onUpdated)
+    window.addEventListener(RECENT_PRODUCTS_UPDATED_EVENT, onUpdated)
+    return () => window.removeEventListener(RECENT_PRODUCTS_UPDATED_EVENT, onUpdated)
   }, [configOverride])
+
+  useEffect(() => {
+    const onViewed = () => setViewedHandlesKey((n) => n + 1)
+    window.addEventListener(RECENTLY_VIEWED_UPDATED_EVENT, onViewed)
+    return () => window.removeEventListener(RECENTLY_VIEWED_UPDATED_EVENT, onViewed)
+  }, [])
 
   useEffect(() => {
     if (!config.enabled && !isPreviewMode) {
@@ -97,9 +108,21 @@ export default function RelatedProducts({
 
     let cancelled = false
     const timer = window.setTimeout(() => {
+      const viewedHandles = readRecentlyViewedHandles({
+        exclude: safeHandle,
+        limit: config.limit,
+      })
+
+      if (!viewedHandles.length) {
+        setProducts([])
+        setLoading(false)
+        return
+      }
+
       setLoading(true)
+      const handlesParam = encodeURIComponent(viewedHandles.join(','))
       void fetch(
-        `${resolveProductsApi(preview)}?handle=${encodeURIComponent(safeHandle)}&limit=${config.limit}`,
+        `${resolveProductsApi(preview)}?handle=${encodeURIComponent(safeHandle)}&handles=${handlesParam}&limit=${config.limit}`,
         { cache: 'no-store' }
       )
         .then((res) => (res.ok ? res.json() : null))
@@ -107,13 +130,13 @@ export default function RelatedProducts({
           (
             data: {
               products?: CollectionProductCard[]
-              config?: RelatedProductsConfig
+              config?: RecentProductsConfig
             } | null
           ) => {
             if (cancelled || !data) return
             if (Array.isArray(data.products)) setProducts(data.products)
             if (!configOverride && data.config) {
-              setConfig(normalizeRelatedProductsConfig(data.config))
+              setConfig(normalizeRecentProductsConfig(data.config))
             }
           }
         )
@@ -138,6 +161,7 @@ export default function RelatedProducts({
     isPreviewMode,
     preview,
     safeHandle,
+    viewedHandlesKey,
   ])
 
   if (!config.enabled && !isPreviewMode) return null

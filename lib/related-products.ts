@@ -1,5 +1,17 @@
 import type { CollectionProductCardAspect } from '@/lib/collection-products'
 
+/** Shared shape for related / recent product card grids on the PDP. */
+export type ProductCardsSectionConfig = {
+  enabled: boolean
+  heading: string
+  limit: 4 | 8 | 12
+  columnsDesktop: 2 | 3 | 4
+  cardImageAspect: CollectionProductCardAspect
+  showSaleBadge: boolean
+  showNewBadge: boolean
+  newBadgeDays: number
+}
+
 export const RELATED_PRODUCTS_SETTING_KEY = 'related-products'
 
 export type RelatedProductsLimit = 4 | 8 | 12
@@ -81,9 +93,6 @@ export function relatedProductsConfigsEqual(
     a.heading === b.heading &&
     a.limit === b.limit &&
     a.columnsDesktop === b.columnsDesktop &&
-    a.cardImageAspect === b.cardImageAspect &&
-    a.showSaleBadge === b.showSaleBadge &&
-    a.showNewBadge === b.showNewBadge &&
-    a.newBadgeDays === b.newBadgeDays
+    a.cardImageAspect === b.cardImageAspect
   )
 }

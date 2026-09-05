@@ -1,8 +1,8 @@
-import { Image, MessageCircle, Palette } from 'lucide-react'
+import { Image, MessageCircle, Palette, Tag } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 /** Keys under Supabase `store_settings` for site-wide theme options. */
-export type AdminGlobalSettingId = 'general' | 'logo-favicon' | 'floating-buttons'
+export type AdminGlobalSettingId = 'general' | 'logo-favicon' | 'floating-buttons' | 'badges'
 
 export type AdminGlobalSettingItem = {
   id: AdminGlobalSettingId
@@ -23,6 +23,12 @@ export const GLOBAL_SETTINGS_ITEMS: AdminGlobalSettingItem[] = [
     name: 'Logo and favicon',
     description: 'Logo, favicon, and logo width',
     icon: Image,
+  },
+  {
+    id: 'badges',
+    name: 'Badges',
+    description: 'Sale and New badges store-wide',
+    icon: Tag,
   },
   {
     id: 'floating-buttons',

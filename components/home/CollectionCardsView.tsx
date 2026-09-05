@@ -70,7 +70,7 @@ function CollectionCardMedia({
     >
       {showCountBadge ? (
         <span
-          className="collection-card-product-count absolute"
+          className="absolute right-2 top-2 z-10 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white"
           aria-label={`${card.productCount} products`}
         >
           {card.productCount}

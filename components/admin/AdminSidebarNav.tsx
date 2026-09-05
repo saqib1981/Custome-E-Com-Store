@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Clock,
   LayoutGrid,
   LayoutPanelTop,
   Megaphone,
@@ -240,6 +241,22 @@ function ProductPageSectionsNav() {
       >
         <LayoutGrid className="h-4 w-4 shrink-0" aria-hidden />
         Related products
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('home-divider-after-related-products')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Minus className="h-4 w-4 shrink-0" aria-hidden />
+        Divider
+      </button>
+      <button
+        type="button"
+        onClick={() => openSection('recent-products')}
+        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-gray-700 transition-colors hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+      >
+        <Clock className="h-4 w-4 shrink-0" aria-hidden />
+        Recent products
       </button>
       <button
         type="button"

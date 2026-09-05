@@ -64,6 +64,18 @@ values (
 )
 on conflict (key) do nothing;
 
+-- Default global Sale / New badges
+insert into public.store_settings (key, value)
+values (
+  'badges',
+  jsonb_build_object(
+    'showSaleBadge', true,
+    'showNewBadge', true,
+    'newBadgeDays', 30
+  )
+)
+on conflict (key) do nothing;
+
 alter table public.store_settings enable row level security;
 
 -- No public policies: reads/writes go through Next.js API using the service role key.

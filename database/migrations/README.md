@@ -41,11 +41,14 @@ Run these in **Supabase → SQL Editor** in order.
 | 35 | [`036-product-page-content-width.sql`](./036-product-page-content-width.sql) | Old DB — product page Full / Container / Stretch width |
 | 36 | [`037-related-products.sql`](./037-related-products.sql) | Old DB — related products section on PDP |
 | 37 | [`038-home-divider-after-product.sql`](./038-home-divider-after-product.sql) | Old DB — divider between product details and related products |
+| 38 | [`039-home-divider-after-related-products.sql`](./039-home-divider-after-related-products.sql) | Old DB — divider below related products on PDP |
+| 39 | [`040-recent-products.sql`](./040-recent-products.sql) | Old DB — recent products section on PDP |
+| 40 | [`041-badges.sql`](./041-badges.sql) | Old DB — global Sale / New badge settings |
 
 ## Fresh install
 
-Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`038`**.
+Run **`store-settings.sql`** then **`005-store-assets-bucket.sql`**, then **`029`** + **`030`**, then **`031`**–**`041`**.
 
 ## Already have `store_settings`?
 
-Run any migrations you have not applied yet (002 → 038). **030 is required** if saves show “saved” but reload restores old toggles.
+Run any migrations you have not applied yet (002 → 040). **030 is required** if saves show “saved” but reload restores old toggles.

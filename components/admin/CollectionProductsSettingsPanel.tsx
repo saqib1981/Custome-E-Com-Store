@@ -45,51 +45,9 @@ export default function CollectionProductsSettingsPanel() {
             className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
           />
         </label>
-        <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Sale badge</span>
-          <input
-            type="checkbox"
-            checked={collectionProductsDraft.showSaleBadge}
-            onChange={(e) => updateCollectionProductsDraft({ showSaleBadge: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-          />
-        </label>
-        <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">New badge</span>
-          <input
-            type="checkbox"
-            checked={collectionProductsDraft.showNewBadge}
-            onChange={(e) => updateCollectionProductsDraft({ showNewBadge: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-          />
-        </label>
-        {collectionProductsDraft.showNewBadge ? (
-          <label className="mt-2 block">
-            <span className="mb-1 block text-sm font-medium text-gray-800 dark:text-gray-200">
-              New for (days)
-            </span>
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={collectionProductsDraft.newBadgeDays}
-              onChange={(e) => {
-                const raw = e.target.value
-                if (raw === '') return
-                const parsed = Number(raw)
-                if (!Number.isFinite(parsed)) return
-                updateCollectionProductsDraft({
-                  newBadgeDays: Math.min(365, Math.max(1, Math.round(parsed))),
-                })
-              }}
-              className={inputClass}
-            />
-            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-              Shows on products created in this window, or tagged <code>new</code> in Shopify.
-              Click <strong>Save</strong> to push to Supabase. Position: left. Sale stays on the right.
-            </p>
-          </label>
-        ) : null}
+        <p className="pb-2 text-xs text-gray-500 dark:text-gray-400">
+          Sale and New badges are managed in Global settings → Badges.
+        </p>
       </SettingsCollapsibleSection>
 
       <SettingsCollapsibleSection title="Grid layout" defaultOpen>

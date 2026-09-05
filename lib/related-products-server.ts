@@ -15,6 +15,8 @@ import {
   normalizeRelatedProductsConfig,
   type RelatedProductsConfig,
 } from '@/lib/related-products'
+import { applyBadgesConfig } from '@/lib/badges'
+import { readBadgesConfig } from '@/lib/badges-server'
 import { isProductPagePreviewPlaceholder } from '@/lib/product-page'
 import { fetchShopifyProductByHandle } from '@/lib/shopify-product-server'
 
@@ -100,7 +102,8 @@ export async function resolveRelatedProducts(
   options?: { limit?: number }
 ): Promise<ResolvedRelatedProducts> {
   const config = await readRelatedProductsConfig()
-  const normalized = normalizeRelatedProductsConfig(config)
+  const badges = await readBadgesConfig()
+  const normalized = applyBadgesConfig(normalizeRelatedProductsConfig(config), badges)
   const limitOverride = Number(options?.limit)
   if (limitOverride === 4 || limitOverride === 8 || limitOverride === 12) {
     normalized.limit = limitOverride

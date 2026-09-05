@@ -278,3 +278,32 @@ export function HomeDividerAfterProductSettingsPanel() {
     />
   )
 }
+
+export function HomeDividerAfterRelatedProductsSettingsPanel() {
+  const {
+    closeSection,
+    homeDividerAfterRelatedProductsDraft,
+    homeDividerAfterRelatedProductsDirty,
+    homeDividerAfterRelatedProductsSaving,
+    homeDividerAfterRelatedProductsStatus,
+    updateHomeDividerAfterRelatedProductsDraft,
+    saveHomeDividerAfterRelatedProducts,
+  } = useAdminEditor()
+
+  return (
+    <DividerSettingsPanel
+      title="Divider"
+      subtitle="Line below related products (before footer)"
+      idPrefix="home-divider-after-related-products"
+      gapTopLabel="Gap above line (after related products)"
+      gapBottomLabel="Gap below line (before footer)"
+      draft={homeDividerAfterRelatedProductsDraft}
+      dirty={homeDividerAfterRelatedProductsDirty}
+      saving={homeDividerAfterRelatedProductsSaving}
+      status={homeDividerAfterRelatedProductsStatus}
+      onUpdate={updateHomeDividerAfterRelatedProductsDraft}
+      onSave={() => void saveHomeDividerAfterRelatedProducts()}
+      onBack={closeSection}
+    />
+  )
+}

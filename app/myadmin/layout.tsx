@@ -12,6 +12,7 @@ import HomeDividerSettingsPanel, {
   HomeDividerAfterTabsSettingsPanel,
   HomeDividerAfterTrustBannerSettingsPanel,
   HomeDividerAfterProductSettingsPanel,
+  HomeDividerAfterRelatedProductsSettingsPanel,
 } from '@/components/admin/HomeDividerSettingsPanel'
 import CollectionCardsSettingsPanel from '@/components/admin/CollectionCardsSettingsPanel'
 import CollectionTabsSettingsPanel from '@/components/admin/CollectionTabsSettingsPanel'
@@ -21,6 +22,7 @@ import CollectionsListSettingsPanel from '@/components/admin/CollectionsListSett
 import CollectionProductsSettingsPanel from '@/components/admin/CollectionProductsSettingsPanel'
 import ProductPageSettingsPanel from '@/components/admin/ProductPageSettingsPanel'
 import RelatedProductsSettingsPanel from '@/components/admin/RelatedProductsSettingsPanel'
+import RecentProductsSettingsPanel from '@/components/admin/RecentProductsSettingsPanel'
 import SearchSettingsPanel from '@/components/admin/SearchSettingsPanel'
 import CartSettingsPanel from '@/components/admin/CartSettingsPanel'
 import CheckoutSettingsPanel from '@/components/admin/CheckoutSettingsPanel'
@@ -79,6 +81,10 @@ function AdminSidebarPanel() {
     return <HomeDividerAfterProductSettingsPanel />
   }
 
+  if (activeSection === 'home-divider-after-related-products') {
+    return <HomeDividerAfterRelatedProductsSettingsPanel />
+  }
+
   if (activeSection === 'store-footer') {
     return <StoreFooterSettingsPanel />
   }
@@ -97,6 +103,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'related-products') {
     return <RelatedProductsSettingsPanel />
+  }
+
+  if (activeSection === 'recent-products') {
+    return <RecentProductsSettingsPanel />
   }
 
   if (activeSection === 'search') {

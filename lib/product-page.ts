@@ -133,7 +133,6 @@ export function productPageConfigsEqual(a: ProductPageConfig, b: ProductPageConf
   return (
     a.enabled === b.enabled &&
     a.contentWidth === b.contentWidth &&
-    a.showSaleBadge === b.showSaleBadge &&
     a.showDeliveryEstimate === b.showDeliveryEstimate &&
     a.deliveryEstimateText === b.deliveryEstimateText &&
     a.showFreeShippingNote === b.showFreeShippingNote &&

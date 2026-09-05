@@ -170,10 +170,7 @@ export function collectionProductsConfigsEqual(
     a.cardImageAspect === b.cardImageAspect &&
     a.pageSize === b.pageSize &&
     a.paginationMode === b.paginationMode &&
-    a.defaultSort === b.defaultSort &&
-    a.showSaleBadge === b.showSaleBadge &&
-    a.showNewBadge === b.showNewBadge &&
-    a.newBadgeDays === b.newBadgeDays
+    a.defaultSort === b.defaultSort
   )
 }
 

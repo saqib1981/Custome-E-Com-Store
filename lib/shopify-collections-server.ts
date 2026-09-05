@@ -619,3 +619,75 @@ export async function fetchShopifyCollectionWithProducts(
   })
   return { collection: page.collection, products: page.products }
 }
+
+/** Fetch product cards by handle, preserving request order. Missing handles are skipped. */
+export async function fetchShopifyProductsByHandles(
+  handles: string[]
+): Promise<{ products: ShopifyCollectionProduct[]; error?: string }> {
+  if (!isShopifyConfigured()) {
+    return { products: [], error: 'Shopify is not configured' }
+  }
+
+  const access = await ensureProductsReadAccess()
+  if (!access.ok) {
+    return {
+      products: [],
+      error:
+        access.message ??
+        'Shopify denied product access. Enable read_products on this store app.',
+    }
+  }
+
+  const seen = new Set<string>()
+  const unique: string[] = []
+  for (const raw of handles) {
+    const handle = String(raw ?? '').trim()
+    if (!handle) continue
+    const key = handle.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(handle)
+    if (unique.length >= 24) break
+  }
+
+  if (!unique.length) return { products: [] }
+
+  const varDecls = unique.map((_, i) => `$h${i}: String!`).join(', ')
+  const selections = unique
+    .map(
+      (_, i) => `
+      p${i}: productByHandle(handle: $h${i}) {
+        ${PRODUCT_CARD_FIELDS}
+      }`
+    )
+    .join('\n')
+  const variables: Record<string, string> = {}
+  unique.forEach((handle, i) => {
+    variables[`h${i}`] = handle
+  })
+
+  try {
+    const data = await shopifyAdminGraphql<Record<string, ShopifyProductCardNode | null>>(
+      `
+        query ProductsByHandles(${varDecls}) {
+          ${selections}
+        }
+      `,
+      variables
+    )
+
+    const products: ShopifyCollectionProduct[] = []
+    for (let i = 0; i < unique.length; i++) {
+      const node = data[`p${i}`]
+      if (!node?.id || !node.handle) continue
+      products.push(mapCollectionProduct(node))
+    }
+    return { products }
+  } catch (e) {
+    console.error('fetchShopifyProductsByHandles error:', e)
+    return {
+      products: [],
+      error: e instanceof Error ? e.message : 'Failed to load products by handle',
+    }
+  }
+}

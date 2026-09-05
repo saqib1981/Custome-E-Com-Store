@@ -91,6 +91,9 @@ export default function AdminStorePreview() {
     homeDividerAfterProductDraft,
     homeDividerAfterProductSaved,
     homeDividerAfterProductLoading,
+    homeDividerAfterRelatedProductsDraft,
+    homeDividerAfterRelatedProductsSaved,
+    homeDividerAfterRelatedProductsLoading,
     storeFooterDraft,
     storeFooterSaved,
     storeFooterLoading,
@@ -106,6 +109,9 @@ export default function AdminStorePreview() {
     relatedProductsDraft,
     relatedProductsSaved,
     relatedProductsLoading,
+    recentProductsDraft,
+    recentProductsSaved,
+    recentProductsLoading,
     searchDraft,
     searchSaved,
     searchLoading,
@@ -121,6 +127,9 @@ export default function AdminStorePreview() {
     floatingButtonsDraft,
     floatingButtonsSaved,
     floatingButtonsLoading,
+    badgesDraft,
+    badgesSaved,
+    badgesLoading,
     previewViewport,
     previewPath,
     setPreviewPath,
@@ -137,17 +146,21 @@ export default function AdminStorePreview() {
   const isEditingTrustBanner = activeSection === 'trust-banner'
   const isEditingHomeDividerAfterTrustBanner = activeSection === 'home-divider-after-trust-banner'
   const isEditingHomeDividerAfterProduct = activeSection === 'home-divider-after-product'
+  const isEditingHomeDividerAfterRelatedProducts =
+    activeSection === 'home-divider-after-related-products'
   const isEditingStoreFooter = activeSection === 'store-footer'
   const isEditingCollectionsList = activeSection === 'collections-list'
   const isEditingCollectionProducts = activeSection === 'collection-products'
   const isEditingProductPage = activeSection === 'product-page'
   const isEditingRelatedProducts = activeSection === 'related-products'
+  const isEditingRecentProducts = activeSection === 'recent-products'
   const isEditingSearch = activeSection === 'search'
   const isEditingCart = activeSection === 'cart'
   const isEditingCheckout = activeSection === 'checkout'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
+  const isEditingBadges = activeGlobalSetting === 'badges'
   const announcementPreview = isEditingAnnouncement ? announcementDraft : announcementSaved
   const logoFaviconPreview =
     isEditingHeader || isEditingLogoFavicon ? logoFaviconDraft : logoFaviconSaved
@@ -169,6 +182,9 @@ export default function AdminStorePreview() {
   const homeDividerAfterProductPreview = isEditingHomeDividerAfterProduct
     ? homeDividerAfterProductDraft
     : homeDividerAfterProductSaved
+  const homeDividerAfterRelatedProductsPreview = isEditingHomeDividerAfterRelatedProducts
+    ? homeDividerAfterRelatedProductsDraft
+    : homeDividerAfterRelatedProductsSaved
   const storeFooterPreview = isEditingStoreFooter ? storeFooterDraft : storeFooterSaved
   const collectionsListPreview = isEditingCollectionsList ? collectionsListDraft : collectionsListSaved
   const collectionProductsPreview = isEditingCollectionProducts
@@ -178,6 +194,9 @@ export default function AdminStorePreview() {
   const relatedProductsPreview = isEditingRelatedProducts
     ? relatedProductsDraft
     : relatedProductsSaved
+  const recentProductsPreview = isEditingRecentProducts
+    ? recentProductsDraft
+    : recentProductsSaved
   const searchPreview = isEditingSearch ? searchDraft : searchSaved
   const cartPreview = isEditingCart ? cartDraft : cartSaved
   const checkoutPreview = isEditingCheckout ? checkoutDraft : checkoutSaved
@@ -187,6 +206,7 @@ export default function AdminStorePreview() {
   const floatingButtonsPreview = isEditingFloatingButtons
     ? floatingButtonsDraft
     : floatingButtonsSaved
+  const badgesPreview = isEditingBadges ? badgesDraft : badgesSaved
   const isLoading =
     announcementLoading ||
     logoFaviconLoading ||
@@ -200,16 +220,19 @@ export default function AdminStorePreview() {
     trustBannerLoading ||
     homeDividerAfterTrustBannerLoading ||
     homeDividerAfterProductLoading ||
+    homeDividerAfterRelatedProductsLoading ||
     storeFooterLoading ||
     collectionsListLoading ||
     collectionProductsLoading ||
     productPageLoading ||
     relatedProductsLoading ||
+    recentProductsLoading ||
     searchLoading ||
     cartLoading ||
     checkoutLoading ||
     generalSettingsLoading ||
-    floatingButtonsLoading
+    floatingButtonsLoading ||
+    badgesLoading
 
   const menuSelection = isEditingHeader ? headerNavDraft : headerNavSaved
 
@@ -376,6 +399,7 @@ export default function AdminStorePreview() {
                 preview
                 previewViewport={previewViewport}
                 configOverride={collectionProductsPreview}
+                badgesOverride={badgesPreview}
                 onPreviewNavigate={setPreviewPath}
               />
             ) : productPreviewHandle ? (
@@ -385,7 +409,10 @@ export default function AdminStorePreview() {
                 previewViewport={previewViewport}
                 configOverride={productPagePreview}
                 relatedProductsOverride={relatedProductsPreview}
+                recentProductsOverride={recentProductsPreview}
+                badgesOverride={badgesPreview}
                 dividerAfterProductOverride={homeDividerAfterProductPreview}
+                dividerAfterRelatedProductsOverride={homeDividerAfterRelatedProductsPreview}
                 onPreviewNavigate={setPreviewPath}
               />
             ) : isSearchPreview ? (

@@ -67,15 +67,9 @@ export default function ProductPageSettingsPanel() {
             className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
           />
         </label>
-        <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
-          <span className="text-sm font-medium text-gray-800 dark:text-gray-200">Sale badge</span>
-          <input
-            type="checkbox"
-            checked={productPageDraft.showSaleBadge}
-            onChange={(e) => updateProductPageDraft({ showSaleBadge: e.target.checked })}
-            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-          />
-        </label>
+        <p className="pb-1 text-xs text-gray-500 dark:text-gray-400">
+          Sale badge is managed in Global settings → Badges.
+        </p>
         <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
           <span className="text-sm font-medium text-gray-800 dark:text-gray-200">SKU</span>
           <input

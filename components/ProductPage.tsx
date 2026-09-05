@@ -3,18 +3,25 @@
 import { useEffect, useState } from 'react'
 import ProductPageView from '@/components/products/ProductPageView'
 import RelatedProducts from '@/components/RelatedProducts'
+import RecentProducts from '@/components/RecentProducts'
 import HomeDividerAfterProduct from '@/components/HomeDividerAfterProduct'
+import HomeDividerAfterRelatedProducts from '@/components/HomeDividerAfterRelatedProducts'
 import {
   DEFAULT_PRODUCT_PAGE,
+  isProductPagePreviewPlaceholder,
   normalizeProductPageConfig,
   type ProductPageConfig,
   type ProductPageData,
 } from '@/lib/product-page'
 import { PRODUCT_PAGE_UPDATED_EVENT } from '@/lib/product-page-client'
+import { recordRecentlyViewedProduct } from '@/lib/recently-viewed-products'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import { PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS } from '@/lib/store-section-client'
 import type { RelatedProductsConfig } from '@/lib/related-products'
+import type { RecentProductsConfig } from '@/lib/recent-products'
 import type { HomeDividerConfig } from '@/lib/home-divider'
+import type { BadgesConfig } from '@/lib/badges'
+import { useConfigWithBadges } from '@/components/useBadgesConfig'
 
 type ProductPageProps = {
   handle: string
@@ -22,7 +29,10 @@ type ProductPageProps = {
   previewViewport?: PreviewViewport
   configOverride?: ProductPageConfig
   relatedProductsOverride?: RelatedProductsConfig
+  recentProductsOverride?: RecentProductsConfig
+  badgesOverride?: BadgesConfig
   dividerAfterProductOverride?: HomeDividerConfig
+  dividerAfterRelatedProductsOverride?: HomeDividerConfig
   onPreviewNavigate?: (path: string) => void
 }
 
@@ -52,13 +62,17 @@ export default function ProductPage({
   previewViewport,
   configOverride,
   relatedProductsOverride,
+  recentProductsOverride,
+  badgesOverride,
   dividerAfterProductOverride,
+  dividerAfterRelatedProductsOverride,
   onPreviewNavigate,
 }: ProductPageProps) {
   const safeHandle = String(handle ?? '').trim() || 'example'
   const [config, setConfig] = useState<ProductPageConfig>(() =>
     configOverride ?? DEFAULT_PRODUCT_PAGE
   )
+  const displayConfig = useConfigWithBadges(config, badgesOverride)
   const [product, setProduct] = useState<ProductPageData>(EMPTY_PRODUCT)
   const [loading, setLoading] = useState(true)
 
@@ -139,6 +153,19 @@ export default function ProductPage({
     }
   }, [config.enabled, configOverride, isPreviewMode, preview, safeHandle])
 
+  useEffect(() => {
+    if (isProductPagePreviewPlaceholder(safeHandle)) return
+    recordRecentlyViewedProduct(safeHandle)
+  }, [safeHandle])
+
+  useEffect(() => {
+    const resolved = String(product.handle ?? '').trim()
+    if (!resolved || product.error) return
+    if (isProductPagePreviewPlaceholder(resolved)) return
+    if (resolved.toLowerCase() === safeHandle.toLowerCase()) return
+    recordRecentlyViewedProduct(resolved)
+  }, [product.error, product.handle, safeHandle])
+
   if (!config.enabled && !isPreviewMode) return null
 
   const relatedHandle = product.handle || safeHandle
@@ -147,7 +174,7 @@ export default function ProductPage({
     <>
       <ProductPageView
         product={product}
-        config={config}
+        config={displayConfig}
         loading={loading}
         preview={preview}
         previewViewport={previewViewport}
@@ -159,7 +186,18 @@ export default function ProductPage({
         preview={preview}
         previewViewport={previewViewport}
         configOverride={relatedProductsOverride}
-        contentWidth={config.contentWidth}
+        badgesOverride={badgesOverride}
+        contentWidth={displayConfig.contentWidth}
+        onPreviewNavigate={onPreviewNavigate}
+      />
+      <HomeDividerAfterRelatedProducts configOverride={dividerAfterRelatedProductsOverride} />
+      <RecentProducts
+        handle={relatedHandle}
+        preview={preview}
+        previewViewport={previewViewport}
+        configOverride={recentProductsOverride}
+        badgesOverride={badgesOverride}
+        contentWidth={displayConfig.contentWidth}
         onPreviewNavigate={onPreviewNavigate}
       />
     </>

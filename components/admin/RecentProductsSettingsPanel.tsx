@@ -5,44 +5,44 @@ import { SettingsCollapsibleSection } from '@/components/admin/LogoFaviconFields
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import type { CollectionProductCardAspect } from '@/lib/collection-products'
 import {
-  RELATED_PRODUCTS_LIMIT_OPTIONS,
-  type RelatedProductsColumns,
-  type RelatedProductsLimit,
-} from '@/lib/related-products'
+  RECENT_PRODUCTS_LIMIT_OPTIONS,
+  type RecentProductsColumns,
+  type RecentProductsLimit,
+} from '@/lib/recent-products'
 
 const inputClass =
   'w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100'
 
-export default function RelatedProductsSettingsPanel() {
+export default function RecentProductsSettingsPanel() {
   const {
     closeSection,
-    relatedProductsDraft,
-    relatedProductsDirty,
-    relatedProductsSaving,
-    relatedProductsStatus,
-    updateRelatedProductsDraft,
-    saveRelatedProducts,
+    recentProductsDraft,
+    recentProductsDirty,
+    recentProductsSaving,
+    recentProductsStatus,
+    updateRecentProductsDraft,
+    saveRecentProducts,
   } = useAdminEditor()
 
   return (
     <AdminPanelShell
-      title="Related products"
-      subtitle="Shown below the product details on /products/…"
+      title="Recent products"
+      subtitle="Products the shopper already viewed, below related products on /products/…"
       onBack={closeSection}
-      onSave={() => void saveRelatedProducts()}
-      saveDisabled={!relatedProductsDirty}
-      saving={relatedProductsSaving}
-      status={relatedProductsStatus}
+      onSave={() => void saveRecentProducts()}
+      saveDisabled={!recentProductsDirty}
+      saving={recentProductsSaving}
+      status={recentProductsStatus}
     >
       <SettingsCollapsibleSection title="Visibility" defaultOpen>
         <label className="flex cursor-pointer items-center justify-between gap-3 py-2">
           <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
-            Show related products
+            Show recent products
           </span>
           <input
             type="checkbox"
-            checked={relatedProductsDraft.enabled}
-            onChange={(e) => updateRelatedProductsDraft({ enabled: e.target.checked })}
+            checked={recentProductsDraft.enabled}
+            onChange={(e) => updateRecentProductsDraft({ enabled: e.target.checked })}
             className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
           />
         </label>
@@ -52,8 +52,8 @@ export default function RelatedProductsSettingsPanel() {
           </span>
           <input
             type="text"
-            value={relatedProductsDraft.heading}
-            onChange={(e) => updateRelatedProductsDraft({ heading: e.target.value })}
+            value={recentProductsDraft.heading}
+            onChange={(e) => updateRecentProductsDraft({ heading: e.target.value })}
             className={inputClass}
           />
         </label>
@@ -64,15 +64,15 @@ export default function RelatedProductsSettingsPanel() {
           Products to show
         </label>
         <select
-          value={String(relatedProductsDraft.limit)}
+          value={String(recentProductsDraft.limit)}
           onChange={(e) =>
-            updateRelatedProductsDraft({
-              limit: Number(e.target.value) as RelatedProductsLimit,
+            updateRecentProductsDraft({
+              limit: Number(e.target.value) as RecentProductsLimit,
             })
           }
           className={`${inputClass} mb-4`}
         >
-          {RELATED_PRODUCTS_LIMIT_OPTIONS.map((n) => (
+          {RECENT_PRODUCTS_LIMIT_OPTIONS.map((n) => (
             <option key={n} value={n}>
               {n} products
             </option>
@@ -83,10 +83,10 @@ export default function RelatedProductsSettingsPanel() {
           Columns on desktop
         </label>
         <select
-          value={String(relatedProductsDraft.columnsDesktop)}
+          value={String(recentProductsDraft.columnsDesktop)}
           onChange={(e) =>
-            updateRelatedProductsDraft({
-              columnsDesktop: Number(e.target.value) as RelatedProductsColumns,
+            updateRecentProductsDraft({
+              columnsDesktop: Number(e.target.value) as RecentProductsColumns,
             })
           }
           className={`${inputClass} mb-4`}
@@ -100,9 +100,9 @@ export default function RelatedProductsSettingsPanel() {
           Card image size
         </label>
         <select
-          value={relatedProductsDraft.cardImageAspect}
+          value={recentProductsDraft.cardImageAspect}
           onChange={(e) =>
-            updateRelatedProductsDraft({
+            updateRecentProductsDraft({
               cardImageAspect: e.target.value as CollectionProductCardAspect,
             })
           }
@@ -113,9 +113,9 @@ export default function RelatedProductsSettingsPanel() {
           <option value="landscape">Landscape</option>
         </select>
         <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-          Related products come from the current product&apos;s collection (fallback: recent
-          products). Click <strong>Save</strong> to push to Supabase. Sale and New badges are in
-          Global settings → Badges.
+          Shows products this browser already opened (excluding the current product). Click{' '}
+          <strong>Save</strong> to push to Supabase. Sale and New badges are in Global settings →
+          Badges.
         </p>
       </SettingsCollapsibleSection>
     </AdminPanelShell>

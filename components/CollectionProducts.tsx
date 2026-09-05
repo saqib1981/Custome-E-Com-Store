@@ -15,6 +15,8 @@ import {
 import {
   COLLECTION_PRODUCTS_UPDATED_EVENT,
 } from '@/lib/collection-products-client'
+import type { BadgesConfig } from '@/lib/badges'
+import { useConfigWithBadges } from '@/components/useBadgesConfig'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import { PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS } from '@/lib/store-section-client'
 
@@ -23,6 +25,7 @@ type CollectionProductsProps = {
   preview?: boolean
   previewViewport?: PreviewViewport
   configOverride?: CollectionProductsConfig
+  badgesOverride?: BadgesConfig
   onPreviewNavigate?: (path: string) => void
 }
 
@@ -55,12 +58,14 @@ export default function CollectionProducts({
   preview = false,
   previewViewport,
   configOverride,
+  badgesOverride,
   onPreviewNavigate,
 }: CollectionProductsProps) {
   const safeHandle = String(handle ?? '').trim() || 'all'
   const [config, setConfig] = useState<CollectionProductsConfig>(() =>
     configOverride ?? DEFAULT_COLLECTION_PRODUCTS
   )
+  const displayConfig = useConfigWithBadges(config, badgesOverride)
   const [title, setTitle] = useState(safeHandle === 'all' ? 'All products' : safeHandle)
   const [productCount, setProductCount] = useState(0)
   const [products, setProducts] = useState<CollectionProductCard[]>([])
@@ -184,7 +189,7 @@ export default function CollectionProducts({
       sortRef.current = 'shopify'
       void fetchPage({ sortValue: 'shopify', after: null })
         .then((data) => {
-          if (!cancelled) applyPage(data, false, config.newBadgeDays)
+          if (!cancelled) applyPage(data, false, displayConfig.newBadgeDays)
         })
         .catch(() => {
           if (cancelled) return
@@ -203,11 +208,11 @@ export default function CollectionProducts({
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [applyPage, config.enabled, config.pageSize, fetchPage, isPreviewMode, safeHandle])
+  }, [applyPage, config.enabled, config.pageSize, displayConfig.newBadgeDays, fetchPage, isPreviewMode, safeHandle])
 
   const displayProducts = useMemo(
-    () => withResolvedNewBadges(products, config.newBadgeDays),
-    [products, config.newBadgeDays]
+    () => withResolvedNewBadges(products, displayConfig.newBadgeDays),
+    [products, displayConfig.newBadgeDays]
   )
 
   const handleSortChange = (nextSort: CollectionProductsSort) => {
@@ -218,7 +223,7 @@ export default function CollectionProducts({
     setCursorStack([null])
     setPageIndex(0)
     void fetchPage({ sortValue: nextSort, after: null })
-      .then((data) => applyPage(data, false, config.newBadgeDays))
+      .then((data) => applyPage(data, false, displayConfig.newBadgeDays))
       .catch(() => setError('Could not sort products.'))
       .finally(() => setLoading(false))
   }
@@ -227,7 +232,7 @@ export default function CollectionProducts({
     if (!hasMore || !endCursor || loadMoreLoading) return
     setLoadMoreLoading(true)
     void fetchPage({ after: endCursor })
-      .then((data) => applyPage(data, true, config.newBadgeDays))
+      .then((data) => applyPage(data, true, displayConfig.newBadgeDays))
       .catch(() => setError('Could not load more products.'))
       .finally(() => setLoadMoreLoading(false))
   }
@@ -238,7 +243,7 @@ export default function CollectionProducts({
     const nextAfter = endCursor
     void fetchPage({ after: nextAfter })
       .then((data) => {
-        applyPage(data, false, config.newBadgeDays)
+        applyPage(data, false, displayConfig.newBadgeDays)
         setCursorStack((prev) => [...prev.slice(0, pageIndex + 1), nextAfter])
         setPageIndex((prev) => prev + 1)
       })
@@ -253,7 +258,7 @@ export default function CollectionProducts({
     setLoadMoreLoading(true)
     void fetchPage({ after })
       .then((data) => {
-        applyPage(data, false, config.newBadgeDays)
+        applyPage(data, false, displayConfig.newBadgeDays)
         setPageIndex(prevIndex)
       })
       .catch(() => setError('Could not load previous page.'))
@@ -284,8 +289,8 @@ export default function CollectionProducts({
           ? 'Products section is hidden. Enable it in Collection → Products.'
           : error
       }
-      showSaleBadge={config.showSaleBadge}
-      showNewBadge={config.showNewBadge}
+      showSaleBadge={displayConfig.showSaleBadge}
+      showNewBadge={displayConfig.showNewBadge}
       imageAspect={config.cardImageAspect}
       preview={preview}
       previewViewport={previewViewport}

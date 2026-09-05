@@ -30,6 +30,16 @@ import {
   persistFloatingButtons,
 } from '@/lib/floating-buttons-client'
 import {
+  badgesConfigsEqual,
+  DEFAULT_BADGES,
+  type BadgesConfig,
+} from '@/lib/badges'
+import {
+  BADGES_AUTOSAVE_MS,
+  fetchBadgesSettings,
+  persistBadgesSettings,
+} from '@/lib/badges-client'
+import {
   DEFAULT_HEADER_NAV_SETTINGS,
   menuHighlightsEqual,
   type HeaderNavSettingsConfig,
@@ -99,6 +109,15 @@ import {
   persistRelatedProductsSettings,
 } from '@/lib/related-products-client'
 import {
+  DEFAULT_RECENT_PRODUCTS,
+  recentProductsConfigsEqual,
+  type RecentProductsConfig,
+} from '@/lib/recent-products'
+import {
+  fetchRecentProductsSettings,
+  persistRecentProductsSettings,
+} from '@/lib/recent-products-client'
+import {
   DEFAULT_SEARCH,
   searchConfigsEqual,
   type SearchConfig,
@@ -134,11 +153,13 @@ export type AdminSectionId =
   | 'trust-banner'
   | 'home-divider-after-trust-banner'
   | 'home-divider-after-product'
+  | 'home-divider-after-related-products'
   | 'store-footer'
   | 'collections-list'
   | 'collection-products'
   | 'product-page'
   | 'related-products'
+  | 'recent-products'
   | 'search'
   | 'cart'
   | 'checkout'
@@ -237,6 +258,14 @@ type AdminEditorContextValue = {
   homeDividerAfterProductStatus: 'idle' | 'saved' | 'error'
   updateHomeDividerAfterProductDraft: (patch: Partial<HomeDividerConfig>) => void
   saveHomeDividerAfterProduct: () => Promise<boolean>
+  homeDividerAfterRelatedProductsLoading: boolean
+  homeDividerAfterRelatedProductsSaving: boolean
+  homeDividerAfterRelatedProductsSaved: HomeDividerConfig
+  homeDividerAfterRelatedProductsDraft: HomeDividerConfig
+  homeDividerAfterRelatedProductsDirty: boolean
+  homeDividerAfterRelatedProductsStatus: 'idle' | 'saved' | 'error'
+  updateHomeDividerAfterRelatedProductsDraft: (patch: Partial<HomeDividerConfig>) => void
+  saveHomeDividerAfterRelatedProducts: () => Promise<boolean>
   storeFooterLoading: boolean
   storeFooterSaving: boolean
   storeFooterSaved: StoreFooterConfig
@@ -280,6 +309,14 @@ type AdminEditorContextValue = {
   relatedProductsStatus: 'idle' | 'saved' | 'error'
   updateRelatedProductsDraft: (patch: Partial<RelatedProductsConfig>) => void
   saveRelatedProducts: () => Promise<boolean>
+  recentProductsLoading: boolean
+  recentProductsSaving: boolean
+  recentProductsSaved: RecentProductsConfig
+  recentProductsDraft: RecentProductsConfig
+  recentProductsDirty: boolean
+  recentProductsStatus: 'idle' | 'saved' | 'error'
+  updateRecentProductsDraft: (patch: Partial<RecentProductsConfig>) => void
+  saveRecentProducts: () => Promise<boolean>
   searchLoading: boolean
   searchSaving: boolean
   searchSaved: SearchConfig
@@ -342,6 +379,14 @@ type AdminEditorContextValue = {
   floatingButtonsStatus: 'idle' | 'saved' | 'error'
   updateFloatingButtonsDraft: (patch: Partial<FloatingButtonsConfig>) => void
   saveFloatingButtons: () => Promise<boolean>
+  badgesLoading: boolean
+  badgesSaving: boolean
+  badgesSaved: BadgesConfig
+  badgesDraft: BadgesConfig
+  badgesDirty: boolean
+  badgesStatus: 'idle' | 'saved' | 'error'
+  updateBadgesDraft: (patch: Partial<BadgesConfig>) => void
+  saveBadges: () => Promise<boolean>
   previewViewport: PreviewViewport
   setPreviewViewport: (viewport: PreviewViewport) => void
   activeThemePageId: AdminThemePageId
@@ -473,6 +518,17 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     'idle' | 'saved' | 'error'
   >('idle')
 
+  const [homeDividerAfterRelatedProductsSaved, setHomeDividerAfterRelatedProductsSaved] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterRelatedProductsDraft, setHomeDividerAfterRelatedProductsDraft] =
+    useState<HomeDividerConfig>(DEFAULT_HOME_DIVIDER)
+  const [homeDividerAfterRelatedProductsLoading, setHomeDividerAfterRelatedProductsLoading] =
+    useState(true)
+  const [homeDividerAfterRelatedProductsSaving, setHomeDividerAfterRelatedProductsSaving] =
+    useState(false)
+  const [homeDividerAfterRelatedProductsStatus, setHomeDividerAfterRelatedProductsStatus] =
+    useState<'idle' | 'saved' | 'error'>('idle')
+
   const [storeFooterSaved, setStoreFooterSaved] = useState<StoreFooterConfig>(DEFAULT_STORE_FOOTER)
   const [storeFooterDraft, setStoreFooterDraft] = useState<StoreFooterConfig>(DEFAULT_STORE_FOOTER)
   const [storeFooterLoading, setStoreFooterLoading] = useState(true)
@@ -535,6 +591,22 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   relatedProductsSavedRef.current = relatedProductsSaved
   const saveRelatedProductsRef = useRef<() => Promise<boolean>>(async () => false)
   const relatedProductsLocalAuthorityRef = useRef(false)
+
+  const [recentProductsSaved, setRecentProductsSaved] =
+    useState<RecentProductsConfig>(DEFAULT_RECENT_PRODUCTS)
+  const [recentProductsDraft, setRecentProductsDraft] =
+    useState<RecentProductsConfig>(DEFAULT_RECENT_PRODUCTS)
+  const [recentProductsLoading, setRecentProductsLoading] = useState(true)
+  const [recentProductsSaving, setRecentProductsSaving] = useState(false)
+  const [recentProductsStatus, setRecentProductsStatus] = useState<'idle' | 'saved' | 'error'>(
+    'idle'
+  )
+  const recentProductsDraftRef = useRef(recentProductsDraft)
+  recentProductsDraftRef.current = recentProductsDraft
+  const recentProductsSavedRef = useRef(recentProductsSaved)
+  recentProductsSavedRef.current = recentProductsSaved
+  const saveRecentProductsRef = useRef<() => Promise<boolean>>(async () => false)
+  const recentProductsLocalAuthorityRef = useRef(false)
 
   const [searchSaved, setSearchSaved] = useState<SearchConfig>(DEFAULT_SEARCH)
   const [searchDraft, setSearchDraft] = useState<SearchConfig>(DEFAULT_SEARCH)
@@ -605,6 +677,17 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const floatingButtonsSavedRef = useRef(floatingButtonsSaved)
   floatingButtonsSavedRef.current = floatingButtonsSaved
   const saveFloatingButtonsRef = useRef<() => Promise<boolean>>(async () => false)
+
+  const [badgesSaved, setBadgesSaved] = useState<BadgesConfig>(DEFAULT_BADGES)
+  const [badgesDraft, setBadgesDraft] = useState<BadgesConfig>(DEFAULT_BADGES)
+  const [badgesLoading, setBadgesLoading] = useState(true)
+  const [badgesSaving, setBadgesSaving] = useState(false)
+  const [badgesStatus, setBadgesStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const badgesDraftRef = useRef(badgesDraft)
+  badgesDraftRef.current = badgesDraft
+  const badgesSavedRef = useRef(badgesSaved)
+  badgesSavedRef.current = badgesSaved
+  const saveBadgesRef = useRef<() => Promise<boolean>>(async () => false)
 
   const [headerNavSaved, setHeaderNavSaved] =
     useState<HeaderNavSettingsConfig>(DEFAULT_HEADER_NAV_SETTINGS)
@@ -775,6 +858,20 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    void fetch('/api/admin/home-divider-after-related-products', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : DEFAULT_HOME_DIVIDER))
+      .then((data: HomeDividerConfig) => {
+        setHomeDividerAfterRelatedProductsSaved(data)
+        setHomeDividerAfterRelatedProductsDraft(data)
+      })
+      .catch(() => {
+        setHomeDividerAfterRelatedProductsSaved(DEFAULT_HOME_DIVIDER)
+        setHomeDividerAfterRelatedProductsDraft(DEFAULT_HOME_DIVIDER)
+      })
+      .finally(() => setHomeDividerAfterRelatedProductsLoading(false))
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/store-footer', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_STORE_FOOTER))
       .then((data: StoreFooterConfig) => {
@@ -900,6 +997,41 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         if (!cancelled) setRelatedProductsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void fetchRecentProductsSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (recentProductsLocalAuthorityRef.current) return
+        const dirty = !recentProductsConfigsEqual(
+          recentProductsDraftRef.current,
+          recentProductsSavedRef.current
+        )
+        if (dirty) return
+        setRecentProductsSaved(data)
+        setRecentProductsDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (recentProductsLocalAuthorityRef.current) return
+        const dirty = !recentProductsConfigsEqual(
+          recentProductsDraftRef.current,
+          recentProductsSavedRef.current
+        )
+        if (dirty) return
+        setRecentProductsSaved(DEFAULT_RECENT_PRODUCTS)
+        setRecentProductsDraft(DEFAULT_RECENT_PRODUCTS)
+      })
+      .finally(() => {
+        if (!cancelled) setRecentProductsLoading(false)
       })
 
     return () => {
@@ -1052,6 +1184,33 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    void fetchBadgesSettings()
+      .then((data) => {
+        if (cancelled) return
+        setBadgesSaved(data)
+        setBadgesDraft((prev) =>
+          badgesConfigsEqual(prev, badgesSavedRef.current) ? data : prev
+        )
+      })
+      .catch(() => {
+        if (cancelled) return
+        setBadgesSaved(DEFAULT_BADGES)
+        setBadgesDraft((prev) =>
+          badgesConfigsEqual(prev, badgesSavedRef.current) ? DEFAULT_BADGES : prev
+        )
+      })
+      .finally(() => {
+        if (!cancelled) setBadgesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/header-settings', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_HEADER_NAV_SETTINGS))
       .then((data: HeaderNavSettingsConfig) => {
@@ -1122,6 +1281,15 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [homeDividerAfterProductSaved, homeDividerAfterProductDraft]
   )
 
+  const homeDividerAfterRelatedProductsDirty = useMemo(
+    () =>
+      !homeDividerConfigsEqual(
+        homeDividerAfterRelatedProductsSaved,
+        homeDividerAfterRelatedProductsDraft
+      ),
+    [homeDividerAfterRelatedProductsSaved, homeDividerAfterRelatedProductsDraft]
+  )
+
   const storeFooterDirty = useMemo(
     () => !storeFooterConfigsEqual(storeFooterSaved, storeFooterDraft),
     [storeFooterSaved, storeFooterDraft]
@@ -1145,6 +1313,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const relatedProductsDirty = useMemo(
     () => !relatedProductsConfigsEqual(relatedProductsSaved, relatedProductsDraft),
     [relatedProductsSaved, relatedProductsDraft]
+  )
+
+  const recentProductsDirty = useMemo(
+    () => !recentProductsConfigsEqual(recentProductsSaved, recentProductsDraft),
+    [recentProductsSaved, recentProductsDraft]
   )
 
   const searchDirty = useMemo(
@@ -1175,6 +1348,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   const floatingButtonsDirty = useMemo(
     () => !floatingButtonsConfigsEqual(floatingButtonsSaved, floatingButtonsDraft),
     [floatingButtonsSaved, floatingButtonsDraft]
+  )
+
+  const badgesDirty = useMemo(
+    () => !badgesConfigsEqual(badgesSaved, badgesDraft),
+    [badgesSaved, badgesDraft]
   )
 
   const headerNavDirty = useMemo(
@@ -1224,7 +1402,9 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     } else if (
       id === 'product-page' ||
       id === 'related-products' ||
-      id === 'home-divider-after-product'
+      id === 'recent-products' ||
+      id === 'home-divider-after-product' ||
+      id === 'home-divider-after-related-products'
     ) {
       const page = getThemePageById('product')
       setActiveThemePageId(page.id)
@@ -1285,6 +1465,15 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       void saveRelatedProductsRef.current()
     }
     if (
+      activeSection === 'recent-products' &&
+      !recentProductsConfigsEqual(
+        recentProductsSavedRef.current,
+        recentProductsDraftRef.current
+      )
+    ) {
+      void saveRecentProductsRef.current()
+    }
+    if (
       activeSection === 'search' &&
       !searchConfigsEqual(searchSavedRef.current, searchDraftRef.current)
     ) {
@@ -1311,6 +1500,7 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     setCollectionProductsStatus('idle')
     setProductPageStatus('idle')
     setRelatedProductsStatus('idle')
+    setRecentProductsStatus('idle')
   }, [activeSection])
 
   const openGlobalSetting = useCallback((id: AdminGlobalSettingId) => {
@@ -1327,6 +1517,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       !floatingButtonsConfigsEqual(floatingButtonsSavedRef.current, floatingButtonsDraftRef.current)
     ) {
       void saveFloatingButtonsRef.current()
+    }
+    if (
+      activeGlobalSetting === 'badges' &&
+      !badgesConfigsEqual(badgesSavedRef.current, badgesDraftRef.current)
+    ) {
+      void saveBadgesRef.current()
     }
     setActiveGlobalSetting(null)
     setLogoFaviconStatus('idle')
@@ -1620,6 +1816,37 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     }
   }, [homeDividerAfterProductDraft])
 
+  const updateHomeDividerAfterRelatedProductsDraft = useCallback(
+    (patch: Partial<HomeDividerConfig>) => {
+      setHomeDividerAfterRelatedProductsDraft((prev) => ({ ...prev, ...patch }))
+      setHomeDividerAfterRelatedProductsStatus('idle')
+    },
+    []
+  )
+
+  const saveHomeDividerAfterRelatedProducts = useCallback(async () => {
+    setHomeDividerAfterRelatedProductsSaving(true)
+    setHomeDividerAfterRelatedProductsStatus('idle')
+    try {
+      const res = await fetch('/api/admin/home-divider-after-related-products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(homeDividerAfterRelatedProductsDraft),
+      })
+      if (!res.ok) throw new Error('Save failed')
+      const data = (await res.json()) as HomeDividerConfig
+      setHomeDividerAfterRelatedProductsSaved(data)
+      setHomeDividerAfterRelatedProductsDraft(data)
+      setHomeDividerAfterRelatedProductsStatus('saved')
+      return true
+    } catch {
+      setHomeDividerAfterRelatedProductsStatus('error')
+      return false
+    } finally {
+      setHomeDividerAfterRelatedProductsSaving(false)
+    }
+  }, [homeDividerAfterRelatedProductsDraft])
+
   const updateStoreFooterDraft = useCallback((patch: Partial<StoreFooterConfig>) => {
     setStoreFooterDraft((prev) => ({ ...prev, ...patch }))
     setStoreFooterStatus('idle')
@@ -1783,6 +2010,37 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   saveRelatedProductsRef.current = saveRelatedProducts
+
+  const updateRecentProductsDraft = useCallback((patch: Partial<RecentProductsConfig>) => {
+    setRecentProductsDraft((prev) => {
+      const next = { ...prev, ...patch }
+      recentProductsDraftRef.current = next
+      return next
+    })
+    setRecentProductsStatus('idle')
+  }, [])
+
+  const saveRecentProducts = useCallback(async () => {
+    setRecentProductsSaving(true)
+    setRecentProductsStatus('idle')
+    try {
+      const data = await persistRecentProductsSettings(recentProductsDraftRef.current)
+      recentProductsLocalAuthorityRef.current = true
+      recentProductsSavedRef.current = data
+      recentProductsDraftRef.current = data
+      setRecentProductsSaved(data)
+      setRecentProductsDraft(data)
+      setRecentProductsStatus('saved')
+      return true
+    } catch {
+      setRecentProductsStatus('error')
+      return false
+    } finally {
+      setRecentProductsSaving(false)
+    }
+  }, [])
+
+  saveRecentProductsRef.current = saveRecentProducts
 
   const updateSearchDraft = useCallback((patch: Partial<SearchConfig>) => {
     setSearchDraft((prev) => {
@@ -2007,6 +2265,41 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(timer)
   }, [activeGlobalSetting, floatingButtonsDraft, floatingButtonsDirty])
 
+  const updateBadgesDraft = useCallback((patch: Partial<BadgesConfig>) => {
+    setBadgesDraft((prev) => ({ ...prev, ...patch }))
+    setBadgesStatus('idle')
+  }, [])
+
+  const saveBadges = useCallback(async () => {
+    setBadgesSaving(true)
+    setBadgesStatus('idle')
+    try {
+      const data = await persistBadgesSettings(badgesDraftRef.current)
+      setBadgesSaved(data)
+      setBadgesDraft(data)
+      setBadgesStatus('saved')
+      return true
+    } catch {
+      setBadgesStatus('error')
+      return false
+    } finally {
+      setBadgesSaving(false)
+    }
+  }, [])
+
+  saveBadgesRef.current = saveBadges
+
+  useEffect(() => {
+    if (activeGlobalSetting !== 'badges') return
+    if (!badgesDirty) return
+
+    const timer = window.setTimeout(() => {
+      void saveBadgesRef.current()
+    }, BADGES_AUTOSAVE_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [activeGlobalSetting, badgesDraft, badgesDirty])
+
   const updateHeaderNavDraft = useCallback((patch: Partial<HeaderNavSettingsConfig>) => {
     setHeaderNavDraft((prev) => ({ ...prev, ...patch }))
     setHeaderNavStatus('idle')
@@ -2150,6 +2443,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerAfterProductStatus,
       updateHomeDividerAfterProductDraft,
       saveHomeDividerAfterProduct,
+      homeDividerAfterRelatedProductsLoading,
+      homeDividerAfterRelatedProductsSaving,
+      homeDividerAfterRelatedProductsSaved,
+      homeDividerAfterRelatedProductsDraft,
+      homeDividerAfterRelatedProductsDirty,
+      homeDividerAfterRelatedProductsStatus,
+      updateHomeDividerAfterRelatedProductsDraft,
+      saveHomeDividerAfterRelatedProducts,
       storeFooterLoading,
       storeFooterSaving,
       storeFooterSaved,
@@ -2193,6 +2494,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       relatedProductsStatus,
       updateRelatedProductsDraft,
       saveRelatedProducts,
+      recentProductsLoading,
+      recentProductsSaving,
+      recentProductsSaved,
+      recentProductsDraft,
+      recentProductsDirty,
+      recentProductsStatus,
+      updateRecentProductsDraft,
+      saveRecentProducts,
       searchLoading,
       searchSaving,
       searchSaved,
@@ -2255,6 +2564,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       floatingButtonsStatus,
       updateFloatingButtonsDraft,
       saveFloatingButtons,
+      badgesLoading,
+      badgesSaving,
+      badgesSaved,
+      badgesDraft,
+      badgesDirty,
+      badgesStatus,
+      updateBadgesDraft,
+      saveBadges,
       previewViewport,
       setPreviewViewport,
       activeThemePageId,
@@ -2351,6 +2668,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       homeDividerAfterProductStatus,
       updateHomeDividerAfterProductDraft,
       saveHomeDividerAfterProduct,
+      homeDividerAfterRelatedProductsLoading,
+      homeDividerAfterRelatedProductsSaving,
+      homeDividerAfterRelatedProductsSaved,
+      homeDividerAfterRelatedProductsDraft,
+      homeDividerAfterRelatedProductsDirty,
+      homeDividerAfterRelatedProductsStatus,
+      updateHomeDividerAfterRelatedProductsDraft,
+      saveHomeDividerAfterRelatedProducts,
       storeFooterLoading,
       storeFooterSaving,
       storeFooterSaved,
@@ -2394,6 +2719,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       relatedProductsStatus,
       updateRelatedProductsDraft,
       saveRelatedProducts,
+      recentProductsLoading,
+      recentProductsSaving,
+      recentProductsSaved,
+      recentProductsDraft,
+      recentProductsDirty,
+      recentProductsStatus,
+      updateRecentProductsDraft,
+      saveRecentProducts,
       searchLoading,
       searchSaving,
       searchSaved,
@@ -2456,6 +2789,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       floatingButtonsStatus,
       updateFloatingButtonsDraft,
       saveFloatingButtons,
+      badgesLoading,
+      badgesSaving,
+      badgesSaved,
+      badgesDraft,
+      badgesDirty,
+      badgesStatus,
+      updateBadgesDraft,
+      saveBadges,
       previewViewport,
       activeThemePageId,
       previewPath,

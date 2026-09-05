@@ -5,11 +5,11 @@ import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
 import type { CollectionProductCard } from '@/lib/collection-products'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import type { ProductPageContentWidth } from '@/lib/product-page'
-import type { RelatedProductsConfig } from '@/lib/related-products'
+import type { ProductCardsSectionConfig } from '@/lib/related-products'
 import { isPreviewMobileLayout } from '@/lib/preview-viewport'
 
 type RelatedProductsViewProps = {
-  config: RelatedProductsConfig
+  config: ProductCardsSectionConfig
   products: CollectionProductCard[]
   loading?: boolean
   preview?: boolean
@@ -43,7 +43,7 @@ function widthClass(
 }
 
 function gridClass(
-  columns: RelatedProductsConfig['columnsDesktop'],
+  columns: ProductCardsSectionConfig['columnsDesktop'],
   preview: boolean,
   previewViewport?: PreviewViewport
 ): string {

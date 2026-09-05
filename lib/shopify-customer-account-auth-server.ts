@@ -260,7 +260,7 @@ export async function fetchCustomerAccountProfile(
             formatted
           }
         }
-        orders(first: 20) {
+        orders(first: 20, reverse: true) {
           nodes {
             id
             name
@@ -360,6 +360,14 @@ export async function fetchCustomerAccountProfile(
       } satisfies AccountOrder
     })
     .filter((o): o is AccountOrder => Boolean(o))
+    .sort((a, b) => {
+      const ta = Date.parse(a.processedAt)
+      const tb = Date.parse(b.processedAt)
+      if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return tb - ta
+      const na = Number(String(a.name).replace(/\D/g, '')) || 0
+      const nb = Number(String(b.name).replace(/\D/g, '')) || 0
+      return nb - na
+    })
 
   return {
     id: node.id,

@@ -13,7 +13,7 @@ import {
   fetchStoreAccountSettings,
 } from '@/lib/account-client'
 import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
-import { orderNameToPathSegment, writeOrderAccess } from '@/lib/orders'
+import { orderNameToPathSegment, writeOrderAccess, formatOrderPaymentLabel, formatOrderFulfillmentLabel } from '@/lib/orders'
 
 type AccountViewMode = 'login' | 'account'
 
@@ -351,10 +351,10 @@ export default function AccountPageView({
                             {formatOrderDate(order.processedAt)}
                           </td>
                           <td className="py-2.5 pr-4 text-gray-700">
-                            {order.financialStatus || '—'}
+                            {formatOrderPaymentLabel(order.financialStatus) || '—'}
                           </td>
                           <td className="py-2.5 pr-4 text-gray-700">
-                            {order.fulfillmentStatus || '—'}
+                            {formatOrderFulfillmentLabel(order.fulfillmentStatus) || '—'}
                           </td>
                           <td className="py-2.5 text-gray-900">{order.totalPrice || '—'}</td>
                         </tr>

@@ -16,6 +16,7 @@ import type { StoreNavItem } from '@/lib/shopify-menu'
 type StoreNavbarProps = {
   onOpenMenu?: () => void
   onOpenSearch?: () => void
+  onOpenCart?: () => void
   cartCount?: number
   previewViewport?: PreviewViewport
   previewPath?: string
@@ -31,6 +32,7 @@ const iconButtonClass =
 export default function StoreNavbar({
   onOpenMenu,
   onOpenSearch,
+  onOpenCart,
   cartCount = 0,
   previewViewport,
   previewPath = '/',
@@ -139,20 +141,36 @@ export default function StoreNavbar({
           <button type="button" className={`${iconButtonClass} ${accountButtonClass}`} aria-label="Account">
             <User className="h-4 w-4" strokeWidth={2} />
           </button>
-          <StoreNavLink
-            href="/cart"
-            previewMode={inPreview}
-            onPreviewNavigate={onPreviewNavigate}
-            className={`${iconButtonClass} relative`}
-            aria-label="Cart"
-          >
-            <ShoppingBag className="h-4 w-4" strokeWidth={2} />
-            {cartCount > 0 ? (
-              <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-semibold leading-none text-white">
-                {cartCount > 99 ? '99+' : cartCount}
-              </span>
-            ) : null}
-          </StoreNavLink>
+          {onOpenCart ? (
+            <button
+              type="button"
+              onClick={onOpenCart}
+              className={`${iconButtonClass} relative`}
+              aria-label="Cart"
+            >
+              <ShoppingBag className="h-4 w-4" strokeWidth={2} />
+              {cartCount > 0 ? (
+                <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-semibold leading-none text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              ) : null}
+            </button>
+          ) : (
+            <StoreNavLink
+              href="/cart"
+              previewMode={inPreview}
+              onPreviewNavigate={onPreviewNavigate}
+              className={`${iconButtonClass} relative`}
+              aria-label="Cart"
+            >
+              <ShoppingBag className="h-4 w-4" strokeWidth={2} />
+              {cartCount > 0 ? (
+                <span className="absolute right-2 top-2 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-semibold leading-none text-white">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              ) : null}
+            </StoreNavLink>
+          )}
         </div>
       </div>
 

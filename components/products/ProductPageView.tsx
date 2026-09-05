@@ -7,8 +7,10 @@ import {
   type ProductPageData,
   type ProductPageVariant,
 } from '@/lib/product-page'
+import { parseDisplayPriceAmount } from '@/lib/cart'
 import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
 import type { PreviewViewport } from '@/lib/preview-viewport'
+import { useCartOptional } from '@/context/CartContext'
 
 type ProductPageViewProps = {
   product: ProductPageData
@@ -53,6 +55,7 @@ export default function ProductPageView({
   const [descriptionOpen, setDescriptionOpen] = useState(false)
   const [imageFailed, setImageFailed] = useState(false)
   const [addedNote, setAddedNote] = useState(false)
+  const cart = useCartOptional()
 
   useEffect(() => {
     const initial: Record<string, string> = {}
@@ -96,9 +99,73 @@ export default function ProductPageView({
   }
 
   const handleAddToCart = () => {
-    if (!inStock) return
+    if (!inStock || !selectedVariant) return
+
+    cart?.addToCart(
+      {
+        variantId: selectedVariant.id,
+        productId: product.id,
+        handle: product.handle,
+        title: product.title,
+        variantTitle: selectedVariant.title,
+        selectedOptions: selectedVariant.selectedOptions,
+        imageUrl: selectedVariant.imageUrl || product.images[0]?.url || '',
+        imageAlt: product.images[0]?.alt || product.title,
+        price: selectedVariant.price,
+        compareAtPrice: selectedVariant.compareAtPrice,
+        priceAmount: parseDisplayPriceAmount(selectedVariant.price),
+        available: selectedVariant.available,
+        quantity,
+      },
+      { openDrawer: true }
+    )
+
     setAddedNote(true)
     window.setTimeout(() => setAddedNote(false), 2200)
+  }
+
+  const handleBuyNow = async () => {
+    if (!inStock || !selectedVariant) return
+
+    const line = {
+      variantId: selectedVariant.id,
+      productId: product.id,
+      handle: product.handle,
+      title: product.title,
+      variantTitle: selectedVariant.title,
+      selectedOptions: selectedVariant.selectedOptions,
+      imageUrl: selectedVariant.imageUrl || product.images[0]?.url || '',
+      imageAlt: product.images[0]?.alt || product.title,
+      price: selectedVariant.price,
+      compareAtPrice: selectedVariant.compareAtPrice,
+      priceAmount: parseDisplayPriceAmount(selectedVariant.price),
+      available: selectedVariant.available,
+      quantity,
+    }
+
+    cart?.addToCart(line, { openDrawer: false })
+
+    try {
+      const res = await fetch('/api/store/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lines: [{ ...line, quantity }],
+        }),
+      })
+      const data = (await res.json()) as { url?: string }
+      if (data.url) {
+        if (preview) {
+          window.open(data.url, '_blank', 'noopener,noreferrer')
+        } else {
+          window.location.href = data.url
+        }
+        return
+      }
+    } catch {
+      // fall through to drawer
+    }
+    cart?.openDrawer()
   }
 
   if (loading) {
@@ -387,7 +454,7 @@ export default function ProductPageView({
             <button
               type="button"
               disabled={!inStock}
-              onClick={handleAddToCart}
+              onClick={() => void handleBuyNow()}
               className="mt-2.5 h-11 w-full rounded-md border-2 border-gray-900 bg-white px-5 text-sm font-semibold text-gray-900 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
             >
               {config.buyNowLabel}

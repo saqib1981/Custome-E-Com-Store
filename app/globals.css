@@ -392,3 +392,14 @@ body {
   white-space: nowrap;
   max-width: 100%;
 }
+
+/* Free-shipping progress fill — subtle diagonal stripes like reference */
+.cart-free-ship-fill {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.18) 0,
+    rgba(255, 255, 255, 0.18) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+}

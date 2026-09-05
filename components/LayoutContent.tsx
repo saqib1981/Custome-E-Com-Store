@@ -9,17 +9,19 @@ import StoreFooter from './StoreFooter'
 import AnnouncementBar from './AnnouncementBar'
 import StoreFavicon from './StoreFavicon'
 import SearchPopup from './search/SearchPopup'
+import CartDrawer from './cart/CartDrawer'
 import { StoreThemeProvider, useStoreTheme } from '@/context/StoreThemeContext'
+import { CartProvider, useCart } from '@/context/CartContext'
 
 function StoreShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { generalSettings, logoFavicon } = useStoreTheme()
+  const { itemCount, openDrawer } = useCart()
   const [navOpen, setNavOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
 
   useEffect(() => {
     setNavOpen(false)
-    // Search page has its own results UI — don't force the popup open there.
     setSearchOpen(false)
   }, [pathname])
 
@@ -31,11 +33,17 @@ function StoreShell({ children }: { children: React.ReactNode }) {
       <StoreFavicon faviconUrl={logoFavicon.faviconUrl} />
       <AnnouncementBar />
       <Sidebar open={navOpen} onClose={() => setNavOpen(false)} />
-      <StoreNavbar onOpenMenu={() => setNavOpen(true)} onOpenSearch={() => setSearchOpen(true)} />
+      <StoreNavbar
+        onOpenMenu={() => setNavOpen(true)}
+        onOpenSearch={() => setSearchOpen(true)}
+        onOpenCart={openDrawer}
+        cartCount={itemCount}
+      />
       <main className="flex-1">{children}</main>
       <StoreFooter />
       <StoreFloatingButtons pathname={pathname} />
       <SearchPopup open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <CartDrawer />
     </div>
   )
 }
@@ -45,11 +53,13 @@ export default function LayoutContent({ children }: { children: React.ReactNode 
 
   return (
     <StoreThemeProvider>
-      {pathname.startsWith('/myadmin') ? (
-        <>{children}</>
-      ) : (
-        <StoreShell>{children}</StoreShell>
-      )}
+      <CartProvider>
+        {pathname.startsWith('/myadmin') ? (
+          <>{children}</>
+        ) : (
+          <StoreShell>{children}</StoreShell>
+        )}
+      </CartProvider>
     </StoreThemeProvider>
   )
 }

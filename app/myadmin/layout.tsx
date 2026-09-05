@@ -20,6 +20,7 @@ import CollectionsListSettingsPanel from '@/components/admin/CollectionsListSett
 import CollectionProductsSettingsPanel from '@/components/admin/CollectionProductsSettingsPanel'
 import ProductPageSettingsPanel from '@/components/admin/ProductPageSettingsPanel'
 import SearchSettingsPanel from '@/components/admin/SearchSettingsPanel'
+import CartSettingsPanel from '@/components/admin/CartSettingsPanel'
 import GlobalSettingPanel from '@/components/admin/GlobalSettingPanel'
 import AdminLightMode from '@/components/admin/AdminLightMode'
 import PreviewViewportSwitcher from '@/components/admin/PreviewViewportSwitcher'
@@ -89,6 +90,10 @@ function AdminSidebarPanel() {
 
   if (activeSection === 'search') {
     return <SearchSettingsPanel />
+  }
+
+  if (activeSection === 'cart') {
+    return <CartSettingsPanel />
   }
 
   if (activeGlobalSetting) {

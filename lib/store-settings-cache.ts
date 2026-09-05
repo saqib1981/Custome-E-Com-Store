@@ -8,6 +8,7 @@ export const STORE_SETTINGS_CACHE_KEYS = [
   'store-floating-buttons-v1',
   'store-floating-buttons-v2',
   'store-search-v1',
+  'store-cart-settings-v1',
 ] as const
 
 /** Drop all known settings caches (call once on admin boot). */

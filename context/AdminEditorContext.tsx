@@ -95,6 +95,12 @@ import {
   type SearchConfig,
 } from '@/lib/search'
 import { fetchSearchSettings, persistSearchSettings } from '@/lib/search-client'
+import {
+  DEFAULT_CART,
+  cartConfigsEqual,
+  type CartConfig,
+} from '@/lib/cart'
+import { fetchCartSettings, persistCartSettings } from '@/lib/cart-client'
 import { clearStoreSettingsBrowserCaches } from '@/lib/store-settings-cache'
 import { DEFAULT_LOGO_FAVICON, type LogoFaviconConfig } from '@/lib/logo-favicon'
 import { uploadAdminStoreAsset } from '@/lib/admin-store-upload'
@@ -117,6 +123,7 @@ export type AdminSectionId =
   | 'collection-products'
   | 'product-page'
   | 'search'
+  | 'cart'
 export type AdminSidebarTab = 'sections' | 'global'
 export type LogoFaviconUploadFolder = 'favicon' | 'logo' | 'logo-transparent'
 
@@ -247,6 +254,14 @@ type AdminEditorContextValue = {
   searchStatus: 'idle' | 'saved' | 'error'
   updateSearchDraft: (patch: Partial<SearchConfig>) => void
   saveSearch: () => Promise<boolean>
+  cartLoading: boolean
+  cartSaving: boolean
+  cartSaved: CartConfig
+  cartDraft: CartConfig
+  cartDirty: boolean
+  cartStatus: 'idle' | 'saved' | 'error'
+  updateCartDraft: (patch: Partial<CartConfig>) => void
+  saveCart: () => Promise<boolean>
   logoFaviconLoading: boolean
   logoFaviconSaving: boolean
   logoFaviconSaved: LogoFaviconConfig
@@ -464,6 +479,18 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   searchSavedRef.current = searchSaved
   const saveSearchRef = useRef<() => Promise<boolean>>(async () => false)
   const searchLocalAuthorityRef = useRef(false)
+
+  const [cartSaved, setCartSaved] = useState<CartConfig>(DEFAULT_CART)
+  const [cartDraft, setCartDraft] = useState<CartConfig>(DEFAULT_CART)
+  const [cartLoading, setCartLoading] = useState(true)
+  const [cartSaving, setCartSaving] = useState(false)
+  const [cartStatus, setCartStatus] = useState<'idle' | 'saved' | 'error'>('idle')
+  const cartDraftRef = useRef(cartDraft)
+  cartDraftRef.current = cartDraft
+  const cartSavedRef = useRef(cartSaved)
+  cartSavedRef.current = cartSaved
+  const saveCartRef = useRef<() => Promise<boolean>>(async () => false)
+  const cartLocalAuthorityRef = useRef(false)
 
   const [logoFaviconSaved, setLogoFaviconSaved] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
   const [logoFaviconDraft, setLogoFaviconDraft] = useState<LogoFaviconConfig>(DEFAULT_LOGO_FAVICON)
@@ -781,6 +808,35 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+
+    void fetchCartSettings()
+      .then((data) => {
+        if (cancelled) return
+        if (cartLocalAuthorityRef.current) return
+        const dirty = !cartConfigsEqual(cartDraftRef.current, cartSavedRef.current)
+        if (dirty) return
+        setCartSaved(data)
+        setCartDraft(data)
+      })
+      .catch(() => {
+        if (cancelled) return
+        if (cartLocalAuthorityRef.current) return
+        const dirty = !cartConfigsEqual(cartDraftRef.current, cartSavedRef.current)
+        if (dirty) return
+        setCartSaved(DEFAULT_CART)
+        setCartDraft(DEFAULT_CART)
+      })
+      .finally(() => {
+        if (!cancelled) setCartLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
     void fetch('/api/admin/logo-favicon', { cache: 'no-store' })
       .then((res) => (res.ok ? res.json() : DEFAULT_LOGO_FAVICON))
       .then((data: LogoFaviconConfig) => {
@@ -928,6 +984,11 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
     [searchSaved, searchDraft]
   )
 
+  const cartDirty = useMemo(
+    () => !cartConfigsEqual(cartSaved, cartDraft),
+    [cartSaved, cartDraft]
+  )
+
   const logoFaviconDirty = useMemo(
     () => !configsEqual(logoFaviconSaved, logoFaviconDraft),
     [logoFaviconSaved, logoFaviconDraft]
@@ -998,6 +1059,10 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       const page = getThemePageById('search')
       setActiveThemePageId(page.id)
       setPreviewPathState(page.path)
+    } else if (id === 'cart') {
+      const page = getThemePageById('cart')
+      setActiveThemePageId(page.id)
+      setPreviewPathState(page.path)
     } else if (homepageOnlySections.includes(id)) {
       const page = getThemePageById('home')
       setActiveThemePageId(page.id)
@@ -1034,6 +1099,12 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       !searchConfigsEqual(searchSavedRef.current, searchDraftRef.current)
     ) {
       void saveSearchRef.current()
+    }
+    if (
+      activeSection === 'cart' &&
+      !cartConfigsEqual(cartSavedRef.current, cartDraftRef.current)
+    ) {
+      void saveCartRef.current()
     }
     setActiveSection(null)
     setAnnouncementStatus('idle')
@@ -1488,6 +1559,37 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
 
   saveSearchRef.current = saveSearch
 
+  const updateCartDraft = useCallback((patch: Partial<CartConfig>) => {
+    setCartDraft((prev) => {
+      const next = { ...prev, ...patch }
+      cartDraftRef.current = next
+      return next
+    })
+    setCartStatus('idle')
+  }, [])
+
+  const saveCart = useCallback(async () => {
+    setCartSaving(true)
+    setCartStatus('idle')
+    try {
+      const data = await persistCartSettings(cartDraftRef.current)
+      cartLocalAuthorityRef.current = true
+      cartSavedRef.current = data
+      cartDraftRef.current = data
+      setCartSaved(data)
+      setCartDraft(data)
+      setCartStatus('saved')
+      return true
+    } catch {
+      setCartStatus('error')
+      return false
+    } finally {
+      setCartSaving(false)
+    }
+  }, [])
+
+  saveCartRef.current = saveCart
+
   const updateLogoFaviconDraft = useCallback((patch: Partial<LogoFaviconConfig>) => {
     setLogoFaviconDraft((prev) => ({ ...prev, ...patch }))
     setLogoFaviconStatus('idle')
@@ -1796,6 +1898,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       searchStatus,
       updateSearchDraft,
       saveSearch,
+      cartLoading,
+      cartSaving,
+      cartSaved,
+      cartDraft,
+      cartDirty,
+      cartStatus,
+      updateCartDraft,
+      saveCart,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,
@@ -1965,6 +2075,14 @@ export function AdminEditorProvider({ children }: { children: ReactNode }) {
       searchStatus,
       updateSearchDraft,
       saveSearch,
+      cartLoading,
+      cartSaving,
+      cartSaved,
+      cartDraft,
+      cartDirty,
+      cartStatus,
+      updateCartDraft,
+      saveCart,
       logoFaviconLoading,
       logoFaviconSaving,
       logoFaviconSaved,

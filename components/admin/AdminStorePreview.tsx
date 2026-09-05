@@ -17,7 +17,10 @@ import StoreNavbar from '@/components/nav/StoreNavbar'
 import Sidebar from '@/components/Sidebar'
 import SearchPopup from '@/components/search/SearchPopup'
 import SearchPageView from '@/components/search/SearchPageView'
+import CartDrawer from '@/components/cart/CartDrawer'
+import CartPageView from '@/components/cart/CartPageView'
 import { useAdminEditor } from '@/context/AdminEditorContext'
+import { useCart } from '@/context/CartContext'
 import {
   PREVIEW_VIEWPORT_WIDTHS,
   isPreviewDesktopLayout,
@@ -47,6 +50,7 @@ export default function AdminStorePreview() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [previewMenu, setPreviewMenu] = useState<StoreNavItem[] | null>(null)
   const [previewMenuLoading, setPreviewMenuLoading] = useState(true)
+  const { itemCount, openDrawer } = useCart()
   const {
     activeSection,
     activeGlobalSetting,
@@ -98,6 +102,9 @@ export default function AdminStorePreview() {
     searchDraft,
     searchSaved,
     searchLoading,
+    cartDraft,
+    cartSaved,
+    cartLoading,
     generalSettingsDraft,
     generalSettingsSaved,
     generalSettingsLoading,
@@ -124,6 +131,7 @@ export default function AdminStorePreview() {
   const isEditingCollectionProducts = activeSection === 'collection-products'
   const isEditingProductPage = activeSection === 'product-page'
   const isEditingSearch = activeSection === 'search'
+  const isEditingCart = activeSection === 'cart'
   const isEditingLogoFavicon = activeGlobalSetting === 'logo-favicon'
   const isEditingGeneralSettings = activeGlobalSetting === 'general'
   const isEditingFloatingButtons = activeGlobalSetting === 'floating-buttons'
@@ -152,6 +160,7 @@ export default function AdminStorePreview() {
     : collectionProductsSaved
   const productPagePreview = isEditingProductPage ? productPageDraft : productPageSaved
   const searchPreview = isEditingSearch ? searchDraft : searchSaved
+  const cartPreview = isEditingCart ? cartDraft : cartSaved
   const generalSettingsPreview = isEditingGeneralSettings
     ? generalSettingsDraft
     : generalSettingsSaved
@@ -175,6 +184,7 @@ export default function AdminStorePreview() {
     collectionProductsLoading ||
     productPageLoading ||
     searchLoading ||
+    cartLoading ||
     generalSettingsLoading ||
     floatingButtonsLoading
 
@@ -184,6 +194,7 @@ export default function AdminStorePreview() {
   const isCollectionsListPreview = previewPath === '/collections'
   const searchPreviewPath = (previewPath.split('?')[0] || '/').replace(/\/+$/, '') || '/'
   const isSearchPreview = searchPreviewPath === '/search'
+  const isCartPreview = searchPreviewPath === '/cart'
   const searchPreviewQuery = parseSearchQueryFromPath(previewPath)
   const collectionPreviewHandle = parseCollectionHandleFromPath(previewPath)
   const productPreviewHandle = parseProductHandleFromPath(previewPath)
@@ -194,6 +205,12 @@ export default function AdminStorePreview() {
       setSearchOpen(true)
     }
   }, [isEditingSearch, isSearchPreview])
+
+  useEffect(() => {
+    if (isEditingCart && cartPreview.drawerEnabled && !isCartPreview) {
+      openDrawer()
+    }
+  }, [isEditingCart, cartPreview.drawerEnabled, isCartPreview, openDrawer])
 
   const viewportWidth = PREVIEW_VIEWPORT_WIDTHS[previewViewport]
   const isDesktop = previewViewport === 'desktop'
@@ -292,6 +309,8 @@ export default function AdminStorePreview() {
             menuOverride={menuForPreview}
             onOpenMenu={() => setNavOpen(true)}
             onOpenSearch={() => setSearchOpen(true)}
+            onOpenCart={openDrawer}
+            cartCount={itemCount}
           />
           <div className="flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-x-clip">
             {isHomePreview ? (
@@ -353,6 +372,12 @@ export default function AdminStorePreview() {
                 searchApiBase="/api/admin/search"
                 onQueryCommit={(q) => setPreviewPath(buildSearchPath(q))}
               />
+            ) : isCartPreview ? (
+              <CartPageView
+                configOverride={cartPreview}
+                preview
+                onPreviewNavigate={setPreviewPath}
+              />
             ) : (
               <div className="flex flex-1 flex-col p-8 sm:p-12">
                 <>
@@ -392,6 +417,11 @@ export default function AdminStorePreview() {
             setSearchOpen(false)
           }}
           searchApiBase="/api/admin/search"
+        />
+        <CartDrawer
+          configOverride={cartPreview}
+          preview
+          onPreviewNavigate={setPreviewPath}
         />
       </div>
     </div>

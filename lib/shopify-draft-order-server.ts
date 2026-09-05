@@ -4,33 +4,38 @@ import {
   getShopifyConnectionStatus,
   isShopifyAccessDeniedError,
 } from '@/lib/shopify-connection-server'
-import type { CartLine } from '@/lib/cart'
+import { type CartLine } from '@/lib/cart'
 import {
   countryToShopifyCode,
   customerDisplayName,
   type CheckoutCustomerDetails,
 } from '@/lib/checkout'
+import {
+  CHECKOUT_CURRENCY,
+  quoteCheckoutShipping,
+  type CheckoutShippingQuote,
+} from '@/lib/checkout-shipping'
+import { readCartConfig } from '@/lib/cart-settings-server'
+import {
+  subscribeCustomerEmailMarketing,
+  subscribeCustomerSmsMarketing,
+} from '@/lib/shopify-customer-marketing-server'
+import {
+  customerLinkToOrderInput,
+  isCustomerEmailTakenError,
+  isCustomerPhoneTakenError,
+  normalizeShopifyCustomerPhone,
+  resolveCheckoutCustomerLink,
+  type CheckoutCustomerLink,
+} from '@/lib/shopify-customer-resolve-server'
 
-type DraftOrderCreateResponse = {
-  draftOrderCreate?: {
-    draftOrder?: {
+type OrderCreateResponse = {
+  orderCreate?: {
+    order?: {
       id?: string | null
       name?: string | null
-      invoiceUrl?: string | null
-    } | null
-    userErrors?: Array<{ field?: string[] | null; message?: string | null }> | null
-  } | null
-}
-
-type DraftOrderCompleteResponse = {
-  draftOrderComplete?: {
-    draftOrder?: {
-      id?: string | null
-      order?: {
-        id?: string | null
-        name?: string | null
-        statusPageUrl?: string | null
-      } | null
+      statusPageUrl?: string | null
+      customer?: { id?: string | null } | null
     } | null
     userErrors?: Array<{ field?: string[] | null; message?: string | null }> | null
   } | null
@@ -44,13 +49,42 @@ export type PlaceOrderResult = {
   error?: string
 }
 
+async function runOrderCreate(variables: {
+  order: Record<string, unknown>
+  options: Record<string, unknown>
+}): Promise<OrderCreateResponse> {
+  return shopifyAdminGraphql<OrderCreateResponse>(
+    `
+    mutation CreateOrder($order: OrderCreateOrderInput!, $options: OrderCreateOptionsInput) {
+      orderCreate(order: $order, options: $options) {
+        order {
+          id
+          name
+          statusPageUrl
+          customer {
+            id
+          }
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `,
+    variables
+  )
+}
+
 /**
- * Creates a real Shopify Order (Orders page) from custom checkout details.
- * Flow: draftOrderCreate → draftOrderComplete (payment pending / COD-style).
+ * Creates a real Shopify Order directly (no draft) via orderCreate.
+ * Payment stays PENDING for manual methods (COD / Bank Deposit).
+ * When emailOffers is checked, marks the customer as marketing subscribed.
  */
 export async function createShopifyOrderFromCheckout(params: {
   lines: CartLine[]
   customer: CheckoutCustomerDetails
+  shipping?: CheckoutShippingQuote
 }): Promise<PlaceOrderResult> {
   if (!isShopifyConfigured()) {
     return { ok: false, error: 'Shopify is not configured' }
@@ -69,13 +103,25 @@ export async function createShopifyOrderFromCheckout(params: {
     return { ok: false, error: 'Cart is empty' }
   }
 
+  const cartConfig = await readCartConfig()
+  const shipping = params.shipping ?? quoteCheckoutShipping(params.lines, cartConfig)
+  const gateway =
+    params.customer.paymentMethod?.trim() || 'Cash on Delivery (COD)'
+
   const noteParts = [
     params.customer.notes?.trim() ? `Notes: ${params.customer.notes.trim()}` : '',
     params.customer.phone.trim() ? `Phone: ${params.customer.phone.trim()}` : '',
+    `Payment method: ${gateway}`,
+    `Shipping: ${shipping.title} (${shipping.amount.toFixed(2)} ${CHECKOUT_CURRENCY})`,
     `Customer: ${customerDisplayName(params.customer)}`,
+    params.customer.emailOffers ? 'Marketing opt-in: yes' : '',
   ].filter(Boolean)
 
   const countryCode = countryToShopifyCode(params.customer.country)
+  const phoneRaw = params.customer.phone.trim()
+  const phoneE164 = phoneRaw ? normalizeShopifyCustomerPhone(phoneRaw) : ''
+  const phoneForShopify = phoneE164 || phoneRaw || null
+
   const addressPayload = {
     firstName,
     lastName,
@@ -84,103 +130,135 @@ export async function createShopifyOrderFromCheckout(params: {
     city: params.customer.city.trim() || null,
     zip: params.customer.postalCode.trim() || null,
     countryCode,
-    phone: params.customer.phone.trim() || null,
+    phone: phoneForShopify,
   }
 
-  try {
-    const created = await shopifyAdminGraphql<DraftOrderCreateResponse>(
-      `
-      mutation CreateDraftOrder($input: DraftOrderInput!) {
-        draftOrderCreate(input: $input) {
-          draftOrder {
-            id
-            name
-            invoiceUrl
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `,
+  const email = params.customer.email.trim()
+  const emailOffers = Boolean(params.customer.emailOffers)
+
+  let customerLink: CheckoutCustomerLink | null = await resolveCheckoutCustomerLink({
+    email,
+    phone: phoneRaw,
+    firstName,
+    lastName,
+  })
+
+  const options = {
+    inventoryBehaviour: 'DECREMENT_OBEYING_POLICY',
+    // Order confirmation email (Shopify → Settings → Notifications must be on)
+    sendReceipt: Boolean(email),
+    sendFulfillmentReceipt: false,
+  }
+
+  const buildOrder = (link: CheckoutCustomerLink | null): Record<string, unknown> => ({
+    lineItems,
+    email: email || null,
+    phone: phoneForShopify,
+    note: noteParts.join('\n') || null,
+    tags: ['custom-checkout', `pay:${gateway.slice(0, 40)}`],
+    // Unpaid manual method (COD / Bank Deposit) — do NOT add a PENDING SALE
+    // transaction, or Shopify shows “Bank Deposit is still processing…”.
+    financialStatus: 'PENDING',
+    buyerAcceptsMarketing: emailOffers,
+    customAttributes: [
+      { key: 'Payment method', value: gateway },
+    ],
+    shippingAddress: addressPayload,
+    billingAddress: addressPayload,
+    shippingLines: [
       {
-        input: {
-          lineItems,
-          email: params.customer.email.trim() || null,
-          phone: params.customer.phone.trim() || null,
-          note: noteParts.join('\n') || null,
-          tags: ['custom-checkout'],
-          shippingAddress: addressPayload,
-          billingAddress: addressPayload,
+        title: shipping.title,
+        priceSet: {
+          shopMoney: {
+            amount: shipping.amount.toFixed(2),
+            currencyCode: CHECKOUT_CURRENCY,
+          },
         },
-      }
-    )
+      },
+    ],
+    ...customerLinkToOrderInput(link),
+  })
 
-    const createErrors =
-      created.draftOrderCreate?.userErrors?.filter((e) => e?.message) ?? []
-    if (createErrors.length) {
+  try {
+    let data = await runOrderCreate({ order: buildOrder(customerLink), options })
+    let errors = data.orderCreate?.userErrors?.filter((e) => e?.message) ?? []
+    let errorText = errors.map((e) => e.message).join('; ')
+
+    // Phone owned by another customer while creating/updating by email — drop phone from customer upsert.
+    if (
+      errors.length &&
+      customerLink?.mode === 'upsert' &&
+      isCustomerPhoneTakenError(errorText)
+    ) {
+      customerLink = {
+        ...customerLink,
+        phone: undefined,
+      }
+      // If upsert has neither email nor phone left, skip customer block (order still has phone/email).
+      if (!customerLink.email && !customerLink.phone) {
+        customerLink = null
+      }
+      data = await runOrderCreate({ order: buildOrder(customerLink), options })
+      errors = data.orderCreate?.userErrors?.filter((e) => e?.message) ?? []
+      errorText = errors.map((e) => e.message).join('; ')
+    }
+
+    // Email conflict while phone-only upsert — retry without email (should be rare).
+    if (
+      errors.length &&
+      customerLink?.mode === 'upsert' &&
+      isCustomerEmailTakenError(errorText)
+    ) {
+      customerLink = {
+        ...customerLink,
+        email: undefined,
+      }
+      if (!customerLink.email && !customerLink.phone) {
+        customerLink = null
+      }
+      data = await runOrderCreate({ order: buildOrder(customerLink), options })
+      errors = data.orderCreate?.userErrors?.filter((e) => e?.message) ?? []
+      errorText = errors.map((e) => e.message).join('; ')
+    }
+
+    // Last resort: place order without customer upsert/associate (still has shipping phone/email).
+    if (
+      errors.length &&
+      (isCustomerPhoneTakenError(errorText) || isCustomerEmailTakenError(errorText))
+    ) {
+      data = await runOrderCreate({ order: buildOrder(null), options })
+      errors = data.orderCreate?.userErrors?.filter((e) => e?.message) ?? []
+      errorText = errors.map((e) => e.message).join('; ')
+    }
+
+    if (errors.length) {
       return {
         ok: false,
-        error: createErrors.map((e) => e.message).join('; ') || 'Could not create order',
+        error: errorText || 'Could not create order',
       }
     }
 
-    const draftId = created.draftOrderCreate?.draftOrder?.id
-    if (!draftId) {
-      return { ok: false, error: 'Draft order was not created' }
-    }
-
-    // Convert draft → real Order (shows under Shopify Admin → Orders).
-    // paymentPending: COD / pay-later style unpaid order.
-    const completed = await shopifyAdminGraphql<DraftOrderCompleteResponse>(
-      `
-      mutation CompleteDraftOrder($id: ID!, $paymentPending: Boolean) {
-        draftOrderComplete(id: $id, paymentPending: $paymentPending) {
-          draftOrder {
-            id
-            order {
-              id
-              name
-              statusPageUrl
-            }
-          }
-          userErrors {
-            field
-            message
-          }
-        }
-      }
-    `,
-      {
-        id: draftId,
-        paymentPending: true,
-      }
-    )
-
-    const completeErrors =
-      completed.draftOrderComplete?.userErrors?.filter((e) => e?.message) ?? []
-    if (completeErrors.length) {
-      return {
-        ok: false,
-        error:
-          completeErrors.map((e) => e.message).join('; ') ||
-          'Order created as draft but could not be completed',
-      }
-    }
-
-    const order = completed.draftOrderComplete?.draftOrder?.order
+    const order = data.orderCreate?.order
     if (!order?.id) {
-      return {
-        ok: false,
-        error: 'Order was not completed in Shopify Orders',
+      return { ok: false, error: 'Order was not created in Shopify' }
+    }
+
+    const customerId =
+      order.customer?.id?.trim() ||
+      (customerLink?.mode === 'associate' ? customerLink.id : '') ||
+      ''
+    if (emailOffers && customerId) {
+      if (email) {
+        await subscribeCustomerEmailMarketing(customerId)
+      } else if (phoneRaw) {
+        await subscribeCustomerSmsMarketing(customerId)
       }
     }
 
     return {
       ok: true,
       orderId: order.id,
-      orderName: order.name ?? created.draftOrderCreate?.draftOrder?.name ?? undefined,
+      orderName: order.name ?? undefined,
       statusPageUrl: order.statusPageUrl ?? undefined,
     }
   } catch (e) {
@@ -190,7 +268,7 @@ export async function createShopifyOrderFromCheckout(params: {
         ok: false,
         error:
           status.message ||
-          'Missing Shopify scope write_draft_orders. Enable it on your app, then reinstall.',
+          'Missing Shopify scope write_orders / read_customers. Enable them, then reinstall.',
       }
     }
     console.error('createShopifyOrderFromCheckout error:', e)

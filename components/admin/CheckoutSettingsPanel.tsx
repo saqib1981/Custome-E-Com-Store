@@ -92,6 +92,54 @@ export default function CheckoutSettingsPanel() {
         </label>
       </SettingsCollapsibleSection>
 
+      <SettingsCollapsibleSection title="Payment methods" defaultOpen>
+        <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+          Shopify does not share manual payment notes via API. Paste the same
+          instructions you wrote in Shopify → Settings → Payments (Bank Deposit,
+          COD, etc.) so customers see them at checkout.
+        </p>
+        {checkoutDraft.paymentMethods.map((method, index) => (
+          <div
+            key={method.id}
+            className="mt-3 rounded-md border border-gray-200 p-3 dark:border-gray-700"
+          >
+            <label className="block">
+              <span className="mb-1 block text-sm font-medium text-gray-800 dark:text-gray-200">
+                Method name
+              </span>
+              <input
+                type="text"
+                value={method.name}
+                onChange={(e) => {
+                  const paymentMethods = checkoutDraft.paymentMethods.map((m, i) =>
+                    i === index ? { ...m, name: e.target.value } : m
+                  )
+                  updateCheckoutDraft({ paymentMethods })
+                }}
+                className={inputClass}
+              />
+            </label>
+            <label className="mt-3 block">
+              <span className="mb-1 block text-sm font-medium text-gray-800 dark:text-gray-200">
+                Instructions / notes (shown when selected)
+              </span>
+              <textarea
+                rows={5}
+                value={method.description}
+                placeholder="Account title, bank name, IBAN, JazzCash number, etc."
+                onChange={(e) => {
+                  const paymentMethods = checkoutDraft.paymentMethods.map((m, i) =>
+                    i === index ? { ...m, description: e.target.value } : m
+                  )
+                  updateCheckoutDraft({ paymentMethods })
+                }}
+                className={inputClass}
+              />
+            </label>
+          </div>
+        ))}
+      </SettingsCollapsibleSection>
+
       <SettingsCollapsibleSection title="Labels & copy" defaultOpen>
         <label className="mt-1 block">
           <span className="mb-1 block text-sm font-medium text-gray-800 dark:text-gray-200">
@@ -106,7 +154,7 @@ export default function CheckoutSettingsPanel() {
         </label>
         <label className="mt-3 block">
           <span className="mb-1 block text-sm font-medium text-gray-800 dark:text-gray-200">
-              Place order / Complete order button
+            Place order / Complete order button
           </span>
           <input
             type="text"

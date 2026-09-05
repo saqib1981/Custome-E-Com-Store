@@ -54,7 +54,19 @@ In **Shopify Dev Dashboard → your app → Configuration → Access scopes**, e
 | Scope | Used for |
 | --- | --- |
 | `read_online_store_navigation` | Header / mobile menus from Online Store → Navigation |
-| `write_files` | Logo & favicon uploads to Shopify Files |
+| `read_products` | Collections, product pages, search, catalog |
+| `read_files` | Resolve CDN URLs after theme media upload |
+| `write_files` | Logo, favicon, hero images/videos → Shopify Files |
+| `write_orders` | Custom checkout → create order directly in Shopify Orders |
+| `read_orders` | Order status + history on your domain (`/orders`) |
+| `write_customers` | Checkout marketing checkbox → email/SMS subscriber in Shopify |
+| `read_customers` | Match existing customers by email/phone (avoids “phone already taken”) |
+
+**Recommended (checkout polish):**
+
+| Scope | Used for |
+| --- | --- |
+| `read_markets` | Checkout Country/Region from Markets |
 
 Then **release a new app version** and **install / approve the app** on that store.  
 If menus fail with *Access denied for menus field*, this scope is missing on that store's app install.

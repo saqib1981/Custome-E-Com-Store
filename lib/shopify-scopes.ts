@@ -1,33 +1,79 @@
-/** Admin API scopes this storefront needs — enable these on every Shopify app install. */
+/**
+ * Shopify Admin API scopes this storefront needs.
+ * Enable on Dev Dashboard → App → Access scopes, then reinstall / re-approve the app.
+ */
+
+/** Required — without these core features break. */
 export const SHOPIFY_REQUIRED_SCOPES = [
   {
     handle: 'read_online_store_navigation',
     label: 'Navigation menus',
-    description: 'Load header / mobile menus from Online Store → Navigation',
+    description: 'Header / mobile menus from Online Store → Navigation',
   },
   {
     handle: 'read_products',
     label: 'Products & collections',
-    description: 'List collections for hero slider links and catalog features',
+    description: 'Catalog, collection pages, product PDP, search, hero collection links',
+  },
+  {
+    handle: 'read_files',
+    label: 'Read files',
+    description: 'Resolve permanent CDN URLs after logo / theme media upload',
   },
   {
     handle: 'write_files',
-    label: 'Files',
-    description: 'Upload logo and favicon to Shopify Files (CDN)',
+    label: 'Write files',
+    description: 'Upload logo, favicon, hero images/videos to Shopify Files CDN',
   },
   {
-    handle: 'write_draft_orders',
-    label: 'Draft orders',
+    handle: 'write_orders',
+    label: 'Orders (write)',
+    description: 'Custom checkout places orders directly in Shopify Orders (no draft)',
+  },
+  {
+    handle: 'read_orders',
+    label: 'Orders',
+    description: 'Customer order status + history on your store domain (/orders)',
+  },
+  {
+    handle: 'write_customers',
+    label: 'Customers (write)',
     description:
-      'Create and complete draft orders so custom checkout places real orders in Shopify Orders',
+      'Checkout “Email me with news and offers” → mark customer as email marketing subscribed',
+  },
+  {
+    handle: 'read_customers',
+    label: 'Customers (read)',
+    description:
+      'Match existing Shopify customers by email/phone so checkout does not fail with “phone already taken”',
+  },
+] as const
+
+/**
+ * Recommended — checkout / markets polish. App still runs without them,
+ * but Country list & Payment methods may fall back to defaults.
+ */
+export const SHOPIFY_RECOMMENDED_SCOPES = [
+  {
+    handle: 'read_markets',
+    label: 'Markets',
+    description: 'Checkout Country/Region from active Markets (fallback if shipsToCountries empty)',
   },
 ] as const
 
 export type ShopifyRequiredScope = (typeof SHOPIFY_REQUIRED_SCOPES)[number]
+export type ShopifyRecommendedScope = (typeof SHOPIFY_RECOMMENDED_SCOPES)[number]
 
 export function getMissingShopifyScopes(granted: string[]): ShopifyRequiredScope[] {
   const grantedSet = new Set(granted.map((scope) => scope.trim()).filter(Boolean))
   return SHOPIFY_REQUIRED_SCOPES.filter((scope) => !grantedSet.has(scope.handle))
+}
+
+export function getMissingRecommendedShopifyScopes(
+  granted: string[]
+): ShopifyRecommendedScope[] {
+  const grantedSet = new Set(granted.map((scope) => scope.trim()).filter(Boolean))
+  return SHOPIFY_RECOMMENDED_SCOPES.filter((scope) => !grantedSet.has(scope.handle))
 }
 
 export function formatMissingShopifyScopesMessage(missing: ShopifyRequiredScope[]): string {

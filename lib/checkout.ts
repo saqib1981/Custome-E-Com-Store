@@ -2,8 +2,16 @@ import {
   countryNameFromCode,
   normalizeCountryCode,
 } from '@/lib/shopify-country-names'
+import {
+  checkoutPaymentMethodsEqual,
+  DEFAULT_CHECKOUT_PAYMENT_METHODS,
+  normalizeCheckoutPaymentMethods,
+  type CheckoutPaymentMethod,
+} from '@/lib/checkout-payment-methods'
 
 export const CHECKOUT_SETTING_KEY = 'checkout'
+
+export type { CheckoutPaymentMethod }
 
 export type CheckoutConfig = {
   enabled: boolean
@@ -17,6 +25,11 @@ export type CheckoutConfig = {
   requireEmail: boolean
   requireAddress: boolean
   requireCity: boolean
+  /**
+   * Manual payment methods shown at checkout (name + instructions).
+   * Shopify Admin does not expose these notes via API — edit them here.
+   */
+  paymentMethods: CheckoutPaymentMethod[]
 }
 
 export const DEFAULT_CHECKOUT: CheckoutConfig = {
@@ -31,6 +44,7 @@ export const DEFAULT_CHECKOUT: CheckoutConfig = {
   requireEmail: true,
   requireAddress: true,
   requireCity: true,
+  paymentMethods: DEFAULT_CHECKOUT_PAYMENT_METHODS.map((m) => ({ ...m })),
 }
 
 /** Matches Shopify one-page checkout delivery + contact fields. */
@@ -46,6 +60,10 @@ export type CheckoutCustomerDetails = {
   city: string
   postalCode: string
   notes: string
+  /** Selected Shopify payment method display name */
+  paymentMethod: string
+  /** "Email me with news and offers" — subscribe in Shopify when true */
+  emailOffers: boolean
 }
 
 export const EMPTY_CHECKOUT_CUSTOMER: CheckoutCustomerDetails = {
@@ -59,6 +77,8 @@ export const EMPTY_CHECKOUT_CUSTOMER: CheckoutCustomerDetails = {
   city: '',
   postalCode: '',
   notes: '',
+  paymentMethod: 'Cash on Delivery (COD)',
+  emailOffers: false,
 }
 
 export function normalizeCheckoutConfig(
@@ -86,6 +106,9 @@ export function normalizeCheckoutConfig(
     requireEmail: Boolean(input?.requireEmail ?? DEFAULT_CHECKOUT.requireEmail),
     requireAddress: Boolean(input?.requireAddress ?? DEFAULT_CHECKOUT.requireAddress),
     requireCity: Boolean(input?.requireCity ?? DEFAULT_CHECKOUT.requireCity),
+    paymentMethods: normalizeCheckoutPaymentMethods(
+      (input as Partial<CheckoutConfig> | null | undefined)?.paymentMethods
+    ),
   }
 }
 
@@ -101,7 +124,8 @@ export function checkoutConfigsEqual(a: CheckoutConfig, b: CheckoutConfig): bool
     a.requirePhone === b.requirePhone &&
     a.requireEmail === b.requireEmail &&
     a.requireAddress === b.requireAddress &&
-    a.requireCity === b.requireCity
+    a.requireCity === b.requireCity &&
+    checkoutPaymentMethodsEqual(a.paymentMethods, b.paymentMethods)
   )
 }
 

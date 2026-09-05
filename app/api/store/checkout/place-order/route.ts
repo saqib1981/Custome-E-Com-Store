@@ -65,6 +65,14 @@ function parseCustomer(body: unknown): CheckoutCustomerDetails {
     city: String(raw.city ?? ''),
     postalCode: String(raw.postalCode ?? ''),
     notes: String(raw.notes ?? ''),
+    paymentMethod:
+      String(raw.paymentMethod ?? EMPTY_CHECKOUT_CUSTOMER.paymentMethod).trim() ||
+      EMPTY_CHECKOUT_CUSTOMER.paymentMethod,
+    emailOffers: Boolean(
+      (raw as { emailOffers?: unknown }).emailOffers === true ||
+        (raw as { emailOffers?: unknown }).emailOffers === 'true' ||
+        (raw as { emailOffers?: unknown }).emailOffers === 1
+    ),
   }
 }
 

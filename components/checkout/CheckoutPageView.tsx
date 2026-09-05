@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useId, useMemo, useState, type FormEvent, type ReactNode } from 'react'
-import { ChevronDown, ChevronUp, HelpCircle, Loader2, Lock } from 'lucide-react'
+import { ChevronDown, ChevronUp, HelpCircle, Loader2, Lock, ShoppingBag } from 'lucide-react'
 import {
   DEFAULT_CHECKOUT,
   EMPTY_CHECKOUT_CUSTOMER,
@@ -26,6 +26,15 @@ import { fetchStoreCartSettings } from '@/lib/cart-client'
 import { useStoreTheme } from '@/context/StoreThemeContext'
 import StoreBrandMark from '@/components/StoreBrandMark'
 import type { CheckoutCountryOption } from '@/lib/shopify-country-names'
+import {
+  DEFAULT_CHECKOUT_PAYMENT_METHODS,
+  type CheckoutPaymentMethod,
+} from '@/lib/checkout-payment-methods'
+import {
+  orderNameToPathSegment,
+  writeOrderAccess,
+} from '@/lib/orders'
+import { quoteCheckoutShipping, STANDARD_SHIPPING_AMOUNT } from '@/lib/checkout-shipping'
 import {
   dialCodeForCountry,
   formatE164,
@@ -569,8 +578,6 @@ function ContactEmailOrPhone({
   )
 }
 
-const STANDARD_SHIPPING_PKR = 200
-
 function OrderSummaryBlock({
   lines,
   cartConfig,
@@ -655,7 +662,7 @@ export default function CheckoutPageView({
   preview = false,
   onPreviewNavigate,
 }: CheckoutPageViewProps) {
-  const { lines, clearCart, closeDrawer } = useCart()
+  const { lines, clearCart, closeDrawer, itemCount } = useCart()
   const { storeName, logoFavicon } = useStoreTheme()
   const [config, setConfig] = useState<CheckoutConfig>(
     () => configOverride ?? DEFAULT_CHECKOUT
@@ -667,6 +674,12 @@ export default function CheckoutPageView({
   const [countries, setCountries] = useState<CheckoutCountryOption[]>([
     { code: 'PK', name: 'Pakistan' },
   ])
+  const [paymentMethods, setPaymentMethods] = useState<CheckoutPaymentMethod[]>(
+    DEFAULT_CHECKOUT_PAYMENT_METHODS
+  )
+  const [selectedPaymentId, setSelectedPaymentId] = useState(
+    DEFAULT_CHECKOUT_PAYMENT_METHODS[0]?.id || 'cod'
+  )
   const [emailOffers, setEmailOffers] = useState(false)
   const [saveInfo, setSaveInfo] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -685,12 +698,28 @@ export default function CheckoutPageView({
   useEffect(() => {
     if (configOverride) {
       setConfig(normalizeCheckoutConfig(configOverride))
+      const methods = normalizeCheckoutConfig(configOverride).paymentMethods
+      if (methods.length) {
+        setPaymentMethods(methods)
+        setSelectedPaymentId((prev) =>
+          methods.some((m) => m.id === prev) ? prev : methods[0]!.id
+        )
+      }
       return
     }
     let cancelled = false
     void fetchStoreCheckoutSettings()
       .then((data) => {
-        if (!cancelled) setConfig(data)
+        if (cancelled) return
+        setConfig(data)
+        if (data.paymentMethods?.length) {
+          setPaymentMethods(data.paymentMethods)
+          setSelectedPaymentId((prev) =>
+            data.paymentMethods.some((m) => m.id === prev)
+              ? prev
+              : data.paymentMethods[0]!.id
+          )
+        }
       })
       .catch(() => {
         if (!cancelled) setConfig(DEFAULT_CHECKOUT)
@@ -745,15 +774,53 @@ export default function CheckoutPageView({
     }
   }, [])
 
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/store/checkout/payment-methods', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { methods?: CheckoutPaymentMethod[] } | null) => {
+        if (cancelled) return
+        const methods =
+          Array.isArray(data?.methods) && data.methods.length
+            ? data.methods
+            : DEFAULT_CHECKOUT_PAYMENT_METHODS
+        // Ignore junk single "manual" responses from older API inference
+        const usable = methods.filter(
+          (m) => m?.name && !/^manual([_\s-]?payment)?$/i.test(m.name.trim())
+        )
+        const next = usable.length ? usable : DEFAULT_CHECKOUT_PAYMENT_METHODS
+        setPaymentMethods(next)
+        setSelectedPaymentId((prev) =>
+          next.some((m) => m.id === prev) ? prev : next[0]!.id
+        )
+      })
+      .catch(() => {
+        /* keep Bank Deposit + COD defaults */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const method = paymentMethods.find((m) => m.id === selectedPaymentId) || paymentMethods[0]
+    if (!method) return
+    setCustomer((prev) =>
+      prev.paymentMethod === method.name ? prev : { ...prev, paymentMethod: method.name }
+    )
+  }, [paymentMethods, selectedPaymentId])
+
   const subtotal = useMemo(() => cartSubtotalAmount(lines), [lines])
   const previewLines: CartLine[] = lines
 
-  const shippingFree =
-    cartConfig.showFreeShippingProgress &&
-    cartConfig.freeShippingThreshold > 0 &&
-    subtotal >= cartConfig.freeShippingThreshold
-  const shippingAmount = shippingFree ? 0 : STANDARD_SHIPPING_PKR
-  const shippingLabel = shippingFree ? 'Free' : formatFreeShippingAmount(STANDARD_SHIPPING_PKR)
+  const shippingQuote = useMemo(
+    () => quoteCheckoutShipping(lines, cartConfig),
+    [lines, cartConfig]
+  )
+  const shippingAmount = shippingQuote.amount
+  const shippingLabel = shippingQuote.free
+    ? 'Free'
+    : formatFreeShippingAmount(STANDARD_SHIPPING_AMOUNT)
   const orderTotal = subtotal + shippingAmount
 
   const patchCustomer = (patch: Partial<CheckoutCustomerDetails>) => {
@@ -767,6 +834,14 @@ export default function CheckoutPageView({
       return
     }
     window.location.href = '/'
+  }
+
+  const goCart = () => {
+    if (preview && onPreviewNavigate) {
+      onPreviewNavigate('/cart')
+      return
+    }
+    window.location.href = '/cart'
   }
 
   const handleSubmit = async (e: FormEvent) => {
@@ -790,7 +865,6 @@ export default function CheckoutPageView({
     try {
       const notesExtra = [
         customer.notes.trim(),
-        emailOffers ? 'Marketing emails: yes' : '',
         saveInfo ? 'Save info for next time: yes' : '',
       ]
         .filter(Boolean)
@@ -801,7 +875,11 @@ export default function CheckoutPageView({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           lines: previewLines,
-          customer: { ...customer, notes: notesExtra },
+          customer: {
+            ...customer,
+            notes: notesExtra,
+            emailOffers,
+          },
         }),
       })
       const data = (await res.json()) as {
@@ -814,7 +892,22 @@ export default function CheckoutPageView({
         throw new Error(data.error || 'Failed to place order')
       }
       clearCart()
-      setPlaced({ orderName: data.orderName, statusPageUrl: data.statusPageUrl })
+      const name = data.orderName || ''
+      writeOrderAccess({
+        orderName: name,
+        email: customer.email,
+        phone: customer.phone,
+      })
+      const segment = orderNameToPathSegment(name)
+      if (preview && onPreviewNavigate) {
+        onPreviewNavigate(segment ? `/orders/${segment}` : '/orders')
+        return
+      }
+      if (segment) {
+        window.location.href = `/orders/${segment}`
+        return
+      }
+      setPlaced({ orderName: name, statusPageUrl: data.statusPageUrl })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to place order')
     } finally {
@@ -857,14 +950,12 @@ export default function CheckoutPageView({
             <p className="mt-2 text-sm font-medium text-[#333]">Order {placed.orderName}</p>
           ) : null}
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            {placed.statusPageUrl ? (
+            {placed.orderName ? (
               <a
-                href={placed.statusPageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                href={`/orders/${orderNameToPathSegment(placed.orderName)}`}
                 className="inline-flex h-12 items-center justify-center rounded-lg bg-[#1773b0] px-5 text-sm font-semibold text-white hover:bg-[#0f5f94]"
               >
-                View order status
+                View order details
               </a>
             ) : null}
             <button
@@ -911,10 +1002,26 @@ export default function CheckoutPageView({
 
   return (
     <div className="checkout-shopify min-h-full w-full bg-white text-[#333333] antialiased">
-      {/* Full-width checkout header — logo spans whole page */}
+      {/* Full-width checkout header — logo left, cart right */}
       <header className="w-full border-b border-[#e6e6e6] bg-white">
-        <div className="mx-auto flex w-full max-w-[1100px] items-center px-4 py-4 sm:px-8 sm:py-5 lg:px-12">
+        <div className="mx-auto flex w-full max-w-[1100px] items-center justify-between gap-4 px-4 py-4 sm:px-8 sm:py-5 lg:px-12">
           {brand}
+          <button
+            type="button"
+            onClick={goCart}
+            className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-[#c9cccf] bg-white px-3 text-[13px] font-medium text-[#333333] transition hover:border-[#999999] hover:bg-[#fafafa]"
+            aria-label="View cart"
+          >
+            <span className="relative inline-flex">
+              <ShoppingBag className="h-4 w-4" aria-hidden />
+              {itemCount > 0 ? (
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#1773b0] px-1 text-[10px] font-semibold text-white">
+                  {itemCount > 99 ? '99+' : itemCount}
+                </span>
+              ) : null}
+            </span>
+            <span className="hidden sm:inline">Cart</span>
+          </button>
         </div>
       </header>
 
@@ -1068,14 +1175,45 @@ export default function CheckoutPageView({
               <p className="-mt-1 mb-3 text-[13px] text-[#717171]">
                 All transactions are secure and encrypted.
               </p>
-              <div className="overflow-hidden rounded-lg border border-[#1773b0]">
-                <div className="flex items-center gap-3 bg-[#f0f5ff] px-3.5 py-3.5">
-                  <span className="flex h-[18px] w-[18px] items-center justify-center rounded-full border-[5px] border-[#1773b0] bg-white" />
-                  <span className="text-[14px] text-[#333333]">Cash on Delivery (COD)</span>
-                </div>
-                <div className="bg-[#fafafa] px-3.5 py-6 text-center text-[13px] text-[#545454]">
-                  Pay with cash when your order is delivered.
-                </div>
+              <div className="overflow-hidden rounded-lg border border-[#c9cccf]">
+                {paymentMethods.map((method, index) => {
+                  const selected = method.id === selectedPaymentId
+                  const isLast = index === paymentMethods.length - 1
+                  return (
+                    <div key={method.id}>
+                      <label
+                        className={[
+                          'flex cursor-pointer items-center gap-3 px-3.5 py-3.5 transition',
+                          selected ? 'bg-[#f0f5ff]' : 'bg-white hover:bg-[#fafafa]',
+                          !isLast || selected ? 'border-b border-[#c9cccf]' : '',
+                          selected ? 'border-[#1773b0]' : '',
+                        ].join(' ')}
+                      >
+                        <input
+                          type="radio"
+                          name="checkout-payment-method"
+                          className="sr-only"
+                          checked={selected}
+                          onChange={() => setSelectedPaymentId(method.id)}
+                        />
+                        <span
+                          className={[
+                            'flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border bg-white',
+                            selected ? 'border-[5px] border-[#1773b0]' : 'border-[#8a8a8a]',
+                          ].join(' ')}
+                          aria-hidden
+                        />
+                        <span className="text-[14px] text-[#333333]">{method.name}</span>
+                      </label>
+                      {selected ? (
+                        <div className="border-b border-[#c9cccf] bg-[#fafafa] px-3.5 py-5 text-left text-[13px] leading-relaxed text-[#545454] last:border-b-0 whitespace-pre-wrap">
+                          {method.description ||
+                            'Complete payment using this method after placing your order.'}
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                })}
               </div>
             </section>
 

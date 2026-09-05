@@ -4,6 +4,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Loader2 } from 'lucide-react'
 import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
 import {
+  formatOrderFulfillmentLabel,
+  formatOrderPaymentLabel,
   normalizeOrderName,
   readOrderAccess,
   writeOrderAccess,
@@ -220,8 +222,12 @@ export default function OrderDetailView({
             </p>
           </div>
           <div className="text-right text-sm">
-            <p className="font-medium text-gray-900">{order.financialStatus}</p>
-            <p className="text-gray-600">{order.fulfillmentStatus}</p>
+            <p className="font-medium text-gray-900">
+              {formatOrderPaymentLabel(order.financialStatus)}
+            </p>
+            <p className="text-gray-600">
+              {formatOrderFulfillmentLabel(order.fulfillmentStatus)}
+            </p>
           </div>
         </div>
 
@@ -291,14 +297,50 @@ export default function OrderDetailView({
               )}
             </div>
 
+            {(order.tracking?.length ?? 0) > 0 ? (
+              <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+                <h2 className="text-base font-semibold text-gray-900">Courier tracking</h2>
+                <ul className="mt-3 space-y-3">
+                  {order.tracking.map((track, i) => (
+                    <li
+                      key={`${track.company}-${track.number}-${i}`}
+                      className="text-sm text-gray-700"
+                    >
+                      {track.company ? (
+                        <p className="font-medium text-gray-900">{track.company}</p>
+                      ) : null}
+                      {track.number ? (
+                        <p className="mt-0.5">
+                          Tracking no.{' '}
+                          <span className="font-medium text-gray-900">{track.number}</span>
+                        </p>
+                      ) : null}
+                      {track.url ? (
+                        <a
+                          href={track.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-block font-medium text-gray-900 underline underline-offset-2"
+                        >
+                          Track shipment
+                        </a>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+
             <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
               <h2 className="text-base font-semibold text-gray-900">Payment</h2>
-              <p className="mt-2 text-sm text-gray-700">
-                {order.paymentGatewayNames.length
-                  ? order.paymentGatewayNames.join(', ')
-                  : 'Payment pending'}
+              <p className="mt-2 text-sm font-medium text-gray-900">
+                {formatOrderPaymentLabel(order.financialStatus)}
               </p>
-              <p className="mt-1 text-sm text-gray-600">{order.financialStatus}</p>
+              {order.paymentGatewayNames.length ? (
+                <p className="mt-1 text-sm text-gray-600">
+                  {order.paymentGatewayNames.join(', ')}
+                </p>
+              ) : null}
             </div>
 
             {order.note ? (

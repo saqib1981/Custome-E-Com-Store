@@ -5,9 +5,16 @@ import {
   normalizeOrderName,
   type PublicOrder,
   type PublicOrderLine,
+  type PublicOrderTracking,
 } from '@/lib/orders'
 
 type MoneyNode = { amount?: string | null; currencyCode?: string | null } | null
+
+type TrackingInfoNode = {
+  company?: string | null
+  number?: string | null
+  url?: string | null
+} | null
 
 type OrderNode = {
   id?: string | null
@@ -31,6 +38,10 @@ type OrderNode = {
     country?: string | null
     phone?: string | null
   } | null
+  fulfillments?: Array<{
+    status?: string | null
+    trackingInfo?: TrackingInfoNode[] | null
+  } | null> | null
   lineItems?: {
     nodes?: Array<{
       title?: string | null
@@ -63,6 +74,14 @@ const ORDER_FIELDS = `
     zip
     country
     phone
+  }
+  fulfillments {
+    status
+    trackingInfo {
+      company
+      number
+      url
+    }
   }
   lineItems(first: 50) {
     nodes {
@@ -107,6 +126,21 @@ export function mapShopifyOrder(node: OrderNode | null | undefined): PublicOrder
     .map(mapLine)
     .filter((l): l is PublicOrderLine => Boolean(l))
 
+  const tracking: PublicOrderTracking[] = []
+  const seen = new Set<string>()
+  for (const fulfillment of node.fulfillments ?? []) {
+    for (const info of fulfillment?.trackingInfo ?? []) {
+      const number = String(info?.number ?? '').trim()
+      const company = String(info?.company ?? '').trim()
+      const url = String(info?.url ?? '').trim()
+      if (!number && !url && !company) continue
+      const key = `${company}|${number}|${url}`.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      tracking.push({ company, number, url })
+    }
+  }
+
   const ship = node.shippingAddress
   return {
     id: node.id,
@@ -135,6 +169,7 @@ export function mapShopifyOrder(node: OrderNode | null | undefined): PublicOrder
           phone: String(ship.phone ?? '').trim(),
         }
       : null,
+    tracking,
     lines,
   }
 }

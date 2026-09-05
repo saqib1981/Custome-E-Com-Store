@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Loader2, Package } from 'lucide-react'
 import { STORE_SECTION_EDGE_CLASS } from '@/lib/breakpoints'
 import {
+  formatOrderPaymentLabel,
   normalizeOrderName,
   orderNameToPathSegment,
   writeOrderAccess,
@@ -231,7 +232,7 @@ export default function OrderLookupView({
                       {order.createdAt
                         ? new Date(order.createdAt).toLocaleString()
                         : '—'}{' '}
-                      · {order.financialStatus}
+                      · {formatOrderPaymentLabel(order.financialStatus)}
                     </span>
                   </span>
                   <span className="shrink-0 text-sm font-medium text-gray-900">{order.total}</span>

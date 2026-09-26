@@ -54,6 +54,9 @@ export function getThemePageByPath(path: string): AdminThemePage | undefined {
   if (normalized === '/account') {
     return ADMIN_THEME_PAGES.find((page) => page.id === 'account')
   }
+  if (normalized.startsWith('/pages/')) {
+    return undefined
+  }
 
   return undefined
 }
@@ -62,5 +65,10 @@ export function resolveThemePageLabel(path: string): string {
   const page = getThemePageByPath(path)
   if (page) return page.name
   if (path === '/') return 'Home page'
+  const normalized = (path.split('?')[0] || '/').replace(/\/+$/, '') || '/'
+  if (normalized.startsWith('/pages/')) {
+    const handle = normalized.slice('/pages/'.length)
+    return handle ? `Page · ${handle}` : 'Page'
+  }
   return path
 }

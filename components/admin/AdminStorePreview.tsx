@@ -21,6 +21,7 @@ import CartDrawer from '@/components/cart/CartDrawer'
 import CartPageView from '@/components/cart/CartPageView'
 import AccountPageView from '@/components/account/AccountPageView'
 import CheckoutPageView from '@/components/checkout/CheckoutPageView'
+import ShopifyPagePreview from '@/components/pages/ShopifyPagePreview'
 import { useAdminEditor } from '@/context/AdminEditorContext'
 import { useCart } from '@/context/CartContext'
 import {
@@ -31,6 +32,7 @@ import { resolveThemePageLabel } from '@/lib/admin-theme-pages'
 import { parseCollectionHandleFromPath } from '@/lib/collection-products'
 import { parseProductHandleFromPath } from '@/lib/product-page'
 import { buildSearchPath, parseSearchQueryFromPath } from '@/lib/search'
+import { parseShopifyPageHandleFromPath } from '@/lib/shopify-pages'
 import { FALLBACK_MAIN_MENU, type StoreNavItem } from '@/lib/shopify-menu'
 import { MENU_ADMIN_PREVIEW_REFRESH_MS } from '@/lib/store-menu-client'
 
@@ -254,6 +256,7 @@ export default function AdminStorePreview() {
   const searchPreviewQuery = parseSearchQueryFromPath(previewPath)
   const collectionPreviewHandle = parseCollectionHandleFromPath(previewPath)
   const productPreviewHandle = parseProductHandleFromPath(previewPath)
+  const shopifyPagePreviewHandle = parseShopifyPageHandleFromPath(previewPath)
 
   // Only auto-open popup when editing Search settings from another page — not on /search itself.
   useEffect(() => {
@@ -458,6 +461,8 @@ export default function AdminStorePreview() {
                 preview
                 onPreviewNavigate={setPreviewPath}
               />
+            ) : shopifyPagePreviewHandle ? (
+              <ShopifyPagePreview handle={shopifyPagePreviewHandle} />
             ) : (
               <div className="flex flex-1 flex-col p-8 sm:p-12">
                 <>

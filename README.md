@@ -86,12 +86,14 @@ Legacy env names still work: `Shopify_Store_URL`, `Shopify_Store_Client_ID`, `Sh
 | `read_orders` | Order status + history (`/orders`) |
 | `write_customers` | Checkout marketing checkbox → email/SMS subscriber |
 | `read_customers` | Match existing customers by email/phone |
+| `read_content` | Online Store pages at `/pages/{handle}` (About, Shipping, Privacy, FAQ, …) |
 
 **Recommended:**
 
 | Scope | Used for |
 | --- | --- |
 | `read_markets` | Checkout Country/Region from Markets |
+| `unauthenticated_read_content` | Preferred Storefront path for public `/pages/{handle}` (falls back to Admin `read_content`) |
 
 After changing scopes: **release a new app version**, then **install / approve** on that store.  
 If menus fail with *Access denied for menus field*, the scope is missing on that store’s install.
@@ -99,6 +101,14 @@ If menus fail with *Access denied for menus field*, the scope is missing on that
 - Connection check: `GET /api/admin/shopify-connection` (also shown in Header → Navigation panel).
 - Default menu handle: **`main-menu`** (override with `SHOPIFY_MAIN_MENU_HANDLE`).
 - Admin uploads go to **Shopify Files**; only permanent CDN URLs are saved in Supabase `store_settings`.
+
+### Online Store pages (`/pages/{handle}`)
+
+Footer Help links (About Us, Shipping, Privacy, FAQ, …) use paths like `/pages/shipping-payments`. This app renders them from Shopify **Online Store → Pages**:
+
+1. Create/publish the page in Shopify Admin (handle must match the footer href).
+2. Enable **`read_content`** on the Dev Dashboard app (and ideally Storefront **`unauthenticated_read_content`**), then release + reinstall.
+3. Visit `https://YOUR-DOMAIN/pages/{handle}` — content loads from Shopify HTML body.
 
 ---
 

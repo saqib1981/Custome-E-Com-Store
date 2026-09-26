@@ -47,6 +47,12 @@ export const SHOPIFY_REQUIRED_SCOPES = [
     description:
       'Match existing Shopify customers by email/phone so checkout does not fail with “phone already taken”',
   },
+  {
+    handle: 'read_content',
+    label: 'Online Store pages',
+    description:
+      'Footer / Help links → /pages/{handle} (About Us, Shipping, Privacy, FAQ, etc.)',
+  },
 ] as const
 
 /**
@@ -63,6 +69,12 @@ export const SHOPIFY_RECOMMENDED_SCOPES = [
     handle: 'unauthenticated_read_product_listings',
     label: 'Storefront product listings',
     description: 'Needed so Admin API can create a Storefront access token for /account login',
+  },
+  {
+    handle: 'unauthenticated_read_content',
+    label: 'Storefront pages (content)',
+    description:
+      'Preferred path for public /pages/{handle} via Storefront API (falls back to Admin read_content)',
   },
 ] as const
 

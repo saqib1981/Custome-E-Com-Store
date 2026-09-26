@@ -271,23 +271,51 @@ body {
   max-width: 100%;
 }
 
-.product-description ul {
+.product-description ul,
+.shopify-page-body ul {
   margin: 0.5rem 0 0;
   list-style: disc;
   padding-left: 1.25rem;
 }
 
-.product-description li {
+.product-description li,
+.shopify-page-body li {
   margin: 0.25rem 0;
 }
 
-.product-description p {
+.product-description p,
+.shopify-page-body p {
   margin: 0.5rem 0;
 }
 
-.product-description strong {
+.product-description strong,
+.shopify-page-body strong {
   font-weight: 600;
   color: #111827;
+}
+
+.shopify-page-body h2 {
+  margin: 1.5rem 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.shopify-page-body h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.shopify-page-body a {
+  color: #111827;
+  text-decoration: underline;
+}
+
+.shopify-page-body img {
+  height: auto;
+  max-width: 100%;
 }
 
 /* Product cards — title always 1 line, ellipsis for overflow (all viewports). */

@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   HERO_BANNER_DESIGN_WIDTH,
   heroBannerAspectRatio,
@@ -10,6 +10,8 @@ import {
 } from '@/lib/hero-banner'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import { isPreviewMobileLayout, isPreviewWideLayout } from '@/lib/preview-viewport'
+
+const SWIPE_MIN_PX = 48
 
 type HeroBannerViewProps = {
   config: HeroBannerConfig
@@ -45,7 +47,7 @@ function SlidePicture({
     const src = mobile || desktop
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" draggable={false} />
     )
   }
 
@@ -53,7 +55,7 @@ function SlidePicture({
     const src = desktop || mobile
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img src={src} alt={slide.alt} className="hero-banner__slide-media" loading="eager" draggable={false} />
     )
   }
 
@@ -61,7 +63,7 @@ function SlidePicture({
   if (same) {
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
-      <img src={desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img src={desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" draggable={false} />
     )
   }
 
@@ -69,7 +71,13 @@ function SlidePicture({
     <picture className="block h-full w-full leading-none max-md:h-auto max-md:w-full">
       {desktop ? <source media="(min-width: 768px)" srcSet={desktop} /> : null}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={mobile || desktop} alt={slide.alt} className="hero-banner__slide-media" loading="eager" />
+      <img
+        src={mobile || desktop}
+        alt={slide.alt}
+        className="hero-banner__slide-media"
+        loading="eager"
+        draggable={false}
+      />
     </picture>
   )
 }
@@ -132,6 +140,12 @@ export default function HeroBannerView({
 }: HeroBannerViewProps) {
   const { enabled, slides, autoplay, autoplaySeconds, heightDesktop } = config
   const [activeIndex, setActiveIndex] = useState(0)
+  const [paused, setPaused] = useState(false)
+  const sectionRef = useRef<HTMLElement>(null)
+  const touchStart = useRef<{ x: number; y: number; dragging: boolean } | null>(null)
+  const suppressClick = useRef(false)
+  const activeIndexRef = useRef(activeIndex)
+  activeIndexRef.current = activeIndex
 
   const imageLayout = resolveImageLayout(preview, previewViewport)
   const desktopAspect = heroBannerAspectRatio(
@@ -139,6 +153,7 @@ export default function HeroBannerView({
     heightDesktop,
     800
   )
+  const canSwipe = slides.length > 1
 
   const goTo = useCallback(
     (index: number) => {
@@ -153,13 +168,90 @@ export default function HeroBannerView({
   }, [slides])
 
   useEffect(() => {
-    if (!enabled || !autoplay || slides.length <= 1) return
+    if (!enabled || !autoplay || paused || slides.length <= 1) return
     const ms = autoplaySeconds * 1000
     const id = window.setInterval(() => {
       setActiveIndex((prev) => (prev + 1) % slides.length)
     }, ms)
     return () => window.clearInterval(id)
-  }, [enabled, autoplay, autoplaySeconds, slides.length])
+  }, [enabled, autoplay, autoplaySeconds, slides.length, paused])
+
+  // Native listeners (non-passive) so horizontal swipe can call preventDefault.
+  useEffect(() => {
+    const el = sectionRef.current
+    if (!el || !canSwipe) return
+
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0]
+      if (!t) return
+      touchStart.current = { x: t.clientX, y: t.clientY, dragging: false }
+      setPaused(true)
+    }
+
+    const onMove = (e: TouchEvent) => {
+      if (!touchStart.current) return
+      const t = e.touches[0]
+      if (!t) return
+      const dx = t.clientX - touchStart.current.x
+      const dy = t.clientY - touchStart.current.y
+
+      if (!touchStart.current.dragging) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
+        // Vertical page scroll wins
+        if (Math.abs(dy) > Math.abs(dx)) {
+          touchStart.current = null
+          setPaused(false)
+          return
+        }
+        touchStart.current.dragging = true
+      }
+
+      e.preventDefault()
+    }
+
+    const onEnd = (e: TouchEvent) => {
+      const start = touchStart.current
+      touchStart.current = null
+      setPaused(false)
+      if (!start) return
+
+      const t = e.changedTouches[0]
+      if (!t) return
+      const dx = t.clientX - start.x
+      const dy = t.clientY - start.y
+      if (!start.dragging && Math.abs(dx) < SWIPE_MIN_PX) return
+      if (Math.abs(dx) < SWIPE_MIN_PX || Math.abs(dx) < Math.abs(dy)) return
+
+      suppressClick.current = true
+      const current = activeIndexRef.current
+      if (dx < 0) goTo(current + 1)
+      else goTo(current - 1)
+    }
+
+    const onCancel = () => {
+      touchStart.current = null
+      setPaused(false)
+    }
+
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd, { passive: true })
+    el.addEventListener('touchcancel', onCancel, { passive: true })
+
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchcancel', onCancel)
+    }
+  }, [canSwipe, goTo])
+
+  const onClickCapture = (e: React.MouseEvent) => {
+    if (!suppressClick.current) return
+    e.preventDefault()
+    e.stopPropagation()
+    suppressClick.current = false
+  }
 
   if (!enabled || !slides.length) return null
 
@@ -180,16 +272,19 @@ export default function HeroBannerView({
     'hero-banner relative block w-full shrink-0 overflow-hidden leading-none bg-gray-100',
     isPreviewMobile ? 'hero-banner--preview-mobile' : '',
     isPreviewWide ? 'hero-banner--preview-desktop' : '',
+    canSwipe ? 'touch-pan-y select-none' : '',
   ]
     .filter(Boolean)
     .join(' ')
 
   return (
     <section
+      ref={sectionRef}
       className={sectionClass}
       style={sectionStyle}
       aria-label="Hero slider"
       aria-roledescription="carousel"
+      onClickCapture={onClickCapture}
     >
       {slides.map((slide, index) => {
         const active = index === activeIndex

@@ -16,9 +16,18 @@ import { fetchShopifyCollectionWithProducts } from '@/lib/shopify-collections-se
 import { isSupabaseConfigured } from '@/lib/supabase-server'
 import { readStoreSettingValue, writeStoreSettingValue } from '@/lib/store-settings-server'
 
+function isOnSale(
+  product: Awaited<ReturnType<typeof fetchShopifyCollectionWithProducts>>['products'][number]
+): boolean {
+  const price = Number(product.priceAmount)
+  const compare = Number(product.compareAtAmount)
+  return Number.isFinite(price) && Number.isFinite(compare) && compare > price
+}
+
 function mapProduct(
   product: Awaited<ReturnType<typeof fetchShopifyCollectionWithProducts>>['products'][number]
 ): ResolvedCollectionTabProduct {
+  const onSale = isOnSale(product)
   return {
     id: product.id,
     title: product.title,
@@ -26,6 +35,10 @@ function mapProduct(
     imageUrl: product.imageUrl,
     imageAlt: product.imageAlt,
     price: formatMoney(product.priceAmount, product.priceCurrency),
+    compareAtPrice: onSale
+      ? formatMoney(product.compareAtAmount, product.compareAtCurrency)
+      : '',
+    onSale,
   }
 }
 

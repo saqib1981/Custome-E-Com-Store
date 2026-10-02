@@ -66,13 +66,26 @@ function ProductCard({
               No image
             </div>
           )}
+          {product.onSale ? (
+            <span className="absolute right-2 top-2 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              Sale
+            </span>
+          ) : null}
         </div>
         <div className="space-y-1 p-2.5">
-          <p className="line-clamp-2 text-sm font-medium text-gray-900 group-hover:text-primary-600 dark:text-gray-100">
+          <p
+            className="store-product-card-title w-full min-w-0 text-sm font-medium leading-tight text-gray-900 group-hover:text-primary-600 dark:text-gray-100"
+            title={product.title}
+          >
             {product.title}
           </p>
           {product.price ? (
-            <p className="text-sm text-gray-600 dark:text-gray-300">{product.price}</p>
+            <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{product.price}</p>
+              {product.compareAtPrice ? (
+                <p className="text-sm text-gray-400 line-through">{product.compareAtPrice}</p>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>

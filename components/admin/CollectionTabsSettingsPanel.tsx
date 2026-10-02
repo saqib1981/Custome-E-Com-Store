@@ -162,6 +162,7 @@ export default function CollectionTabsSettingsPanel() {
             <option value={4}>4 products</option>
             <option value={8}>8 products</option>
             <option value={12}>12 products</option>
+            <option value={24}>24 products</option>
           </select>
         </div>
       </SettingsCollapsibleSection>

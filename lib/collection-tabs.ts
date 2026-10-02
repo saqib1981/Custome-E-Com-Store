@@ -20,6 +20,9 @@ export type ResolvedCollectionTabProduct = {
   imageUrl: string
   imageAlt: string
   price: string
+  /** Compare-at (struck-through) when on sale; empty otherwise. */
+  compareAtPrice: string
+  onSale: boolean
 }
 
 export type ResolvedCollectionTab = {
@@ -37,7 +40,7 @@ export const DEFAULT_COLLECTION_TABS: CollectionTabsConfig = {
   tabs: [],
 }
 
-const PRODUCTS_PER_TAB_OPTIONS = [4, 8, 12] as const
+const PRODUCTS_PER_TAB_OPTIONS = [4, 8, 12, 24] as const
 
 function createTabId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {

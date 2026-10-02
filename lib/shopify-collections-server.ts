@@ -610,7 +610,7 @@ export async function fetchShopifyCollectionWithProducts(
   selection: { collectionId?: string; collectionHandle?: string },
   productCount = 8
 ): Promise<{ collection: ShopifyCollectionSummary | null; products: ShopifyCollectionProduct[] }> {
-  const limit = Math.min(Math.max(productCount, 1), 12)
+  const limit = Math.min(Math.max(productCount, 1), 24)
   const page = await fetchShopifyCollectionProductsPage({
     collectionId: selection.collectionId,
     collectionHandle: selection.collectionHandle,

@@ -83,7 +83,7 @@ function ProductCard({
             <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{product.price}</p>
               {product.compareAtPrice ? (
-                <p className="text-sm text-gray-400 line-through">{product.compareAtPrice}</p>
+                <p className="text-sm text-red-600 line-through">{product.compareAtPrice}</p>
               ) : null}
             </div>
           ) : null}

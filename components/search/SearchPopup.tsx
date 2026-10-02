@@ -258,7 +258,7 @@ export default function SearchPopup({
                                 {hit.price}
                               </span>
                               {hit.compareAtPrice ? (
-                                <span className="text-gray-400 line-through">
+                                <span className="text-red-600 line-through">
                                   {hit.compareAtPrice}
                                 </span>
                               ) : null}

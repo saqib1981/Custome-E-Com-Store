@@ -109,7 +109,7 @@ export default function StoreProductCard({
               </p>
             )}
             {product.compareAtPrice ? (
-              <p className="text-sm text-gray-400 line-through">{product.compareAtPrice}</p>
+              <p className="text-sm text-red-600 line-through">{product.compareAtPrice}</p>
             ) : null}
           </div>
         </div>

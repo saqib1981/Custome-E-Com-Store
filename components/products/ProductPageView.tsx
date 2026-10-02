@@ -280,7 +280,7 @@ export default function ProductPageView({
               </p>
             ) : null}
             {selectedVariant?.compareAtPrice ? (
-              <p className="text-base text-gray-400 line-through">{selectedVariant.compareAtPrice}</p>
+              <p className="text-base text-red-600 line-through">{selectedVariant.compareAtPrice}</p>
             ) : null}
           </div>
 

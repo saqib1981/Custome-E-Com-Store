@@ -86,7 +86,7 @@ export default function CartLineList({
                 <p className="mt-1 text-sm font-medium text-gray-900">
                   {line.price}
                   {line.compareAtPrice ? (
-                    <span className="ml-2 text-xs font-normal text-gray-400 line-through">
+                    <span className="ml-2 text-xs font-normal text-red-600 line-through">
                       {line.compareAtPrice}
                     </span>
                   ) : null}

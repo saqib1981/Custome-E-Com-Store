@@ -55,6 +55,7 @@ function mapProduct(
     createdAt: product.createdAt,
     hasNewTag: taggedNew,
     available: product.available,
+    customBadge: product.bundleOfferTag,
   })
 }
 

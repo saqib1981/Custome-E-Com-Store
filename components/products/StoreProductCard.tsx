@@ -7,6 +7,7 @@ import {
   type CollectionProductCard,
   type CollectionProductCardAspect,
 } from '@/lib/collection-products'
+import { DEFAULT_BADGES } from '@/lib/badges'
 
 type StoreProductCardProps = {
   product: CollectionProductCard
@@ -14,6 +15,9 @@ type StoreProductCardProps = {
   onPreviewNavigate?: (path: string) => void
   showSaleBadge?: boolean
   showNewBadge?: boolean
+  showCustomBadge?: boolean
+  customBadgeBackgroundColor?: string
+  customBadgeTextColor?: string
   imageAspect?: CollectionProductCardAspect
 }
 
@@ -53,11 +57,16 @@ export default function StoreProductCard({
   onPreviewNavigate,
   showSaleBadge = true,
   showNewBadge = true,
+  showCustomBadge = true,
+  customBadgeBackgroundColor = DEFAULT_BADGES.customBadgeBackgroundColor,
+  customBadgeTextColor = DEFAULT_BADGES.customBadgeTextColor,
   imageAspect = 'square',
 }: StoreProductCardProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const showImage = Boolean(product.imageUrl) && !imageFailed
   const aspectClass = collectionProductCardAspectClass(imageAspect)
+  const customLabel = showCustomBadge ? product.customBadge.trim() : ''
+  const showLeftStack = (showNewBadge && product.isNew) || Boolean(customLabel)
 
   return (
     <ProductLink href={product.href} preview={preview} onPreviewNavigate={onPreviewNavigate}>
@@ -77,10 +86,25 @@ export default function StoreProductCard({
               {product.imageAlt || product.title || 'No image'}
             </div>
           )}
-          {showNewBadge && product.isNew ? (
-            <span className="absolute left-2 top-2 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-              New
-            </span>
+          {showLeftStack ? (
+            <div className="absolute left-2 top-2 flex flex-col items-start gap-1">
+              {showNewBadge && product.isNew ? (
+                <span className="rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  New
+                </span>
+              ) : null}
+              {customLabel ? (
+                <span
+                  className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  style={{
+                    backgroundColor: customBadgeBackgroundColor,
+                    color: customBadgeTextColor,
+                  }}
+                >
+                  {customLabel}
+                </span>
+              ) : null}
+            </div>
           ) : null}
           {showSaleBadge && product.onSale ? (
             <span className="absolute right-2 top-2 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">

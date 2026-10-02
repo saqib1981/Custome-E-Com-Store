@@ -62,6 +62,11 @@ export type CollectionProductCard = {
   /** True when product has Shopify tag `new`. */
   hasNewTag: boolean
   available: boolean
+  /**
+   * Custom left badge from Shopify metafield `custom.bunndle_offer_tags`
+   * (product value, else parent collection).
+   */
+  customBadge: string
 }
 
 export type CollectionProductsPage = {
@@ -221,6 +226,7 @@ export function toCollectionProductCard(input: {
   createdAt?: string
   hasNewTag?: boolean
   available: boolean
+  customBadge?: string
 }): CollectionProductCard {
   const createdAt = String(input.createdAt ?? '').trim()
   const hasNewTag = Boolean(input.hasNewTag)
@@ -237,5 +243,6 @@ export function toCollectionProductCard(input: {
     createdAt,
     hasNewTag,
     available: input.available,
+    customBadge: String(input.customBadge ?? '').trim(),
   }
 }

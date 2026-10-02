@@ -6,10 +6,12 @@ import type { CollectionProductCard } from '@/lib/collection-products'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import type { ProductPageContentWidth } from '@/lib/product-page'
 import type { ProductCardsSectionConfig } from '@/lib/related-products'
+import type { BadgesConfig } from '@/lib/badges'
+import { DEFAULT_BADGES } from '@/lib/badges'
 import { isPreviewMobileLayout } from '@/lib/preview-viewport'
 
 type RelatedProductsViewProps = {
-  config: ProductCardsSectionConfig
+  config: ProductCardsSectionConfig & Partial<BadgesConfig>
   products: CollectionProductCard[]
   loading?: boolean
   preview?: boolean
@@ -118,6 +120,13 @@ export default function RelatedProductsView({
               onPreviewNavigate={onPreviewNavigate}
               showSaleBadge={config.showSaleBadge}
               showNewBadge={config.showNewBadge}
+              showCustomBadge={config.showCustomBadge ?? DEFAULT_BADGES.showCustomBadge}
+              customBadgeBackgroundColor={
+                config.customBadgeBackgroundColor ?? DEFAULT_BADGES.customBadgeBackgroundColor
+              }
+              customBadgeTextColor={
+                config.customBadgeTextColor ?? DEFAULT_BADGES.customBadgeTextColor
+              }
               imageAspect={config.cardImageAspect}
             />
           ))}

@@ -396,6 +396,7 @@ export default function AdminStorePreview() {
                   preview
                   previewViewport={previewViewport}
                   configOverride={collectionTabsPreview}
+                  badgesOverride={badgesPreview}
                   onPreviewNavigate={setPreviewPath}
                 />
                 <HomeDividerSection config={homeDividerAfterTabsPreview} />

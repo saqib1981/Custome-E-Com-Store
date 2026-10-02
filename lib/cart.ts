@@ -240,5 +240,6 @@ export function cartLineToPreviewCard(line: CartLine): CollectionProductCard {
     createdAt: '',
     hasNewTag: false,
     available: line.available,
+    customBadge: '',
   }
 }

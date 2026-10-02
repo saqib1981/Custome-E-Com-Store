@@ -7,6 +7,7 @@ import {
   type CollectionTabsConfig,
   type ResolvedCollectionTab,
 } from '@/lib/collection-tabs'
+import type { BadgesConfig } from '@/lib/badges'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 import {
   PREVIEW_SECTION_RESOLVE_DEBOUNCE_MS,
@@ -17,6 +18,7 @@ type CollectionTabsProps = {
   preview?: boolean
   previewViewport?: PreviewViewport
   configOverride?: CollectionTabsConfig
+  badgesOverride?: BadgesConfig
   onPreviewNavigate?: (path: string) => void
 }
 
@@ -24,6 +26,7 @@ export default function CollectionTabs({
   preview = false,
   previewViewport,
   configOverride,
+  badgesOverride,
   onPreviewNavigate,
 }: CollectionTabsProps) {
   const [config, setConfig] = useState<CollectionTabsConfig>(configOverride ?? DEFAULT_COLLECTION_TABS)
@@ -131,6 +134,7 @@ export default function CollectionTabs({
       preview={preview}
       previewViewport={previewViewport}
       onPreviewNavigate={onPreviewNavigate}
+      badgesOverride={badgesOverride}
     />
   )
 }

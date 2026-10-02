@@ -40,6 +40,7 @@ function mapProduct(product: ShopifyCollectionProduct, newBadgeDays: number) {
     createdAt: product.createdAt,
     hasNewTag: taggedNew,
     available: product.available,
+    customBadge: product.bundleOfferTag,
   })
 }
 

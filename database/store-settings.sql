@@ -567,7 +567,10 @@ values (
   jsonb_build_object(
     'showSaleBadge', true,
     'showNewBadge', true,
-    'newBadgeDays', 30
+    'newBadgeDays', 30,
+    'showCustomBadge', true,
+    'customBadgeBackgroundColor', '#dc2626',
+    'customBadgeTextColor', '#ffffff'
   )
 )
 on conflict (key) do nothing;

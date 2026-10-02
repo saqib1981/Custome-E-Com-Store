@@ -38,6 +38,23 @@ type CollectionNodeWithProducts = {
   sortOrder?: string | null
   productsCount?: { count?: number | null } | null
   products?: { nodes: CollectionProductNode[] }
+  metafield?: { value?: string | null } | null
+}
+
+/** Product/collection badge metafield (typo in key matches Shopify definition). */
+export const BUNDLE_OFFER_TAGS_METAFIELD = {
+  namespace: 'custom',
+  key: 'bunndle_offer_tags',
+} as const
+
+const BUNDLE_OFFER_TAGS_METAFIELD_FRAGMENT = `
+  metafield(namespace: "${BUNDLE_OFFER_TAGS_METAFIELD.namespace}", key: "${BUNDLE_OFFER_TAGS_METAFIELD.key}") {
+    value
+  }
+`
+
+function readBundleOfferTag(node: { metafield?: { value?: string | null } | null } | null | undefined): string {
+  return String(node?.metafield?.value ?? '').trim()
 }
 
 const COLLECTION_PRODUCT_COUNT_FRAGMENT = `
@@ -120,6 +137,7 @@ function mapCollectionNode(node: CollectionNodeWithProducts): ShopifyCollectionS
     imageAlt,
     productCount: resolveProductCount(node),
     sortOrder: String(node.sortOrder ?? '').trim() || undefined,
+    bundleOfferTag: readBundleOfferTag(node) || undefined,
   }
 }
 
@@ -265,6 +283,8 @@ export type ShopifyCollectionProduct = {
   available: boolean
   createdAt: string
   tags: string[]
+  /** Product metafield `custom.bunndle_offer_tags` (may be empty). */
+  bundleOfferTag: string
 }
 
 type ShopifyProductCardNode = {
@@ -281,6 +301,7 @@ type ShopifyProductCardNode = {
   compareAtPriceRange?: {
     minVariantCompareAtPrice?: { amount?: string | null; currencyCode?: string | null } | null
   } | null
+  metafield?: { value?: string | null } | null
 }
 
 type CollectionProductsConnection = {
@@ -288,12 +309,16 @@ type CollectionProductsConnection = {
   nodes: ShopifyProductCardNode[]
 }
 
-type CollectionProductsQueryNode = CollectionNodeWithProducts & {
+type CollectionProductsQueryNode = Omit<CollectionNodeWithProducts, 'products'> & {
   products?: CollectionProductsConnection
 }
 
-function mapCollectionProduct(node: ShopifyProductCardNode): ShopifyCollectionProduct {
+function mapCollectionProduct(
+  node: ShopifyProductCardNode,
+  collectionBundleOfferTag = ''
+): ShopifyCollectionProduct {
   const inventory = typeof node.totalInventory === 'number' ? node.totalInventory : null
+  const productTag = readBundleOfferTag(node)
   return {
     id: node.id,
     title: node.title,
@@ -312,6 +337,7 @@ function mapCollectionProduct(node: ShopifyProductCardNode): ShopifyCollectionPr
     tags: Array.isArray(node.tags)
       ? node.tags.map((tag) => String(tag ?? '').trim()).filter(Boolean)
       : [],
+    bundleOfferTag: productTag || String(collectionBundleOfferTag ?? '').trim(),
   }
 }
 
@@ -338,6 +364,7 @@ const PRODUCT_CARD_FIELDS = `
       currencyCode
     }
   }
+  ${BUNDLE_OFFER_TAGS_METAFIELD_FRAGMENT}
 `
 
 export type ShopifyCollectionProductsPageResult = {
@@ -469,7 +496,7 @@ export async function fetchShopifyCollectionProductsPage(options: {
         { first, after, sortKey, reverse }
       )
 
-      const products = data.products?.nodes?.map(mapCollectionProduct) ?? []
+      const products = data.products?.nodes?.map((node) => mapCollectionProduct(node)) ?? []
       const hasNextPage = Boolean(data.products?.pageInfo?.hasNextPage)
       return {
         collection: {
@@ -511,6 +538,7 @@ export async function fetchShopifyCollectionProductsPage(options: {
                 url
                 altText
               }
+              ${BUNDLE_OFFER_TAGS_METAFIELD_FRAGMENT}
               ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
               products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
                 pageInfo {
@@ -529,7 +557,10 @@ export async function fetchShopifyCollectionProductsPage(options: {
 
       const collection = data.collection ? mapCollectionNode(data.collection) : null
       const collectionSort = mapShopifyCollectionSortOrder(data.collection?.sortOrder)
-      const products = data.collection?.products?.nodes?.map(mapCollectionProduct) ?? []
+      const collectionTag = collection?.bundleOfferTag ?? ''
+      const products =
+        data.collection?.products?.nodes?.map((node) => mapCollectionProduct(node, collectionTag)) ??
+        []
       return {
         collection,
         products,
@@ -563,6 +594,7 @@ export async function fetchShopifyCollectionProductsPage(options: {
                 url
                 altText
               }
+              ${BUNDLE_OFFER_TAGS_METAFIELD_FRAGMENT}
               ${COLLECTION_PRODUCT_COUNT_FRAGMENT}
               products(first: $first, after: $after, sortKey: $sortKey, reverse: $reverse) {
                 pageInfo {
@@ -583,7 +615,11 @@ export async function fetchShopifyCollectionProductsPage(options: {
         ? mapCollectionNode(data.collectionByHandle)
         : null
       const collectionSort = mapShopifyCollectionSortOrder(data.collectionByHandle?.sortOrder)
-      const products = data.collectionByHandle?.products?.nodes?.map(mapCollectionProduct) ?? []
+      const collectionTag = collection?.bundleOfferTag ?? ''
+      const products =
+        data.collectionByHandle?.products?.nodes?.map((node) =>
+          mapCollectionProduct(node, collectionTag)
+        ) ?? []
       return {
         collection,
         products,

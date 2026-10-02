@@ -291,6 +291,9 @@ export default function CollectionProducts({
       }
       showSaleBadge={displayConfig.showSaleBadge}
       showNewBadge={displayConfig.showNewBadge}
+      showCustomBadge={displayConfig.showCustomBadge}
+      customBadgeBackgroundColor={displayConfig.customBadgeBackgroundColor}
+      customBadgeTextColor={displayConfig.customBadgeTextColor}
       imageAspect={config.cardImageAspect}
       preview={preview}
       previewViewport={previewViewport}

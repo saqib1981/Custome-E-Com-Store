@@ -55,6 +55,7 @@ export function searchHitToProductCard(
     createdAt: '',
     hasNewTag: false,
     available: hit.available !== false,
+    customBadge: '',
   }
 }
 

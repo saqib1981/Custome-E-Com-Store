@@ -7,6 +7,11 @@ export type ShopifyCollectionSummary = {
   productCount?: number
   /** Shopify Admin `Collection.sortOrder` (e.g. BEST_SELLING, MANUAL). */
   sortOrder?: string
+  /**
+   * Collection metafield `custom.bunndle_offer_tags` — shown as product-card badge
+   * when the product itself has no value.
+   */
+  bundleOfferTag?: string
 }
 
 export function shopifyCollectionPath(handle: string): string {

@@ -39,6 +39,7 @@ function mapProduct(
       ? formatMoney(product.compareAtAmount, product.compareAtCurrency)
       : '',
     onSale,
+    customBadge: product.bundleOfferTag,
   }
 }
 

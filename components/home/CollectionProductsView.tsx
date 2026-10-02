@@ -35,6 +35,9 @@ type CollectionProductsViewProps = {
   error?: string | null
   showSaleBadge?: boolean
   showNewBadge?: boolean
+  showCustomBadge?: boolean
+  customBadgeBackgroundColor?: string
+  customBadgeTextColor?: string
   imageAspect?: CollectionProductCardAspect
   preview?: boolean
   previewViewport?: PreviewViewport
@@ -401,6 +404,9 @@ export default function CollectionProductsView({
   error = null,
   showSaleBadge = true,
   showNewBadge = true,
+  showCustomBadge = true,
+  customBadgeBackgroundColor,
+  customBadgeTextColor,
   imageAspect = 'square',
   preview = false,
   previewViewport,
@@ -519,6 +525,9 @@ export default function CollectionProductsView({
                 onPreviewNavigate={onPreviewNavigate}
                 showSaleBadge={showSaleBadge}
                 showNewBadge={showNewBadge}
+                showCustomBadge={showCustomBadge}
+                customBadgeBackgroundColor={customBadgeBackgroundColor}
+                customBadgeTextColor={customBadgeTextColor}
                 imageAspect={imageAspect}
               />
             ))}

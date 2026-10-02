@@ -27,7 +27,7 @@ export const GLOBAL_SETTINGS_ITEMS: AdminGlobalSettingItem[] = [
   {
     id: 'badges',
     name: 'Badges',
-    description: 'Sale and New badges store-wide',
+    description: 'Sale, New, and Bundle offer badges',
     icon: Tag,
   },
   {

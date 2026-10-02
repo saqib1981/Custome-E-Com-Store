@@ -23,6 +23,8 @@ export type ResolvedCollectionTabProduct = {
   /** Compare-at (struck-through) when on sale; empty otherwise. */
   compareAtPrice: string
   onSale: boolean
+  /** Custom left badge from `custom.bunndle_offer_tags`. */
+  customBadge: string
 }
 
 export type ResolvedCollectionTab = {

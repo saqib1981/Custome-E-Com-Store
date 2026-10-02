@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useBadgesConfig } from '@/components/useBadgesConfig'
 import { STORE_SECTION_EDGE_X_CLASS } from '@/lib/breakpoints'
+import type { BadgesConfig } from '@/lib/badges'
 import type { CollectionTabsConfig, ResolvedCollectionTab } from '@/lib/collection-tabs'
 import type { PreviewViewport } from '@/lib/preview-viewport'
 
@@ -12,6 +14,7 @@ type CollectionTabsViewProps = {
   preview?: boolean
   previewViewport?: PreviewViewport
   onPreviewNavigate?: (path: string) => void
+  badgesOverride?: BadgesConfig
 }
 
 function ProductLink({
@@ -44,11 +47,16 @@ function ProductCard({
   product,
   preview,
   onPreviewNavigate,
+  badges,
 }: {
   product: ResolvedCollectionTab['products'][number]
   preview?: boolean
   onPreviewNavigate?: (path: string) => void
+  badges: BadgesConfig
 }) {
+  const customLabel =
+    badges.showCustomBadge && product.customBadge ? product.customBadge.trim() : ''
+
   return (
     <ProductLink href={product.href} preview={preview} onPreviewNavigate={onPreviewNavigate}>
       <div className="overflow-hidden rounded-md bg-gray-50 ring-1 ring-gray-200 transition group-hover:ring-primary-400 dark:bg-gray-800 dark:ring-gray-700">
@@ -66,10 +74,25 @@ function ProductCard({
               No image
             </div>
           )}
-          {product.onSale ? (
-            <span className="absolute right-2 top-2 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-              Sale
-            </span>
+          {customLabel || (badges.showSaleBadge && product.onSale) ? (
+            <>
+              {customLabel ? (
+                <span
+                  className="absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  style={{
+                    backgroundColor: badges.customBadgeBackgroundColor,
+                    color: badges.customBadgeTextColor,
+                  }}
+                >
+                  {customLabel}
+                </span>
+              ) : null}
+              {badges.showSaleBadge && product.onSale ? (
+                <span className="absolute right-2 top-2 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                  Sale
+                </span>
+              ) : null}
+            </>
           ) : null}
         </div>
         <div className="space-y-1 p-2.5">
@@ -108,7 +131,9 @@ export default function CollectionTabsView({
   preview = false,
   previewViewport,
   onPreviewNavigate,
+  badgesOverride,
 }: CollectionTabsViewProps) {
+  const badges = useBadgesConfig(badgesOverride)
   const visibleTabs = useMemo(() => tabs.filter((tab) => tab.title && tab.href), [tabs])
   const [activeTabId, setActiveTabId] = useState<string>('')
 
@@ -170,6 +195,7 @@ export default function CollectionTabsView({
                     product={product}
                     preview={preview}
                     onPreviewNavigate={onPreviewNavigate}
+                    badges={badges}
                   />
                 ))
               ) : (
